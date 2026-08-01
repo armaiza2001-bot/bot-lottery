@@ -2,20 +2,22 @@ import telebot
 import requests
 import time
 import threading
-import schedule
 from datetime import datetime
+import pytz
 import os
 from flask import Flask
 
-# ดึงค่าจาก Environment Variables
+# ดึงค่าตัวแปรจาก Render
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 GROUP_CHAT_ID = os.environ.get('GROUP_CHAT_ID')
 
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
+# ตั้งค่าโซนเวลาเป็นของประเทศไทย
+tz = pytz.timezone('Asia/Bangkok')
 
 # ==========================================
-# 🌐 ส่วนของ Web Server (สำหรับ Render)
+# 🌐 ส่วนของ Web Server (กัน Render ปิดบอท)
 # ==========================================
 @app.route('/')
 def home():
@@ -26,19 +28,20 @@ def run_server():
     app.run(host='0.0.0.0', port=port)
 
 # ==========================================
-# 🎰 ระบบเช็คและแจ้งผลหวย
+# 🎰 ระบบเช็คและแจ้งผลหวยฮานอยพิเศษ
 # ==========================================
 def fetch_and_send_lotto():
-    # กำหนดวันที่ของวันนี้
-    today_str = datetime.now().strftime("%d-%m-%Y")
-    
+    today_str = datetime.now(tz).strftime("%d-%m-%Y")
     url = "https://www.xsthm.com/result"
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'User-Agent': 'Mozilla/5.0',
         'Accept': 'application/json'
     }
 
-    print(f"[System] เริ่มจับตาดูผลหวยงวดวันที่ {today_str} ...")
+    print(f"[System] เริ่มดึงข้อมูล งวดวันที่ {today_str} ...")
+    
+    # ส่งข้อความไปบอกแอดมินในกลุ่มว่าเริ่มรอผลแล้ว
+    bot.send_message(GROUP_CHAT_ID, f"⏳ บอทกำลังรอผลหวยฮานอยพิเศษ งวดวันที่ {today_str} ครับ...")
 
     while True:
         try:
@@ -47,10 +50,9 @@ def fetch_and_send_lotto():
                 data = response.json()
                 api_date = data.get("label", "")
                 
-                # ถ้าวันที่ใน API อัปเดตเป็นของวันนี้แล้ว
+                # ถ้าเว็บอัปเดตเป็นของวันนี้แล้ว
                 if api_date == today_str:
                     numbers = data.get("items", [])
-                    
                     if len(numbers) > 0:
                         prize_1 = numbers[0]       
                         prize_special = numbers[-1] 
@@ -58,50 +60,57 @@ def fetch_and_send_lotto():
                         top_3 = prize_special[-3:] 
                         bottom_2 = prize_1[-2:]    
                         
-                        # จัดรูปแบบข้อความ
                         msg = (
-                            f"🇻🇳 **ผลหวยฮานอยพิเศษ ออกแล้ว!** 🇻🇳\n"
+                            f"🇻🇳 **ผลหวยฮานอยพิเศษ** 🇻🇳\n"
                             f"📅 งวดวันที่: {api_date}\n\n"
                             f"🎯 **3 ตัวบน:** {top_3}\n"
                             f"👇 **2 ตัวล่าง:** {bottom_2}\n"
                         )
                         
-                        # ส่งเข้ากลุ่ม
                         bot.send_message(GROUP_CHAT_ID, msg)
                         print("[System] ส่งผลหวยเข้ากลุ่มเรียบร้อยแล้ว!")
-                        
-                        # ทะลุลูปออกไป รอทำงานใหม่วันพรุ่งนี้
-                        break 
+                        break # ทำงานเสร็จ ออกจากลูปได้
                 else:
-                    # ถ้าเว็บยังไม่อัปเดต ให้แสดงข้อความว่ารออีก 10 วินาที
-                    print(f"[System] ผลของวันทียังไม่ออก รออีก 10 วินาที...")
-            
+                    print(f"[System] ผลยังไม่ออก (เว็บแสดง {api_date}) รออีก 10 วินาที...")
+                    
         except Exception as e:
-            print(f"[Error] เกิดข้อผิดพลาดในการดึงข้อมูล: {e}")
+            print(f"[Error] ดึงข้อมูลไม่ได้: {e}")
             
-        # พัก 10 วินาทีแล้วดึง API ใหม่
-        time.sleep(10)
+        time.sleep(10) # พัก 10 วินาทีแล้วเช็คใหม่
 
 # ==========================================
-# ⏰ ระบบตั้งเวลาทำงานอัตโนมัติ (Scheduler)
+# ⏰ ระบบเช็คเวลา 17:30 น. (ตามเวลาไทย)
 # ==========================================
-def schedule_checker():
-    # ตั้งเวลาให้เริ่มเช็คผลตอน 17:30 น. ของทุกวัน
-    schedule.every().day.at("17:30").do(fetch_and_send_lotto)
-    
+def time_checker():
+    has_run_today = False
+    last_check_date = ""
+
     while True:
-        schedule.run_pending()
-        time.sleep(1)
+        now = datetime.now(tz)
+        current_date = now.strftime("%d-%m-%Y")
+
+        # ถ้าระบบขึ้นวันใหม่ ให้รีเซ็ตสถานะ
+        if current_date != last_check_date:
+            has_run_today = False
+            last_check_date = current_date
+
+        # ถ้าถึงเวลา 17:30 น. และยังไม่ได้รันของวันนี้
+        if now.hour == 17 and now.minute == 30 and not has_run_today:
+            has_run_today = True
+            # สั่งให้ฟังก์ชันหาหวยเริ่มทำงาน
+            threading.Thread(target=fetch_and_send_lotto, daemon=True).start()
+
+        time.sleep(30) # เช็คเวลาทุกๆ ครึ่งนาที
 
 # ==========================================
-# 🚀 จุดเริ่มต้นการทำงานของโปรแกรม
+# 🚀 เริ่มการทำงานทั้งหมด
 # ==========================================
 if __name__ == "__main__":
-    # 1. รัน Web Server แยกไปอีก 1 Thread
+    # 1. รัน Web Server
     threading.Thread(target=run_server, daemon=True).start()
     
-    # 2. รันระบบตั้งเวลาแยกไปอีก 1 Thread
-    threading.Thread(target=schedule_checker, daemon=True).start()
+    # 2. รันระบบจับเวลา
+    threading.Thread(target=time_checker, daemon=True).start()
     
     # 3. รันบอท
     print("Bot is up and running...")
