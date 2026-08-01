@@ -72,12 +72,15 @@ def fetch_and_send_lotto():
                         
                         # ทะลุลูปออกไป รอทำงานใหม่วันพรุ่งนี้
                         break 
+                else:
+                    # ถ้าเว็บยังไม่อัปเดต ให้แสดงข้อความว่ารออีก 10 วินาที
+                    print(f"[System] ผลของวันทียังไม่ออก รออีก 10 วินาที...")
             
         except Exception as e:
             print(f"[Error] เกิดข้อผิดพลาดในการดึงข้อมูล: {e}")
             
-        # พัก 30 วินาทีแล้วดึง API ใหม่
-        time.sleep(30)
+        # พัก 10 วินาทีแล้วดึง API ใหม่
+        time.sleep(10)
 
 # ==========================================
 # ⏰ ระบบตั้งเวลาทำงานอัตโนมัติ (Scheduler)
@@ -100,6 +103,6 @@ if __name__ == "__main__":
     # 2. รันระบบตั้งเวลาแยกไปอีก 1 Thread
     threading.Thread(target=schedule_checker, daemon=True).start()
     
-    # 3. รันบอท (เผื่อต้องการเพิ่มคำสั่งพิมพ์คุยกับบอทในอนาคต)
+    # 3. รันบอท
     print("Bot is up and running...")
     bot.infinity_polling()
