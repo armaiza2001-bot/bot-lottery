@@ -316,7 +316,7 @@ def fetch_lao_vip(offset_days=0, is_auto=True):
     while True:
         attempts += 1
         try:
-            res = requests.get(url, headers=headers)
+            res = requests.get(url, headers=headers, timeout=15)
             # รองรับโค้ด 200 (OK) และ 304 (Not Modified) ตามที่คุณแคปมาครับ
             if res.status_code in [200, 304]: 
                 data = res.json()
