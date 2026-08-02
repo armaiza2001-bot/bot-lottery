@@ -292,64 +292,60 @@ def fetch_lao_asean(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.8 ดึงผล: ลาว VIP (21:30) - โหมด Debug
+# 🎰 2.8 ดึงผล: ลาว VIP (21:30) [อัปเดตใช้ API ตัวจริง!]
 # ==========================================
 def fetch_lao_vip(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
-    today_str = target_date.strftime("%d-%m-%Y")
-    url = "https://www.laosviplot.com/"
+    today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # เพิ่ม Headers ให้เนียนเหมือนคนเข้าเว็บผ่านมือถือ
+    # 📌 วันที่ใน API เว็บนี้ใช้รูปแบบ 02/08/2026 (วัน/เดือน/ปี)
+    today_str_api = target_date.strftime("%d/%m/%Y") 
+    
+    # URL ที่ได้มาจากหน้า Network
+    url = "https://laosviplot.com/result"
+    
     headers = {
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Referer': 'https://www.google.com/'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Accept': 'application/json, text/plain, */*'
     }
 
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาว VIP** งวดวันที่ {today_str} ครับ...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาว VIP** งวดวันที่ {today_str_display} ครับ...")
 
     attempts = 0
     while True:
         attempts += 1
         try:
             res = requests.get(url, headers=headers)
-            res.encoding = 'utf-8'
-            
-            # --- 🚀 จุดที่เพิ่มเข้ามาเพื่อดักจับบั๊ก ---
-            print(f"👉 [VIP Debug] สถานะการเข้าเว็บ: {res.status_code}")
-            print(f"👉 [VIP Debug] โค้ดที่บอทเห็น (200 ตัวอักษรแรก): {res.text[:200]}")
-            # ------------------------------------
-            
-            soup = BeautifulSoup(res.text, 'html.parser')
-            text_content = soup.get_text(separator=' ')
-            potential_numbers = re.findall(r'\b\d{4}\b', text_content)
-            
-            year_str = target_date.strftime("%Y")
-            digit4 = None
-            
-            for n in potential_numbers:
-                if n != year_str and not n.startswith('202'): 
-                    digit4 = n
-                    break
-            
-            print(f"👉 [VIP Debug] ตัวเลข 4 หลักที่หาเจอ: {digit4}")
-            
-            if digit4:
-                top_3 = digit4[-3:]  
-                bottom_2 = digit4[:2] 
+            # รองรับโค้ด 200 (OK) และ 304 (Not Modified) ตามที่คุณแคปมาครับ
+            if res.status_code in [200, 304]: 
+                data = res.json()
+                api_date = str(data.get("date", "")).strip()
                 
-                msg = (f"🇱🇦 **ผลหวยลาว VIP** 🇱🇦\n📅 วันที่: {today_str}\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                bot.send_message(GROUP_CHAT_ID, msg)
-                return 
+                # เช็คว่าวันที่ตรงกับที่เราต้องการไหม
+                if api_date == today_str_api:
+                    l1 = str(data.get("lotto_1", "")).strip()
+                    l2 = str(data.get("lotto_2", "")).strip()
+                    l3 = str(data.get("lotto_3", "")).strip()
+                    l4 = str(data.get("lotto_4", "")).strip()
+                    
+                    # ถ้าได้ตัวเลขมาครบ
+                    if l1 and l2 and l3 and l4:
+                        digit4 = l1 + l2 + l3 + l4
+                        top_3 = digit4[-3:]  # 3 ตัวท้าย
+                        bottom_2 = digit4[:2] # 2 ตัวหน้า
+                        
+                        msg = (f"🇱🇦 **ผลหวยลาว VIP** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
         except Exception as e:
-            print(f"👉 [Error] ลาว VIP: {e}")
+            print(f"[Error] ลาว VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาว VIP**: ดึงข้อมูลจากหน้าเว็บไม่สำเร็จ (กรุณาอัปเดตโค้ด HTML)")
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาว VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
-        time.sleep(15)
+        time.sleep(10)
 
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
