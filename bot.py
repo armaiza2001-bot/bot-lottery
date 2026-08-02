@@ -6,7 +6,7 @@ from datetime import datetime
 import pytz
 import os
 from flask import Flask
-from bs4 import BeautifulSoup # นำเข้าเครื่องมือดึงข้อมูลหน้าเว็บ
+from bs4 import BeautifulSoup
 
 # ดึงค่าตัวแปรจาก Render
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
@@ -28,7 +28,7 @@ def run_server():
     app.run(host='0.0.0.0', port=port)
 
 # ==========================================
-# 🎰 2.1 ดึงผล: ฮานอยพิเศษ (API)
+# 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special():
     today_str = datetime.now(tz).strftime("%d-%m-%Y")
@@ -61,7 +61,7 @@ def fetch_hanoi_special():
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.2 ดึงผล: ฮานอยปกติ (Minh Ngoc - Web Scraping + กดกฎให้แน่นขึ้น)
+# 🎰 2.2 ดึงผล: ฮานอยปกติ (18:30)
 # ==========================================
 def fetch_hanoi_normal():
     today_str = datetime.now(tz).strftime("%d-%m-%Y")
@@ -83,11 +83,9 @@ def fetch_hanoi_normal():
                 prize_1 = soup.find(class_='giai1')
 
                 if prize_special and prize_1:
-                    # ทำความสะอาดข้อความ ลบช่องว่างทิ้งให้หมด
                     text_db = prize_special.text.replace(" ", "").strip()
                     text_1 = prize_1.text.replace(" ", "").strip()
                     
-                    # 🔥 กฎเหล็ก: ต้องเป็น "ตัวเลขล้วน" และ "ยาว 5 ตัวเป๊ะ" เท่านั้น ถึงจะแปลว่าหมุนเสร็จแล้ว
                     is_db_ready = len(text_db) == 5 and text_db.isdigit()
                     is_1_ready = len(text_1) == 5 and text_1.isdigit()
 
@@ -104,21 +102,60 @@ def fetch_hanoi_normal():
         time.sleep(15)
 
 # ==========================================
-# 💬 3. ระบบตอบกลับคำสั่ง Telegram (เพิ่มปุ่มเทส)
+# 🎰 2.3 ดึงผล: ฮานอย VIP (19:30) [เพิ่มใหม่!]
+# ==========================================
+def fetch_hanoi_vip():
+    today_str = datetime.now(tz).strftime("%d-%m-%Y")
+    url = "https://www.mlnhngoc.net/mlnhngoc"
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
+
+    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอย VIP** งวดวันที่ {today_str} ครับ...")
+
+    while True:
+        try:
+            res = requests.get(url, headers=headers)
+            if res.status_code == 200:
+                data = res.json()
+                api_date = data.get("label", "")
+                
+                if api_date == today_str:
+                    no1 = data.get("no1", "") # รางวัลพิเศษ
+                    no2 = data.get("no2", "") # รางวัลที่ 1
+                    
+                    # เช็คความชัวร์ว่าตัวเลขมาครบ 5 หลักเป๊ะๆ ถึงจะตัดเลข
+                    if len(no1) == 5 and no1.isdigit() and len(no2) == 5 and no2.isdigit():
+                        top_3 = no1[-3:] 
+                        bottom_2 = no2[-2:]    
+                        
+                        msg = (f"🇻🇳 **ผลหวยฮานอย VIP** 🇻🇳\n📅 วันที่: {api_date}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        break 
+        except Exception as e:
+            print(f"[Error] ฮานอย VIP: {e}")
+        time.sleep(10)
+
+# ==========================================
+# 💬 3. ระบบตอบกลับคำสั่ง Telegram
 # ==========================================
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "สวัสดีครับ! 🤖 บอทแจ้งผลหวยพร้อมทำงานแล้ว\n\n📌 **คำสั่งสำหรับใช้งาน:**\n/start - ดูข้อความนี้\n/test_special - ทดสอบดึงผลฮานอยพิเศษ (เดี๋ยวนี้)\n/test_normal - ทดสอบดึงผลฮานอยปกติ (เดี๋ยวนี้)")
+    bot.reply_to(message, "สวัสดีครับ! 🤖 บอทแจ้งผลหวยฮานอย 3 รอบ พร้อมทำงานแล้ว\n\n📌 **ตารางแจ้งผลอัตโนมัติ:**\n- 17:30 น. : ฮานอยพิเศษ\n- 18:30 น. : ฮานอยปกติ\n- 19:30 น. : ฮานอย VIP\n\n**คำสั่งทดสอบ:**\n/test_special\n/test_normal\n/test_vip")
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
-    bot.reply_to(message, "🛠️ แอดมินสั่งทดสอบดึงผล **ฮานอยพิเศษ** แบบทันที...")
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอยพิเศษ**...")
     threading.Thread(target=fetch_hanoi_special, daemon=True).start()
 
 @bot.message_handler(commands=['test_normal'])
 def test_normal(message):
-    bot.reply_to(message, "🛠️ แอดมินสั่งทดสอบดึงผล **ฮานอยปกติ** แบบทันที...")
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอยปกติ**...")
     threading.Thread(target=fetch_hanoi_normal, daemon=True).start()
+
+@bot.message_handler(commands=['test_vip'])
+def test_vip(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอย VIP**...")
+    threading.Thread(target=fetch_hanoi_vip, daemon=True).start()
 
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -126,6 +163,7 @@ def test_normal(message):
 def time_checker():
     has_run_special = False
     has_run_normal = False
+    has_run_vip = False
     last_check_date = ""
 
     while True:
@@ -135,6 +173,7 @@ def time_checker():
         if current_date != last_check_date:
             has_run_special = False
             has_run_normal = False
+            has_run_vip = False
             last_check_date = current_date
 
         if now.hour == 17 and now.minute == 30 and not has_run_special:
@@ -144,6 +183,10 @@ def time_checker():
         if now.hour == 18 and now.minute == 30 and not has_run_normal:
             has_run_normal = True
             threading.Thread(target=fetch_hanoi_normal, daemon=True).start()
+            
+        if now.hour == 19 and now.minute == 30 and not has_run_vip:
+            has_run_vip = True
+            threading.Thread(target=fetch_hanoi_vip, daemon=True).start()
 
         time.sleep(30)
 
@@ -153,5 +196,5 @@ def time_checker():
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=time_checker, daemon=True).start()
-    print("Bot is up and running...")
+    print("Bot is up and running with 3 lotteries...")
     bot.infinity_polling()
