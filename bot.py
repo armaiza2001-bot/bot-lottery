@@ -2,7 +2,7 @@ import telebot
 import requests
 import time
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import os
 from flask import Flask
@@ -28,16 +28,21 @@ def run_server():
     app.run(host='0.0.0.0', port=port)
 
 # ==========================================
-# 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
+# 🎰 2. ฟังก์ชันดึงผล (อัปเกรดรองรับการย้อนหลัง)
 # ==========================================
-def fetch_hanoi_special():
-    today_str = datetime.now(tz).strftime("%d-%m-%Y")
+
+def fetch_hanoi_special(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str = target_date.strftime("%d-%m-%Y")
     url = "https://www.xsthm.com/result"
     headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
 
-    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยพิเศษ** งวดวันที่ {today_str} ครับ...")
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยพิเศษ** งวดวันที่ {today_str} ครับ...")
 
+    attempts = 0
     while True:
+        attempts += 1
         try:
             res = requests.get(url, headers=headers)
             if res.status_code == 200:
@@ -55,17 +60,19 @@ def fetch_hanoi_special():
                         msg = (f"🇻🇳 **ผลหวยฮานอยพิเศษ** 🇻🇳\n📅 วันที่: {api_date}\n\n"
                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
-                        break 
+                        return 
         except Exception as e:
             print(f"[Error] ฮานอยพิเศษ: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยพิเศษ**: ไม่พบข้อมูลของวันที่ {today_str} บนเว็บไซต์")
+            return
         time.sleep(10)
 
-# ==========================================
-# 🎰 2.2 ดึงผล: ฮานอยสามัคคี (17:30)
-# ==========================================
-def fetch_hanoi_samakkhi():
-    today_str_api = datetime.now(tz).strftime("%Y-%m-%d") 
-    today_str_display = datetime.now(tz).strftime("%d-%m-%Y")
+def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
     url = "https://api.xosounion.com/api/result"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -73,9 +80,12 @@ def fetch_hanoi_samakkhi():
         'Referer': 'https://xosounion.com/'
     }
 
-    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยสามัคคี** งวดวันที่ {today_str_display} ครับ...")
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยสามัคคี** งวดวันที่ {today_str_display} ครับ...")
 
+    attempts = 0
     while True:
+        attempts += 1
         try:
             res = requests.get(url, headers=headers)
             if res.status_code == 200:
@@ -98,22 +108,27 @@ def fetch_hanoi_samakkhi():
                             msg = (f"🇻🇳 **ผลหวยฮานอยสามัคคี** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
                                    f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
-                            break 
+                            return 
         except Exception as e:
             print(f"[Error] ฮานอยสามัคคี: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยสามัคคี**: ไม่พบข้อมูลของวันที่ {today_str_display}")
+            return
         time.sleep(10)
 
-# ==========================================
-# 🎰 2.3 ดึงผล: ฮานอยปกติ (18:30)
-# ==========================================
-def fetch_hanoi_normal():
-    today_str = datetime.now(tz).strftime("%d-%m-%Y")
+def fetch_hanoi_normal(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str = target_date.strftime("%d-%m-%Y")
     url = "https://www.minhngoc.net.vn/xo-so-truc-tiep/mien-bac.html"
     headers = {'User-Agent': 'Mozilla/5.0'}
 
-    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยปกติ** งวดวันที่ {today_str} ครับ...")
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยปกติ** งวดวันที่ {today_str} ครับ...")
 
+    attempts = 0
     while True:
+        attempts += 1
         try:
             res = requests.get(url, headers=headers)
             res.encoding = 'utf-8'
@@ -139,22 +154,27 @@ def fetch_hanoi_normal():
                         msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str}\n\n"
                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
-                        break
+                        return
         except Exception as e:
             print(f"[Error] ฮานอยปกติ: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยปกติ**: ไม่พบข้อมูลของวันที่ {today_str}")
+            return
         time.sleep(15)
 
-# ==========================================
-# 🎰 2.4 ดึงผล: ฮานอย VIP (19:30)
-# ==========================================
-def fetch_hanoi_vip():
-    today_str = datetime.now(tz).strftime("%d-%m-%Y")
+def fetch_hanoi_vip(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str = target_date.strftime("%d-%m-%Y")
     url = "https://www.mlnhngoc.net/mlnhngoc"
     headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
 
-    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอย VIP** งวดวันที่ {today_str} ครับ...")
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอย VIP** งวดวันที่ {today_str} ครับ...")
 
+    attempts = 0
     while True:
+        attempts += 1
         try:
             res = requests.get(url, headers=headers)
             if res.status_code == 200:
@@ -174,17 +194,19 @@ def fetch_hanoi_vip():
                         msg = (f"🇻🇳 **ผลหวยฮานอย VIP** 🇻🇳\n📅 วันที่: {api_date}\n\n"
                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
-                        break 
+                        return 
         except Exception as e:
             print(f"[Error] ฮานอย VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอย VIP**: ไม่พบข้อมูลของวันที่ {today_str}")
+            return
         time.sleep(10)
 
-# ==========================================
-# 🎰 2.5 ดึงผล: ฮานอยพัฒนา (19:30)
-# ==========================================
-def fetch_hanoi_develop():
-    today_str_api = datetime.now(tz).strftime("%Y-%m-%d") 
-    today_str_display = datetime.now(tz).strftime("%d-%m-%Y")
+def fetch_hanoi_develop(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
     url = "https://api.xosodevelop.com/api/result"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -192,9 +214,12 @@ def fetch_hanoi_develop():
         'Referer': 'https://xosodevelop.com/'
     }
 
-    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยพัฒนา** งวดวันที่ {today_str_display} ครับ...")
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยพัฒนา** งวดวันที่ {today_str_display} ครับ...")
 
+    attempts = 0
     while True:
+        attempts += 1
         try:
             res = requests.get(url, headers=headers)
             if res.status_code == 200:
@@ -217,17 +242,19 @@ def fetch_hanoi_develop():
                             msg = (f"🇻🇳 **ผลหวยฮานอยพัฒนา** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
                                    f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
-                            break 
+                            return 
         except Exception as e:
             print(f"[Error] ฮานอยพัฒนา: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยพัฒนา**: ไม่พบข้อมูลของวันที่ {today_str_display}")
+            return
         time.sleep(10)
 
-# ==========================================
-# 🎰 2.6 ดึงผล: ลาวสามัคคี (20:30)
-# ==========================================
-def fetch_lao_samakkhi():
-    today_str_api = datetime.now(tz).strftime("%Y-%m-%d") 
-    today_str_display = datetime.now(tz).strftime("%d-%m-%Y")
+def fetch_lao_samakkhi(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
     url = "https://public-api.laounion.com/result"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -235,9 +262,12 @@ def fetch_lao_samakkhi():
         'Referer': 'https://laounion.com/'
     }
 
-    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวสามัคคี** งวดวันที่ {today_str_display} ครับ...")
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวสามัคคี** งวดวันที่ {today_str_display} ครับ...")
 
+    attempts = 0
     while True:
+        attempts += 1
         try:
             res = requests.get(url, headers=headers)
             if res.status_code == 200:
@@ -259,17 +289,19 @@ def fetch_lao_samakkhi():
                             msg = (f"🇱🇦 **ผลหวยลาวสามัคคี** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
                                    f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
-                            break 
+                            return 
         except Exception as e:
             print(f"[Error] ลาวสามัคคี: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวสามัคคี**: ไม่พบข้อมูลของวันที่ {today_str_display}")
+            return
         time.sleep(10)
 
-# ==========================================
-# 🎰 2.7 ดึงผล: ลาวอาเซียน (21:00) [เพิ่มใหม่!]
-# ==========================================
-def fetch_lao_asean():
-    today_str_api = datetime.now(tz).strftime("%Y-%m-%d") 
-    today_str_display = datetime.now(tz).strftime("%d-%m-%Y")
+def fetch_lao_asean(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
     url = "https://hi.lotterylaosasean.com/result"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -277,15 +309,17 @@ def fetch_lao_asean():
         'Referer': 'https://lotterylaosasean.com/'
     }
 
-    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวอาเซียน** งวดวันที่ {today_str_display} ครับ...")
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวอาเซียน** งวดวันที่ {today_str_display} ครับ...")
 
+    attempts = 0
     while True:
+        attempts += 1
         try:
             res = requests.get(url, headers=headers)
             if res.status_code == 200:
                 json_data = res.json()
                 
-                # ลาวอาเซียน API ตอบกลับเป็น dictionary ทันที ไม่มี status "success" ครอบ
                 data_node = json_data.get("data", {})
                 api_date = str(data_node.get("lotto_date", "")).strip()
                 
@@ -295,58 +329,109 @@ def fetch_lao_asean():
                     digit5 = str(results_node.get("digit5") or "").strip()
                     
                     if len(digit5) == 5 and digit5.isdigit():
-                        top_3 = digit5[-3:]  # 3 ตัวท้าย
-                        bottom_2 = digit5[:2]  # 2 ตัวหน้า
+                        top_3 = digit5[-3:]  
+                        bottom_2 = digit5[:2]  
                         
                         msg = (f"🇱🇦 **ผลหวยลาวอาเซียน** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
-                        break 
+                        return 
         except Exception as e:
             print(f"[Error] ลาวอาเซียน: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวอาเซียน**: ไม่พบข้อมูลของวันที่ {today_str_display}")
+            return
         time.sleep(10)
 
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
 # ==========================================
-@bot.message_handler(commands=['start'])
+
+# ฟังก์ชันช่วยอ่านตัวเลขย้อนหลัง (เช่น /test_vip 1)
+def get_offset(message):
+    parts = message.text.split()
+    if len(parts) > 1 and parts[1].isdigit():
+        return int(parts[1])
+    return 0
+
+@bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "สวัสดีครับ! 🤖 บอทแจ้งผลหวย 7 รอบ พร้อมทำงานแล้ว\n\n📌 **ตารางแจ้งผลอัตโนมัติ:**\n- 17:30 น. : ฮานอยพิเศษ & ฮานอยสามัคคี\n- 18:30 น. : ฮานอยปกติ\n- 19:30 น. : ฮานอย VIP & ฮานอยพัฒนา\n- 20:30 น. : ลาวสามัคคี\n- 21:00 น. : ลาวอาเซียน\n\n**คำสั่งทดสอบ:**\n/test_special\n/test_samakkhi\n/test_normal\n/test_vip\n/test_develop\n/test_lao_samakkhi\n/test_lao_asean")
+    help_text = (
+        "สวัสดีครับ! 🤖 บอทแจ้งผลหวย 7 รอบ\n\n"
+        "📌 **รอบแจ้งผลอัตโนมัติ:**\n"
+        "- 17:30 น. : ฮานอยพิเศษ, สามัคคี\n"
+        "- 18:30 น. : ฮานอยปกติ\n"
+        "- 19:30 น. : ฮานอย VIP, พัฒนา\n"
+        "- 20:30 น. : ลาวสามัคคี\n"
+        "- 21:00 น. : ลาวอาเซียน\n\n"
+        "💡 **คำสั่งดึงผลย้อนหลัง (ใหม่!):**\n"
+        "/yesterday - ดึงผลของเมื่อวานทุกรายการรวดเดียว!\n\n"
+        "🛠️ **คำสั่งทดสอบ:** (เว้นวรรคแล้วใส่เลข 1 เพื่อดูเมื่อวานได้ เช่น /test_vip 1)\n"
+        "/test_special\n/test_samakkhi\n/test_normal\n/test_vip\n/test_develop\n/test_lao_samakkhi\n/test_lao_asean"
+    )
+    bot.reply_to(message, help_text)
+
+@bot.message_handler(commands=['yesterday'])
+def test_all_yesterday(message):
+    bot.reply_to(message, "🛠️ กำลังดึงผลย้อนหลัง 1 วัน (เมื่อวาน) สำหรับทุกหวย...")
+    # ส่ง offset=1 และ is_auto=False เพื่อให้เช็คแค่รอบเดียวแล้วส่งเลย
+    threading.Thread(target=fetch_hanoi_special, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_hanoi_samakkhi, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_hanoi_normal, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_hanoi_vip, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_hanoi_develop, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_lao_samakkhi, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_lao_asean, args=(1, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
-    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอยพิเศษ**...")
-    threading.Thread(target=fetch_hanoi_special, daemon=True).start()
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยพิเศษ**{txt}...")
+    threading.Thread(target=fetch_hanoi_special, args=(offset, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_samakkhi'])
 def test_samakkhi(message):
-    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอยสามัคคี**...")
-    threading.Thread(target=fetch_hanoi_samakkhi, daemon=True).start()
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยสามัคคี**{txt}...")
+    threading.Thread(target=fetch_hanoi_samakkhi, args=(offset, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_normal'])
 def test_normal(message):
-    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอยปกติ**...")
-    threading.Thread(target=fetch_hanoi_normal, daemon=True).start()
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยปกติ**{txt}...")
+    threading.Thread(target=fetch_hanoi_normal, args=(offset, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_vip'])
 def test_vip(message):
-    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอย VIP**...")
-    threading.Thread(target=fetch_hanoi_vip, daemon=True).start()
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอย VIP**{txt}...")
+    threading.Thread(target=fetch_hanoi_vip, args=(offset, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_develop'])
 def test_develop(message):
-    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอยพัฒนา**...")
-    threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยพัฒนา**{txt}...")
+    threading.Thread(target=fetch_hanoi_develop, args=(offset, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_lao_samakkhi'])
 def test_lao_samakkhi(message):
-    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ลาวสามัคคี**...")
-    threading.Thread(target=fetch_lao_samakkhi, daemon=True).start()
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวสามัคคี**{txt}...")
+    threading.Thread(target=fetch_lao_samakkhi, args=(offset, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_lao_asean'])
 def test_lao_asean(message):
-    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ลาวอาเซียน**...")
-    threading.Thread(target=fetch_lao_asean, daemon=True).start()
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวอาเซียน**{txt}...")
+    threading.Thread(target=fetch_lao_asean, args=(offset, False), daemon=True).start()
 
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -411,5 +496,5 @@ def time_checker():
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=time_checker, daemon=True).start()
-    print("Bot is up and running with 7 lotteries...")
+    print("Bot is up and running with 7 lotteries & Time machine enabled...")
     bot.infinity_polling()
