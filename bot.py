@@ -118,12 +118,15 @@ def fetch_hanoi_vip():
                 data = res.json()
                 api_date = data.get("label", "")
                 
+                print(f"[Debug] VIP Date: {api_date} | Today: {today_str}") # พิมพ์ดูวันที่
+                
                 if api_date == today_str:
-                    # 🔥 เปลี่ยนมาดึงจาก ran26 (รางวัลพิเศษ) และ ran0 (รางวัลที่ 1) ตามที่คุณเจอ!
-                    prize_special = str(data.get("ran26") or "")
-                    prize_1 = str(data.get("ran0") or "")
+                    # ใช้ .strip() เพื่อตัดช่องว่างที่อาจจะติดมาด้วย
+                    prize_special = str(data.get("ran26") or "").strip()
+                    prize_1 = str(data.get("ran0") or "").strip()
                     
-                    # เช็คความชัวร์ว่าตัวเลขมาครบ 5 หลักเป๊ะๆ ถึงจะตัดเลข
+                    print(f"[Debug] VIP ran26 (DB): '{prize_special}' | ran0 (1st): '{prize_1}'") # พิมพ์ดูตัวเลข
+                    
                     if len(prize_special) == 5 and prize_special.isdigit() and len(prize_1) == 5 and prize_1.isdigit():
                         top_3 = prize_special[-3:] 
                         bottom_2 = prize_1[-2:]    
@@ -132,6 +135,8 @@ def fetch_hanoi_vip():
                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         break 
+            else:
+                 print(f"[Error] VIP API Status: {res.status_code}") # เผื่อเว็บบล็อก
         except Exception as e:
             print(f"[Error] ฮานอย VIP: {e}")
         time.sleep(10)
