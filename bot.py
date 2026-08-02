@@ -292,13 +292,19 @@ def fetch_lao_asean(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.8 ดึงผล: ลาว VIP (21:30) [เพิ่มใหม่!]
+# 🎰 2.8 ดึงผล: ลาว VIP (21:30) - โหมด Debug
 # ==========================================
 def fetch_lao_vip(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str = target_date.strftime("%d-%m-%Y")
     url = "https://www.laosviplot.com/"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    # เพิ่ม Headers ให้เนียนเหมือนคนเข้าเว็บผ่านมือถือ
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Referer': 'https://www.google.com/'
+    }
 
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาว VIP** งวดวันที่ {today_str} ครับ...")
@@ -309,9 +315,13 @@ def fetch_lao_vip(offset_days=0, is_auto=True):
         try:
             res = requests.get(url, headers=headers)
             res.encoding = 'utf-8'
-            soup = BeautifulSoup(res.text, 'html.parser')
             
-            # ใช้ Regex ดึงข้อความทั้งหมดมาหาตัวเลข 4 หลัก 
+            # --- 🚀 จุดที่เพิ่มเข้ามาเพื่อดักจับบั๊ก ---
+            print(f"👉 [VIP Debug] สถานะการเข้าเว็บ: {res.status_code}")
+            print(f"👉 [VIP Debug] โค้ดที่บอทเห็น (200 ตัวอักษรแรก): {res.text[:200]}")
+            # ------------------------------------
+            
+            soup = BeautifulSoup(res.text, 'html.parser')
             text_content = soup.get_text(separator=' ')
             potential_numbers = re.findall(r'\b\d{4}\b', text_content)
             
@@ -319,21 +329,22 @@ def fetch_lao_vip(offset_days=0, is_auto=True):
             digit4 = None
             
             for n in potential_numbers:
-                # กรองพวกปี ค.ศ. (เช่น 2026) ออกไป
                 if n != year_str and not n.startswith('202'): 
                     digit4 = n
                     break
             
+            print(f"👉 [VIP Debug] ตัวเลข 4 หลักที่หาเจอ: {digit4}")
+            
             if digit4:
-                top_3 = digit4[-3:]  # ดึง 3 ตัวท้าย
-                bottom_2 = digit4[:2] # ดึง 2 ตัวหน้า
+                top_3 = digit4[-3:]  
+                bottom_2 = digit4[:2] 
                 
                 msg = (f"🇱🇦 **ผลหวยลาว VIP** 🇱🇦\n📅 วันที่: {today_str}\n\n"
                        f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return 
         except Exception as e:
-            print(f"[Error] ลาว VIP: {e}")
+            print(f"👉 [Error] ลาว VIP: {e}")
             
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ **ลาว VIP**: ดึงข้อมูลจากหน้าเว็บไม่สำเร็จ (กรุณาอัปเดตโค้ด HTML)")
