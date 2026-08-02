@@ -422,7 +422,27 @@ def get_offset(message):
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "บอทแจ้งผลหวย 9 รอบ พร้อมทำงานแล้วครับผม! 🚀")
+    help_text = (
+        "📌 **ตารางแจ้งผลอัตโนมัติ:**\n"
+        "- 17:30 น. : ฮานอยพิเศษ & ฮานอยสามัคคี\n"
+        "- 18:30 น. : ฮานอยปกติ\n"
+        "- 19:30 น. : ฮานอย VIP & ฮานอยพัฒนา\n"
+        "- 20:30 น. : ลาวสามัคคี\n"
+        "- 21:00 น. : ลาวอาเซียน\n"
+        "- 21:30 น. : ลาว VIP & ลาวสามัคคี VIP\n\n"
+        "**คำสั่งทดสอบ:**\n"
+        "/test_special\n"
+        "/test_samakkhi\n"
+        "/test_normal\n"
+        "/test_vip\n"
+        "/test_develop\n"
+        "/test_lao_samakkhi\n"
+        "/test_lao_asean\n"
+        "/test_lao_vip\n"
+        "/test_lao_samakkhi_vip\n"
+        "/yesterday (ดึงผลเมื่อวานทั้งหมด)"
+    )
+    bot.reply_to(message, help_text)
 
 @bot.message_handler(commands=['yesterday'])
 def test_all_yesterday(message):
