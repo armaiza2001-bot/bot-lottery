@@ -102,36 +102,30 @@ def fetch_hanoi_normal():
         time.sleep(15)
 
 # ==========================================
-# 🎰 2.3 ดึงผล: ฮานอย VIP (19:30) - ติดเรดาร์ Debug
+# 🎰 2.3 ดึงผล: ฮานอย VIP (19:30)
 # ==========================================
 def fetch_hanoi_vip():
     today_str = datetime.now(tz).strftime("%d-%m-%Y")
     url = "https://www.mlnhngoc.net/mlnhngoc"
-    # อัปเกรด Headers ให้เนียนเหมือนคนเข้าเว็บจริงๆ ป้องกันการโดนบล็อก
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Referer': 'https://www.mlnhngoc.net/'
-    }
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
 
     bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอย VIP** งวดวันที่ {today_str} ครับ...")
 
     while True:
         try:
             res = requests.get(url, headers=headers)
-            print(f"👉 [VIP Debug] สถานะการเชื่อมต่อ: {res.status_code}") # 200 คือผ่าน / 403 คือโดนบล็อก
-            
             if res.status_code == 200:
                 data = res.json()
-                # เพิ่ม .strip() เพื่อตัดช่องว่างเผื่อเว็บแอบส่งมา
-                api_date = str(data.get("label", "")).strip() 
-                
-                prize_special = str(data.get("ran26") or "").strip()
-                prize_1 = str(data.get("ran0") or "").strip()
-                
-                print(f"👉 [VIP Debug] วันที่เว็บ: '{api_date}' | พิเศษ: '{prize_special}' | ที่1: '{prize_1}'")
+                api_date = str(data.get("label", "")).strip()
                 
                 if api_date == today_str:
+                    # 🔥 จุดที่แก้ไข: ต้องมุดเข้าไปดึงข้อมูลจากก้อน "item" ก่อน
+                    item_data = data.get("item", {}) 
+                    
+                    # แล้วค่อยหยิบ ran26 และ ran0 ออกมาจาก item_data
+                    prize_special = str(item_data.get("ran26") or "").strip()
+                    prize_1 = str(item_data.get("ran0") or "").strip()
+                    
                     if len(prize_special) == 5 and prize_special.isdigit() and len(prize_1) == 5 and prize_1.isdigit():
                         top_3 = prize_special[-3:] 
                         bottom_2 = prize_1[-2:]    
@@ -141,7 +135,7 @@ def fetch_hanoi_vip():
                         bot.send_message(GROUP_CHAT_ID, msg)
                         break 
         except Exception as e:
-            print(f"👉 [Error] ฮานอย VIP มีปัญหา: {e}")
+            print(f"[Error] ฮานอย VIP: {e}")
         time.sleep(10)
 
 # ==========================================
