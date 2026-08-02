@@ -61,7 +61,51 @@ def fetch_hanoi_special():
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.2 ดึงผล: ฮานอยปกติ (18:30)
+# 🎰 2.2 ดึงผล: ฮานอยสามัคคี (17:30) [เพิ่มใหม่!]
+# ==========================================
+def fetch_hanoi_samakkhi():
+    today_str_api = datetime.now(tz).strftime("%Y-%m-%d") 
+    today_str_display = datetime.now(tz).strftime("%d-%m-%Y")
+    url = "https://api.xosounion.com/api/result"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Accept': 'application/json',
+        'Referer': 'https://xosounion.com/'
+    }
+
+    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยสามัคคี** งวดวันที่ {today_str_display} ครับ...")
+
+    while True:
+        try:
+            res = requests.get(url, headers=headers)
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                if json_data.get("status") == "success":
+                    data_node = json_data.get("data", {})
+                    api_date = str(data_node.get("lotto_date", "")).strip()
+                    
+                    if api_date == today_str_api:
+                        results_node = data_node.get("results", {})
+                        
+                        # ดึงข้อมูลตามโครงสร้าง API ของ xosounion
+                        prize_special = str(results_node.get("prize_1st") or "").strip()
+                        prize_1 = str(results_node.get("prize_2nd") or "").strip()
+                        
+                        if len(prize_special) == 5 and prize_special.isdigit() and len(prize_1) == 5 and prize_1.isdigit():
+                            top_3 = prize_special[-3:] 
+                            bottom_2 = prize_1[-2:]    
+                            
+                            msg = (f"🇻🇳 **ผลหวยฮานอยสามัคคี** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            break 
+        except Exception as e:
+            print(f"[Error] ฮานอยสามัคคี: {e}")
+        time.sleep(10)
+
+# ==========================================
+# 🎰 2.3 ดึงผล: ฮานอยปกติ (18:30)
 # ==========================================
 def fetch_hanoi_normal():
     today_str = datetime.now(tz).strftime("%d-%m-%Y")
@@ -102,7 +146,7 @@ def fetch_hanoi_normal():
         time.sleep(15)
 
 # ==========================================
-# 🎰 2.3 ดึงผล: ฮานอย VIP (19:30)
+# 🎰 2.4 ดึงผล: ฮานอย VIP (19:30)
 # ==========================================
 def fetch_hanoi_vip():
     today_str = datetime.now(tz).strftime("%d-%m-%Y")
@@ -137,10 +181,9 @@ def fetch_hanoi_vip():
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.4 ดึงผล: ฮานอยพัฒนา (19:30) [เพิ่มใหม่!]
+# 🎰 2.5 ดึงผล: ฮานอยพัฒนา (19:30)
 # ==========================================
 def fetch_hanoi_develop():
-    # เว็บนี้ใช้วันที่รูปแบบ 2026-08-02
     today_str_api = datetime.now(tz).strftime("%Y-%m-%d") 
     today_str_display = datetime.now(tz).strftime("%d-%m-%Y")
     url = "https://api.xosodevelop.com/api/result"
@@ -165,7 +208,6 @@ def fetch_hanoi_develop():
                     if api_date == today_str_api:
                         results_node = data_node.get("results", {})
                         
-                        # ดึงข้อมูล prize_1st (บน) และ prize_2nd (ล่าง)
                         prize_special = str(results_node.get("prize_1st") or "").strip()
                         prize_1 = str(results_node.get("prize_2nd") or "").strip()
                         
@@ -186,12 +228,17 @@ def fetch_hanoi_develop():
 # ==========================================
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "สวัสดีครับ! 🤖 บอทแจ้งผลหวยฮานอย 4 รอบ พร้อมทำงานแล้ว\n\n📌 **ตารางแจ้งผลอัตโนมัติ:**\n- 17:30 น. : ฮานอยพิเศษ\n- 18:30 น. : ฮานอยปกติ\n- 19:30 น. : ฮานอย VIP & ฮานอยพัฒนา\n\n**คำสั่งทดสอบ:**\n/test_special\n/test_normal\n/test_vip\n/test_develop")
+    bot.reply_to(message, "สวัสดีครับ! 🤖 บอทแจ้งผลหวยฮานอย 5 รอบ พร้อมทำงานแล้ว\n\n📌 **ตารางแจ้งผลอัตโนมัติ:**\n- 17:30 น. : ฮานอยพิเศษ & ฮานอยสามัคคี\n- 18:30 น. : ฮานอยปกติ\n- 19:30 น. : ฮานอย VIP & ฮานอยพัฒนา\n\n**คำสั่งทดสอบ:**\n/test_special\n/test_samakkhi\n/test_normal\n/test_vip\n/test_develop")
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอยพิเศษ**...")
     threading.Thread(target=fetch_hanoi_special, daemon=True).start()
+
+@bot.message_handler(commands=['test_samakkhi'])
+def test_samakkhi(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอยสามัคคี**...")
+    threading.Thread(target=fetch_hanoi_samakkhi, daemon=True).start()
 
 @bot.message_handler(commands=['test_normal'])
 def test_normal(message):
@@ -213,6 +260,7 @@ def test_develop(message):
 # ==========================================
 def time_checker():
     has_run_special = False
+    has_run_samakkhi = False
     has_run_normal = False
     has_run_vip = False
     has_run_develop = False
@@ -224,14 +272,19 @@ def time_checker():
 
         if current_date != last_check_date:
             has_run_special = False
+            has_run_samakkhi = False
             has_run_normal = False
             has_run_vip = False
             has_run_develop = False
             last_check_date = current_date
 
-        if now.hour == 17 and now.minute == 30 and not has_run_special:
-            has_run_special = True
-            threading.Thread(target=fetch_hanoi_special, daemon=True).start()
+        if now.hour == 17 and now.minute == 30:
+            if not has_run_special:
+                has_run_special = True
+                threading.Thread(target=fetch_hanoi_special, daemon=True).start()
+            if not has_run_samakkhi:
+                has_run_samakkhi = True
+                threading.Thread(target=fetch_hanoi_samakkhi, daemon=True).start()
 
         if now.hour == 18 and now.minute == 30 and not has_run_normal:
             has_run_normal = True
@@ -253,5 +306,5 @@ def time_checker():
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=time_checker, daemon=True).start()
-    print("Bot is up and running with 4 lotteries...")
+    print("Bot is up and running with 5 lotteries...")
     bot.infinity_polling()
