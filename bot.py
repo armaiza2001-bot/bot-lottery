@@ -354,7 +354,7 @@ def fetch_lao_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.9 ดึงผล: ลาวสามัคคี VIP (21:30) [ทะลุ Cloudflare]
+# 🎰 2.9 ดึงผล: ลาวสามัคคี VIP (21:30) [แก้บั๊ก JSON โครงสร้างซ้อนทับ]
 # ==========================================
 def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -362,17 +362,9 @@ def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     url = "https://api.laounionvip.com/result"
-    
-    # 💡 Headers ชุดเต็ม ทะลวงระบบป้องกันบอท
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Referer': 'https://laounionvip.com/',
-        'Origin': 'https://laounionvip.com',
-        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Accept': 'application/json'
     }
 
     if is_auto:
@@ -383,24 +375,29 @@ def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
         attempts += 1
         try:
             res = requests.get(url, headers=headers, timeout=15)
-            # รองรับทั้ง 200 (OK) และ 304 (Not Modified) จาก Cloudflare
-            if res.status_code in [200, 304]:
+            if res.status_code == 200:
                 json_data = res.json()
-                api_date = str(json_data.get("lotto_date", "")).strip()
                 
-                # ถ้าวันที่ตรงปุ๊บ ดึงทันที!
-                if api_date == today_str_api:
-                    results_node = json_data.get("results", {})
-                    digit4 = str(results_node.get("digit4") or "").strip()
+                # 💡 เช็คว่าสถานะ success ไหม
+                if json_data.get("status") == "success":
+                    # 💡 มุดเข้าไปในกล่อง "data" ก่อน! (ตรงนี้แหละที่พลาดไป)
+                    data_node = json_data.get("data", {})
                     
-                    if len(digit4) == 4 and digit4.isdigit():
-                        top_3 = digit4[-3:]    
-                        bottom_2 = digit4[:2]  
+                    # แล้วค่อยดึงวันที่ออกมาเช็ค
+                    api_date = str(data_node.get("lotto_date", "")).strip()
+                    
+                    if api_date == today_str_api:
+                        results_node = data_node.get("results", {})
+                        digit4 = str(results_node.get("digit4") or "").strip()
                         
-                        msg = (f"🇱🇦 **ผลหวยลาวสามัคคี VIP** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                        bot.send_message(GROUP_CHAT_ID, msg)
-                        return 
+                        if len(digit4) == 4 and digit4.isdigit():
+                            top_3 = digit4[-3:]    
+                            bottom_2 = digit4[:2]  
+                            
+                            msg = (f"🇱🇦 **ผลหวยลาวสามัคคี VIP** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return 
         except Exception as e:
             print(f"[Error] ลาวสามัคคี VIP: {e}")
             
