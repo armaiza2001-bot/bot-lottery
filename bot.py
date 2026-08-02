@@ -119,14 +119,14 @@ def fetch_hanoi_vip():
                 api_date = data.get("label", "")
                 
                 if api_date == today_str:
-                    # 🔥 แก้ไขตรงนี้: ป้องกันบั๊กกรณีเว็บส่งค่า null มาตอนหวยยังไม่ออก
-                    no1 = str(data.get("no1") or "")
-                    no2 = str(data.get("no2") or "")
+                    # 🔥 เปลี่ยนมาดึงจาก ran26 (รางวัลพิเศษ) และ ran0 (รางวัลที่ 1) ตามที่คุณเจอ!
+                    prize_special = str(data.get("ran26") or "")
+                    prize_1 = str(data.get("ran0") or "")
                     
                     # เช็คความชัวร์ว่าตัวเลขมาครบ 5 หลักเป๊ะๆ ถึงจะตัดเลข
-                    if len(no1) == 5 and no1.isdigit() and len(no2) == 5 and no2.isdigit():
-                        top_3 = no1[-3:] 
-                        bottom_2 = no2[-2:]    
+                    if len(prize_special) == 5 and prize_special.isdigit() and len(prize_1) == 5 and prize_1.isdigit():
+                        top_3 = prize_special[-3:] 
+                        bottom_2 = prize_1[-2:]    
                         
                         msg = (f"🇻🇳 **ผลหวยฮานอย VIP** 🇻🇳\n📅 วันที่: {api_date}\n\n"
                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
