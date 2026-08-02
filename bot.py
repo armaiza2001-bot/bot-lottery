@@ -102,7 +102,7 @@ def fetch_hanoi_normal():
         time.sleep(15)
 
 # ==========================================
-# 🎰 2.3 ดึงผล: ฮานอย VIP (19:30) [เพิ่มใหม่!]
+# 🎰 2.3 ดึงผล: ฮานอย VIP (19:30)
 # ==========================================
 def fetch_hanoi_vip():
     today_str = datetime.now(tz).strftime("%d-%m-%Y")
@@ -119,8 +119,9 @@ def fetch_hanoi_vip():
                 api_date = data.get("label", "")
                 
                 if api_date == today_str:
-                    no1 = data.get("no1", "") # รางวัลพิเศษ
-                    no2 = data.get("no2", "") # รางวัลที่ 1
+                    # 🔥 แก้ไขตรงนี้: ป้องกันบั๊กกรณีเว็บส่งค่า null มาตอนหวยยังไม่ออก
+                    no1 = str(data.get("no1") or "")
+                    no2 = str(data.get("no2") or "")
                     
                     # เช็คความชัวร์ว่าตัวเลขมาครบ 5 หลักเป๊ะๆ ถึงจะตัดเลข
                     if len(no1) == 5 and no1.isdigit() and len(no2) == 5 and no2.isdigit():
