@@ -354,7 +354,7 @@ def fetch_lao_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.9 ดึงผล: ลาวสามัคคี VIP (21:30) [แก้บั๊ก API ซ่อนวันที่]
+# 🎰 2.9 ดึงผล: ลาวสามัคคี VIP (21:30) [ทะลุ Cloudflare]
 # ==========================================
 def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -363,11 +363,16 @@ def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
     
     url = "https://api.laounionvip.com/result"
     
-    # เพิ่ม Referer เข้าไปเพื่อความเนียน
+    # 💡 Headers ชุดเต็ม ทะลวงระบบป้องกันบอท
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Accept': 'application/json',
-        'Referer': 'https://laounionvip.com/'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': 'https://laounionvip.com/',
+        'Origin': 'https://laounionvip.com',
+        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"'
     }
 
     if is_auto:
@@ -378,11 +383,12 @@ def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
         attempts += 1
         try:
             res = requests.get(url, headers=headers, timeout=15)
-            if res.status_code == 200:
+            # รองรับทั้ง 200 (OK) และ 304 (Not Modified) จาก Cloudflare
+            if res.status_code in [200, 304]:
                 json_data = res.json()
                 api_date = str(json_data.get("lotto_date", "")).strip()
                 
-                # 💡 จุดที่แก้: เช็คแค่ว่า API มันส่งข้อมูลของวันที่เราต้องการมาให้ไหม (ไม่สนใจตัวแปร now)
+                # ถ้าวันที่ตรงปุ๊บ ดึงทันที!
                 if api_date == today_str_api:
                     results_node = json_data.get("results", {})
                     digit4 = str(results_node.get("digit4") or "").strip()
@@ -395,15 +401,11 @@ def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return 
-                # 💡 จุดที่เพิ่ม: สำหรับกรณีดึงย้อนหลัง (ถ้า API มันขึ้นของวันที่ 2 แต่เราอยู่ดึกเข้าวันที่ 3 แล้ว)
-                elif not is_auto and attempts == 1:
-                    # ลองพยายามดึงข้อมูลประวัติย้อนหลัง (ถ้าเว็บมี)
-                    pass 
         except Exception as e:
             print(f"[Error] ลาวสามัคคี VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวสามัคคี VIP**: ไม่พบข้อมูลวันที่ {today_str_display} (อาจเป็นเพราะเว็บอัปเดตระบบหรือขึ้นงวดใหม่ไปแล้ว)")
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวสามัคคี VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
         time.sleep(10)
 
