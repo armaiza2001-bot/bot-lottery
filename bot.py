@@ -61,7 +61,7 @@ def fetch_hanoi_special():
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.2 ดึงผล: ฮานอยสามัคคี (17:30) [เพิ่มใหม่!]
+# 🎰 2.2 ดึงผล: ฮานอยสามัคคี (17:30)
 # ==========================================
 def fetch_hanoi_samakkhi():
     today_str_api = datetime.now(tz).strftime("%Y-%m-%d") 
@@ -88,7 +88,6 @@ def fetch_hanoi_samakkhi():
                     if api_date == today_str_api:
                         results_node = data_node.get("results", {})
                         
-                        # ดึงข้อมูลตามโครงสร้าง API ของ xosounion
                         prize_special = str(results_node.get("prize_1st") or "").strip()
                         prize_1 = str(results_node.get("prize_2nd") or "").strip()
                         
@@ -224,11 +223,54 @@ def fetch_hanoi_develop():
         time.sleep(10)
 
 # ==========================================
+# 🎰 2.6 ดึงผล: ลาวสามัคคี (20:30) [เพิ่มใหม่!]
+# ==========================================
+def fetch_lao_samakkhi():
+    today_str_api = datetime.now(tz).strftime("%Y-%m-%d") 
+    today_str_display = datetime.now(tz).strftime("%d-%m-%Y")
+    url = "https://public-api.laounion.com/result"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Accept': 'application/json',
+        'Referer': 'https://laounion.com/'
+    }
+
+    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวสามัคคี** งวดวันที่ {today_str_display} ครับ...")
+
+    while True:
+        try:
+            res = requests.get(url, headers=headers)
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                if json_data.get("status") == "success":
+                    data_node = json_data.get("data", {})
+                    api_date = str(data_node.get("lotto_date", "")).strip()
+                    
+                    if api_date == today_str_api:
+                        results_node = data_node.get("results", {})
+                        
+                        # ดึงข้อมูลจาก digit4 ตามลอจิกของลาวสามัคคี
+                        digit4 = str(results_node.get("digit4") or "").strip()
+                        
+                        if len(digit4) == 4 and digit4.isdigit():
+                            top_3 = digit4[-3:]  # 3 ตัวท้าย
+                            bottom_2 = digit4[:2]  # 2 ตัวหน้า
+                            
+                            msg = (f"🇱🇦 **ผลหวยลาวสามัคคี** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            break 
+        except Exception as e:
+            print(f"[Error] ลาวสามัคคี: {e}")
+        time.sleep(10)
+
+# ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
 # ==========================================
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "สวัสดีครับ! 🤖 บอทแจ้งผลหวยฮานอย 5 รอบ พร้อมทำงานแล้ว\n\n📌 **ตารางแจ้งผลอัตโนมัติ:**\n- 17:30 น. : ฮานอยพิเศษ & ฮานอยสามัคคี\n- 18:30 น. : ฮานอยปกติ\n- 19:30 น. : ฮานอย VIP & ฮานอยพัฒนา\n\n**คำสั่งทดสอบ:**\n/test_special\n/test_samakkhi\n/test_normal\n/test_vip\n/test_develop")
+    bot.reply_to(message, "สวัสดีครับ! 🤖 บอทแจ้งผลหวย 6 รอบ พร้อมทำงานแล้ว\n\n📌 **ตารางแจ้งผลอัตโนมัติ:**\n- 17:30 น. : ฮานอยพิเศษ & ฮานอยสามัคคี\n- 18:30 น. : ฮานอยปกติ\n- 19:30 น. : ฮานอย VIP & ฮานอยพัฒนา\n- 20:30 น. : ลาวสามัคคี\n\n**คำสั่งทดสอบ:**\n/test_special\n/test_samakkhi\n/test_normal\n/test_vip\n/test_develop\n/test_lao_samakkhi")
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
@@ -255,6 +297,11 @@ def test_develop(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ฮานอยพัฒนา**...")
     threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
 
+@bot.message_handler(commands=['test_lao_samakkhi'])
+def test_lao_samakkhi(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **ลาวสามัคคี**...")
+    threading.Thread(target=fetch_lao_samakkhi, daemon=True).start()
+
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
 # ==========================================
@@ -264,6 +311,7 @@ def time_checker():
     has_run_normal = False
     has_run_vip = False
     has_run_develop = False
+    has_run_lao_samakkhi = False
     last_check_date = ""
 
     while True:
@@ -276,6 +324,7 @@ def time_checker():
             has_run_normal = False
             has_run_vip = False
             has_run_develop = False
+            has_run_lao_samakkhi = False
             last_check_date = current_date
 
         if now.hour == 17 and now.minute == 30:
@@ -297,6 +346,10 @@ def time_checker():
             if not has_run_develop:
                 has_run_develop = True
                 threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
+                
+        if now.hour == 20 and now.minute == 30 and not has_run_lao_samakkhi:
+            has_run_lao_samakkhi = True
+            threading.Thread(target=fetch_lao_samakkhi, daemon=True).start()
 
         time.sleep(30)
 
@@ -306,5 +359,5 @@ def time_checker():
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=time_checker, daemon=True).start()
-    print("Bot is up and running with 5 lotteries...")
+    print("Bot is up and running with 6 lotteries...")
     bot.infinity_polling()
