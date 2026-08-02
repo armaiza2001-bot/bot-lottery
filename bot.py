@@ -61,7 +61,7 @@ def fetch_hanoi_special():
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.2 ดึงผล: ฮานอยปกติ (Minh Ngoc - Web Scraping)
+# 🎰 2.2 ดึงผล: ฮานอยปกติ (Minh Ngoc - Web Scraping + กดกฎให้แน่นขึ้น)
 # ==========================================
 def fetch_hanoi_normal():
     today_str = datetime.now(tz).strftime("%d-%m-%Y")
@@ -76,37 +76,52 @@ def fetch_hanoi_normal():
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            # ค้นหาบล็อกข้อมูลของวันนี้ (ป้องกันการดึงข้อมูลของเมื่อวาน)
             date_check = soup.find('td', class_='ngay')
             
-            # ถ้าระบบเจอวันที่ตรงกับวันนี้ แปลว่าเว็บเริ่มอัปเดตแล้ว
             if date_check and today_str.replace("-", "/") in date_check.text:
-                # ดึงรางวัลพิเศษ (Giải ĐB) และ รางวัลที่ 1 (Giải Nhất)
                 prize_special = soup.find(class_='giaidb')
                 prize_1 = soup.find(class_='giai1')
 
-                # รอจนกว่าตัวเลขจะออกครบ (ไม่มีเครื่องหมายรอผล)
-                if prize_special and prize_1 and len(prize_special.text.strip()) >= 5:
-                    top_3 = prize_special.text.strip()[-3:]
-                    bottom_2 = prize_1.text.strip()[-2:]
+                if prize_special and prize_1:
+                    # ทำความสะอาดข้อความ ลบช่องว่างทิ้งให้หมด
+                    text_db = prize_special.text.replace(" ", "").strip()
+                    text_1 = prize_1.text.replace(" ", "").strip()
                     
-                    msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str}\n\n"
-                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                    bot.send_message(GROUP_CHAT_ID, msg)
-                    break
+                    # 🔥 กฎเหล็ก: ต้องเป็น "ตัวเลขล้วน" และ "ยาว 5 ตัวเป๊ะ" เท่านั้น ถึงจะแปลว่าหมุนเสร็จแล้ว
+                    is_db_ready = len(text_db) == 5 and text_db.isdigit()
+                    is_1_ready = len(text_1) == 5 and text_1.isdigit()
+
+                    if is_db_ready and is_1_ready:
+                        top_3 = text_db[-3:]
+                        bottom_2 = text_1[-2:]
+                        
+                        msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        break
         except Exception as e:
             print(f"[Error] ฮานอยปกติ: {e}")
-        time.sleep(10)
+        time.sleep(15)
 
 # ==========================================
-# 💬 3. ระบบตอบกลับคำสั่ง Telegram
+# 💬 3. ระบบตอบกลับคำสั่ง Telegram (เพิ่มปุ่มเทส)
 # ==========================================
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "สวัสดีครับ! 🤖 บอทแจ้งผลหวยพร้อมทำงานแล้ว\n\n📌 **ตารางแจ้งผล:**\n- 17:30 น. : ฮานอยพิเศษ\n- 18:30 น. : ฮานอยปกติ")
+    bot.reply_to(message, "สวัสดีครับ! 🤖 บอทแจ้งผลหวยพร้อมทำงานแล้ว\n\n📌 **คำสั่งสำหรับใช้งาน:**\n/start - ดูข้อความนี้\n/test_special - ทดสอบดึงผลฮานอยพิเศษ (เดี๋ยวนี้)\n/test_normal - ทดสอบดึงผลฮานอยปกติ (เดี๋ยวนี้)")
+
+@bot.message_handler(commands=['test_special'])
+def test_special(message):
+    bot.reply_to(message, "🛠️ แอดมินสั่งทดสอบดึงผล **ฮานอยพิเศษ** แบบทันที...")
+    threading.Thread(target=fetch_hanoi_special, daemon=True).start()
+
+@bot.message_handler(commands=['test_normal'])
+def test_normal(message):
+    bot.reply_to(message, "🛠️ แอดมินสั่งทดสอบดึงผล **ฮานอยปกติ** แบบทันที...")
+    threading.Thread(target=fetch_hanoi_normal, daemon=True).start()
 
 # ==========================================
-# ⏰ 4. ระบบเช็คเวลา
+# ⏰ 4. ระบบเช็คเวลา 
 # ==========================================
 def time_checker():
     has_run_special = False
@@ -122,12 +137,10 @@ def time_checker():
             has_run_normal = False
             last_check_date = current_date
 
-        # รันฮานอยพิเศษ ตอน 17:30
         if now.hour == 17 and now.minute == 30 and not has_run_special:
             has_run_special = True
             threading.Thread(target=fetch_hanoi_special, daemon=True).start()
 
-        # รันฮานอยปกติ ตอน 18:30 (หวยปกติน่าจะออกครบหมดช่วงเวลานี้พอดี)
         if now.hour == 18 and now.minute == 30 and not has_run_normal:
             has_run_normal = True
             threading.Thread(target=fetch_hanoi_normal, daemon=True).start()
@@ -140,5 +153,5 @@ def time_checker():
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=time_checker, daemon=True).start()
-    print("Bot is up and running with 2 lotteries...")
+    print("Bot is up and running...")
     bot.infinity_polling()
