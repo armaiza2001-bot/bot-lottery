@@ -5,6 +5,7 @@ import threading
 from datetime import datetime, timedelta
 import pytz
 import os
+import re
 from flask import Flask
 from bs4 import BeautifulSoup
 
@@ -110,45 +111,81 @@ def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.3 ดึงผล: ฮานอยปกติ (18:30)
+# 🎰 2.3 ดึงผล: ฮานอยปกติ (18:30) [เวอร์ชัน Live API ไร้ดีเลย์]
 # ==========================================
 def fetch_hanoi_normal(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
-    today_str = target_date.strftime("%d-%m-%Y")
-    url = "https://www.minhngoc.net.vn/xo-so-truc-tiep/mien-bac.html"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    today_str_api = target_date.strftime("%d-%m-%Y")
+    
+    main_url = "https://www.minhngoc.net.vn/xo-so-truc-tiep/mien-bac.html"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': '*/*'
+    }
 
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยปกติ** งวดวันที่ {today_str} ครับ...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยปกติ** งวดวันที่ {today_str_api} ครับ...")
+        # ❌ ลบ time.sleep(120) ทิ้งไปได้เลย! เราจะเช็คแบบ Real-time
 
     attempts = 0
     while True:
         attempts += 1
         try:
-            res = requests.get(url, headers=headers, timeout=15)
-            res.encoding = 'utf-8'
-            soup = BeautifulSoup(res.text, 'html.parser')
-            date_check = soup.find('td', class_='ngay')
-            if date_check and today_str.replace("-", "/") in date_check.text:
-                prize_special = soup.find(class_='giaidb')
-                prize_1 = soup.find(class_='giai1')
-                if prize_special and prize_1:
-                    text_db = prize_special.text.replace(" ", "").strip()
-                    text_1 = prize_1.text.replace(" ", "").strip()
+            # 1️⃣ ดึงหน้าเว็บหลัก เพื่อตามล่าหาลิงก์ Live API ของวันนั้นๆ
+            res_main = requests.get(f"{main_url}?v={int(time.time())}", headers=headers, timeout=15)
+            
+            # ใช้ Regex ค้นหาลิงก์ js_m2.js (เช่น https://server-live25.minhngoc.net.vn/xstt/js_m2.js)
+            match_url = re.search(r'src="(https://server-live[^"]+js_m2\.js[^"]+)"', res_main.text)
+            
+            if match_url:
+                live_api_url = match_url.group(1)
+                
+                # 2️⃣ ยิงตรงไปที่ Live API ที่เจอ
+                res_api = requests.get(live_api_url, headers=headers, timeout=15)
+                api_text = res_api.text
+                
+                # 3️⃣ ใช้ Regex แกะตัวเลขออกจาก Object JavaScript ตรงๆ
+                # ค้นหารูปแบบ 0: "xxxxx" (รางวัลพิเศษ) และ 1: "xxxxx" (รางวัลที่ 1)
+                match_0 = re.search(r'0:\s*"(\d{5})"', api_text)
+                match_1 = re.search(r'1:\s*"(\d{5})"', api_text)
+                
+                if match_0 and match_1:
+                    text_db = match_0.group(1)
+                    text_1 = match_1.group(1)
+                    
+                    # 💡 ถ้าดึงได้ตัวเลข 5 หลักเต็มๆ แปลว่ามันหยุดหมุนแล้ว!
                     if len(text_db) == 5 and len(text_1) == 5:
                         top_3 = text_db[-3:]
                         bottom_2 = text_1[-2:]
-                        msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str}\n\n"
+                        
+                        msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str_api}\n\n"
                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
-                        return
+                        return 
+                        
+            # (ถ้าย้อนหลัง) ลองเช็คจากหน้า HTML แบบปกติสำรองไว้ เผื่อ API Live หมดอายุ
+            elif offset_days > 0:
+                soup = BeautifulSoup(res_main.text, 'html.parser')
+                date_check = soup.find('td', class_='ngay')
+                if date_check and today_str_api.replace("-", "/") in date_check.text:
+                    prize_special = soup.find(class_='giaidb')
+                    prize_1 = soup.find(class_='giai1')
+                    if prize_special and prize_1:
+                        text_db = prize_special.text.replace(" ", "").strip()
+                        text_1 = prize_1.text.replace(" ", "").strip()
+                        if len(text_db) == 5 and len(text_1) == 5 and text_db.isdigit() and text_1.isdigit():
+                            msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str_api}\n\n"
+                                   f"🎯 **3 ตัวบน:** {text_db[-3:]}\n👇 **2 ตัวล่าง:** {text_1[-2:]}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return
+                            
         except Exception as e:
-            print(f"[Error] ฮานอยปกติ: {e}")
+            print(f"[Error] ฮานอยปกติ (Live API): {e}")
+            
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยปกติ**: ไม่พบข้อมูลวันที่ {today_str}")
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยปกติ**: ไม่พบข้อมูลวันที่ {today_str_api} (หรือผลยังไม่ออก)")
             return
-        time.sleep(15)
-
+        time.sleep(10) # เช็คใหม่ทุก 10 วินาที
 # ==========================================
 # 🎰 2.4 ดึงผล: ฮานอย VIP (19:30)
 # ==========================================
