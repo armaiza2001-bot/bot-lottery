@@ -407,6 +407,56 @@ def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🎰 2.10 ดึงผล: ลาวสตาร์ VIP (22:00)
+# ==========================================
+def fetch_lao_star_vip(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    url = "https://api.laostars-vip.com/result"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Accept': 'application/json'
+    }
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวสตาร์ VIP** งวดวันที่ {today_str_display} ครับ...")
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                if json_data.get("status") == "success":
+                    data_node = json_data.get("data", {})
+                    api_date = str(data_node.get("lotto_date", "")).strip()
+                    
+                    if api_date == today_str_api:
+                        results_node = data_node.get("results", {})
+                        digit5 = str(results_node.get("digit5") or "").strip()
+                        
+                        # ตัด 2 ตัวหน้า เป็นล่าง / 3 ตัวหลัง เป็นบน
+                        if len(digit5) == 5 and digit5.isdigit():
+                            top_3 = digit5[-3:]    
+                            bottom_2 = digit5[:2]  
+                            
+                            msg = (f"🇱🇦 **ผลหวยลาวสตาร์ VIP** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return 
+        except Exception as e:
+            print(f"[Error] ลาวสตาร์ VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวสตาร์ VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            return
+        time.sleep(10)
+        
+# ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
 # ==========================================
 
@@ -429,7 +479,8 @@ def send_welcome(message):
         "- 19:30 น. : ฮานอย VIP & ฮานอยพัฒนา\n"
         "- 20:30 น. : ลาวสามัคคี\n"
         "- 21:00 น. : ลาวอาเซียน\n"
-        "- 21:30 น. : ลาว VIP & ลาวสามัคคี VIP\n\n"
+        "- 21:30 น. : ลาว VIP & ลาวสามัคคี VIP\n"
+        "- 22:00 น. : ลาวสตาร์ VIP\n\n"
         "**คำสั่งทดสอบ:**\n"
         "/test_special\n"
         "/test_samakkhi\n"
@@ -440,6 +491,7 @@ def send_welcome(message):
         "/test_lao_asean\n"
         "/test_lao_vip\n"
         "/test_lao_samakkhi_vip\n"
+        "/test_lao_star_vip\n"
         "/yesterday (ดึงผลเมื่อวานทั้งหมด)"
     )
     bot.reply_to(message, help_text)
@@ -455,7 +507,8 @@ def test_all_yesterday(message):
     threading.Thread(target=fetch_lao_samakkhi, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_lao_asean, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_lao_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_lao_samakkhi_vip, args=(1, False), daemon=True).start() # เพิ่มให้แล้ว!
+    threading.Thread(target=fetch_lao_samakkhi_vip, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_lao_star_vip, args=(1, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
@@ -520,6 +573,13 @@ def test_lao_samakkhi_vip_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวสามัคคี VIP**{txt}...")
     threading.Thread(target=fetch_lao_samakkhi_vip, args=(offset, False), daemon=True).start()
 
+@bot.message_handler(commands=['test_lao_star_vip'])
+def test_lao_star_vip_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวสตาร์ VIP**{txt}...")
+    threading.Thread(target=fetch_lao_star_vip, args=(offset, False), daemon=True).start()
+    
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
 # ==========================================
@@ -533,6 +593,7 @@ def time_checker():
     has_run_lao_asean = False
     has_run_lao_vip = False
     has_run_lao_samakkhi_vip = False
+    has_run_lao_star_vip = False
     last_check_date = ""
 
     while True:
@@ -586,6 +647,10 @@ def time_checker():
             if not has_run_lao_samakkhi_vip:
                 has_run_lao_samakkhi_vip = True
                 threading.Thread(target=fetch_lao_samakkhi_vip, daemon=True).start()
+
+        if now.hour == 22 and now.minute == 00 and not has_run_lao_star_vip:
+            has_run_lao_star_vip = True
+            threading.Thread(target=fetch_lao_star_vip, daemon=True).start()
 
         time.sleep(30)
 
