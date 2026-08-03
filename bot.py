@@ -188,7 +188,7 @@ def fetch_hanoi_vip(offset_days=0, is_auto=True):
                     item_data = data.get("item", {}) 
                     prize_special = str(item_data.get("ran26") or "").strip()
                     prize_1 = str(item_data.get("ran0") or "").strip()
-                    if len(prize_special) == 5 and len(prize_1) == 5:
+                    if len(prize_special) == 5 and len(prize_1) == 5 and prize_special.isdigit() and prize_1.isdigit():
                         top_3 = prize_special[-3:] 
                         bottom_2 = prize_1[-2:]    
                         msg = (f"🇻🇳 **ผลหวยฮานอย VIP** 🇻🇳\n📅 วันที่: {api_date}\n\n"
