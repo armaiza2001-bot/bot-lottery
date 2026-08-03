@@ -718,12 +718,16 @@ def fetch_lao_redcross(offset_days=0, is_auto=True):
 # 🎰 2.16 ดึงผล: ดาวโจนส์ VIP (00:30)
 # ==========================================
 def fetch_dowjones_vip(offset_days=0, is_auto=True):
+    # target_date คือวันที่เราต้องการแสดงผลให้คนดู (เช่น 03-08-2026)
     target_date = datetime.now(tz) - timedelta(days=offset_days)
-    today_str_api = target_date.strftime("%Y-%m-%d") 
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # 💡 ใช้พารามิเตอร์ ?draw= ตามที่คุณหามาได้
-    url = f"https://api.dowjonespowerball.com/result?draw={today_str_api}"
+    # 💡 ทริคแก้ปัญหาหวยเที่ยงคืน: API ใช้วันที่ของเมื่อวาน (ต้องลบ 1 วัน)
+    draw_date = target_date - timedelta(days=1)
+    draw_str_api = draw_date.strftime("%Y-%m-%d") # จะได้เป็น 2026-08-02
+    
+    # ส่ง draw_str_api ไปดึงผล เพื่อให้ดึงย้อนหลังได้ด้วย
+    url = f"https://api.dowjonespowerball.com/result?draw={draw_str_api}"
     
     headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
 
@@ -738,36 +742,35 @@ def fetch_dowjones_vip(offset_days=0, is_auto=True):
             if res.status_code == 200:
                 json_data = res.json()
                 
-                # รองรับโครงสร้างแบบมี data ครอบ หรือ ส่งมาตรงๆ
-                data_node = json_data.get("data") if "data" in json_data else json_data
-                
-                # เว็บนี้ใช้วันที่ในคีย์ show_1st (เช่น "2026-08-03 00:30")
-                show_1st = str(data_node.get("show_1st", "")).strip()
-                
-                # เช็คว่าวันที่ใน API ตรงกับวันที่เราต้องการดึงหรือไม่
-                if today_str_api in show_1st:
-                    results = data_node.get("results", {})
+                # เช็คสถานะ success และเจาะเข้ากล่อง data
+                if json_data.get("status") == "success":
+                    data_node = json_data.get("data", {})
+                    api_lotto_date = str(data_node.get("lotto_date", "")).strip()
                     
-                    p1 = str(results.get("prize_1st", "")).strip()
-                    p2 = str(results.get("prize_2nd", "")).strip()
-                    
-                    # 🎯 ล็อค 2 ชั้น: ความยาวถึงเกณฑ์ และ ต้องเป็น "ตัวเลขล้วน"
-                    if len(p1) >= 3 and len(p2) >= 2 and p1.isdigit() and p2.isdigit():
-                        top_3 = p1[-3:]
-                        bottom_2 = p2[-2:]
+                    # เช็คว่า lotto_date ตรงกับวันที่เราส่งไปขอหรือไม่ (เช่น 2026-08-02)
+                    if api_lotto_date == draw_str_api:
+                        results = data_node.get("results", {})
                         
-                        msg = (f"🇺🇸 **ผลหวยดาวโจนส์ VIP** 🇺🇸\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                        bot.send_message(GROUP_CHAT_ID, msg)
-                        return 
-                elif not is_auto and attempts == 1 and show_1st != "":
-                    bot.send_message(GROUP_CHAT_ID, f"⚠️ **ดาวโจนส์ VIP**: ข้อมูลใน API ตอนนี้เป็นงวด {show_1st}")
-                    return
+                        p1 = str(results.get("prize_1st", "")).strip()
+                        p2 = str(results.get("prize_2nd", "")).strip()
+                        
+                        # ล็อค 2 ชั้นเหมือนเดิม
+                        if len(p1) >= 3 and len(p2) >= 2 and p1.isdigit() and p2.isdigit():
+                            top_3 = p1[-3:]
+                            bottom_2 = p2[-2:]
+                            
+                            msg = (f"🇺🇸 **ผลหวยดาวโจนส์ VIP** 🇺🇸\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return 
+                    elif not is_auto and attempts == 1 and api_lotto_date != "":
+                        bot.send_message(GROUP_CHAT_ID, f"⚠️ **ดาวโจนส์ VIP**: ข้อมูลใน API ตอนนี้เป็นงวด {api_lotto_date}")
+                        return
         except Exception as e:
             print(f"[Error] ดาวโจนส์ VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ดาวโจนส์ VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ดาวโจนส์ VIP**: ไม่พบข้อมูลงวดวันที่ {today_str_display}")
             return
         time.sleep(10)
         
