@@ -642,9 +642,9 @@ def fetch_hanoi_extra(offset_days=0, is_auto=True):
                         
                         # ดึงข้อมูลและตัดตัวเลข
                         prize_1st = str(results.get("prize_1st", ""))
-                        prize_2digits = str(results.get("prize_2digits_1", ""))
+                        prize_2digits = str(results.get("prize_2nd", ""))
                         
-                        if len(prize_1st) >= 3 and len(prize_2digits) >= 2:
+                        if len(prize_1st) >= 3 and len(prize_2digits) >= 2 and prize_1st.isdigit() and prize_2digits.isdigit():
                             top_3 = prize_1st[-3:]
                             bottom_2 = prize_2digits[-2:]
                             
