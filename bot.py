@@ -647,6 +647,57 @@ def fetch_hanoi_extra(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอย EXTRA**: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
         time.sleep(10)
+
+# ==========================================
+# 🎰 2.15 ดึงผล: ลาวกาชาด (23:30)
+# ==========================================
+def fetch_lao_redcross(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    # 💡 ใส่ ?date= เผื่อไว้รองรับการดึงผลย้อนหลัง
+    url = f"https://api.lao-redcross.com/result?date={today_str_api}"
+    
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวกาชาด** งวดวันที่ {today_str_display} ครับ...")
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                # รองรับกรณีที่เว็บส่งข้อมูลมาตรงๆ (ไม่มี status/data ครอบ)
+                data_node = json_data.get("data") if "data" in json_data else json_data
+                api_date = str(data_node.get("lotto_date", "")).strip()
+                
+                if api_date == today_str_api:
+                    results = data_node.get("results", {})
+                    digit5 = str(results.get("digit5", "")).strip()
+                    
+                    if len(digit5) == 5 and digit5.isdigit():
+                        top_3 = digit5[-3:]
+                        bottom_2 = digit5[:2]
+                        
+                        msg = (f"🇱🇦 **ผลหวยลาวกาชาด** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
+                elif not is_auto and attempts == 1 and api_date != "":
+                    bot.send_message(GROUP_CHAT_ID, f"⚠️ **ลาวกาชาด**: ข้อมูลใน API ตอนนี้เป็นของวันที่ {api_date}")
+                    return
+        except Exception as e:
+            print(f"[Error] ลาวกาชาด: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวกาชาด**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            return
+        time.sleep(10)
         
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
@@ -676,11 +727,12 @@ def send_welcome(message):
         "- 22:00 น. : ลาวสตาร์ VIP\n"
         "- 22:30 น. : ฮานอย EXTRA\n"
         "- 22:50 น. : เยอรมัน VIP\n"
+        "- 23:30 น. : ลาวกาชาด\n\n"
         "- 23:50 น. : รัสเซีย VIP\n\n"
         "**คำสั่งทดสอบ:**\n"
         "/test_special | /test_samakkhi | /test_normal | /test_vip | /test_develop\n"
         "/test_lao_samakkhi | /test_lao_asean | /test_lao_vip | /test_lao_samakkhi_vip\n"
-        "/test_lao_star_vip | /test_england_vip | /test_hanoi_extra | /test_germany_vip | /test_russia_vip\n"
+        "/test_lao_star_vip | /test_england_vip | /test_hanoi_extra | /test_germany_vip | /test_lao_redcross | /test_russia_vip\n"
         "/yesterday (ดึงผลเมื่อวานทั้งหมด)"
     )
     bot.reply_to(message, help_text)
@@ -799,6 +851,13 @@ def test_hanoi_extra_cmd(message):
     txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอย EXTRA**{txt}...")
     threading.Thread(target=fetch_hanoi_extra, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_lao_redcross'])
+def test_lao_redcross_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวกาชาด**{txt}...")
+    threading.Thread(target=fetch_lao_redcross, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -815,6 +874,7 @@ def time_checker():
     has_run_lao_samakkhi_vip = False
     has_run_lao_star_vip = False
     has_run_hanoi_extra = False
+    has_run_lao_redcross = False
     last_check_date = ""
 
     while True:
@@ -887,6 +947,10 @@ def time_checker():
         if now.hour == 22 and now.minute == 50 and not has_run_germany_vip:
             has_run_germany_vip = True
             threading.Thread(target=fetch_germany_vip, daemon=True).start()
+
+        if now.hour == 23 and now.minute == 30 and not has_run_lao_redcross:
+            has_run_lao_redcross = True
+            threading.Thread(target=fetch_lao_redcross, daemon=True).start()
 
         if now.hour == 23 and now.minute == 50 and not has_run_russia_vip:
             has_run_russia_vip = True
