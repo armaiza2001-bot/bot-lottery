@@ -502,7 +502,7 @@ def fetch_england_vip(offset_days=0, is_auto=True):
                         results = data_gb.get("results", {})
                         p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
                         
-                        if len(p1) >= 3 and len(p2) >= 2:
+                        if len(p1) >= 3 and len(p2) >= 2 and p1.isdigit() and p2.isdigit():
                             msg = (f"🇬🇧 **ผลหวยอังกฤษ VIP** 🇬🇧\n📅 วันที่: {today_str_display}\n\n"
                                    f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
@@ -548,7 +548,7 @@ def fetch_germany_vip(offset_days=0, is_auto=True):
                         results = data_de.get("results", {})
                         p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
                         
-                        if len(p1) >= 3 and len(p2) >= 2:
+                        if len(p1) >= 3 and len(p2) >= 2 and p1.isdigit() and p2.isdigit():
                             msg = (f"🇩🇪 **ผลหวยเยอรมัน VIP** 🇩🇪\n📅 วันที่: {today_str_display}\n\n"
                                    f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
@@ -594,7 +594,7 @@ def fetch_russia_vip(offset_days=0, is_auto=True):
                         results = data_ru.get("results", {})
                         p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
                         
-                        if len(p1) >= 3 and len(p2) >= 2:
+                        if len(p1) >= 3 and len(p2) >= 2 and p1.isdigit() and p2.isdigit():
                             msg = (f"🇷🇺 **ผลหวยรัสเซีย VIP** 🇷🇺\n📅 วันที่: {today_str_display}\n\n"
                                    f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
