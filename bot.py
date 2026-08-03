@@ -679,7 +679,7 @@ def send_welcome(message):
         "**คำสั่งทดสอบ:**\n"
         "/test_special | /test_samakkhi | /test_normal | /test_vip | /test_develop\n"
         "/test_lao_samakkhi | /test_lao_asean | /test_lao_vip | /test_lao_samakkhi_vip\n"
-        "/test_lao_star_vip | /test_england_vip | /test_germany_vip | /test_russia_vip\n"
+        "/test_lao_star_vip | /test_england_vip | /test_hanoi_extra | /test_germany_vip | /test_russia_vip\n"
         "/yesterday (ดึงผลเมื่อวานทั้งหมด)"
     )
     bot.reply_to(message, help_text)
