@@ -457,15 +457,16 @@ def fetch_lao_star_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.11 ดึงผล: อังกฤษ VIP (21:50)
+# 🎰 2.11 ดึงผล: อังกฤษ VIP (21:50) [รองรับ ?date= ย้อนหลัง]
 # ==========================================
 def fetch_england_vip(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_api = target_date.strftime("%Y-%m-%d") 
     today_str_display = target_date.strftime("%d-%m-%Y")
-    url = "https://api.laostars-vip.com/result"
     
-    # 💡 ใส่ Headers ทะลวง Cloudflare (เหมือนเว็บลาว VIP)
+    # 💡 ต่อท้าย ?date= เพื่อดึงผลตามวันที่ต้องการได้ตรงเป๊ะ
+    url = f"https://api.laostars-vip.com/gb?date={today_str_api}"
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
@@ -483,22 +484,17 @@ def fetch_england_vip(offset_days=0, is_auto=True):
             if res.status_code in [200, 304]:
                 json_data = res.json()
                 if json_data.get("status") == "success":
-                    data_node = json_data.get("data", {}).get("gb", {})
-                    api_date = str(data_node.get("lotto_date", "")).strip()
+                    # ถ้าเรียกผ่าน /gb ข้อมูลจะอยู่นอกสุด หรือใน data.gb
+                    data_gb = json_data.get("data", {}).get("gb", {}) or json_data.get("data", {})
                     
-                    if api_date == today_str_api:
-                        results = data_node.get("results", {})
-                        p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
-                        
-                        if len(p1) >= 3 and len(p2) >= 2:
-                            msg = (f"🇬🇧 **ผลหวยอังกฤษ VIP** 🇬🇧\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
-                            bot.send_message(GROUP_CHAT_ID, msg)
-                            return 
-                    # 💡 ถ้าระบบเปลี่ยนวันไปแล้ว จะแจ้งให้ทราบทันที
-                    elif not is_auto and attempts == 1 and api_date != "":
-                        bot.send_message(GROUP_CHAT_ID, f"⚠️ **อังกฤษ VIP**: เว็บอัปเดตเป็นงวดวันที่ {api_date} แล้ว (ไม่สามารถดึงย้อนหลังได้)")
-                        return
+                    results = data_gb.get("results", {})
+                    p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
+                    
+                    if len(p1) >= 3 and len(p2) >= 2:
+                        msg = (f"🇬🇧 **ผลหวยอังกฤษ VIP** 🇬🇧\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
         except Exception as e:
             print(f"[Error] อังกฤษ VIP: {e}")
             
@@ -508,13 +504,14 @@ def fetch_england_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.12 ดึงผล: เยอรมัน VIP (22:50)
+# 🎰 2.12 ดึงผล: เยอรมัน VIP (22:50) [รองรับ ?date= ย้อนหลัง]
 # ==========================================
 def fetch_germany_vip(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_api = target_date.strftime("%Y-%m-%d") 
     today_str_display = target_date.strftime("%d-%m-%Y")
-    url = "https://api.laostars-vip.com/result"
+    
+    url = f"https://api.laostars-vip.com/de?date={today_str_api}"
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -533,21 +530,16 @@ def fetch_germany_vip(offset_days=0, is_auto=True):
             if res.status_code in [200, 304]:
                 json_data = res.json()
                 if json_data.get("status") == "success":
-                    data_node = json_data.get("data", {}).get("de", {})
-                    api_date = str(data_node.get("lotto_date", "")).strip()
+                    data_de = json_data.get("data", {}).get("de", {}) or json_data.get("data", {})
                     
-                    if api_date == today_str_api:
-                        results = data_node.get("results", {})
-                        p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
-                        
-                        if len(p1) >= 3 and len(p2) >= 2:
-                            msg = (f"🇩🇪 **ผลหวยเยอรมัน VIP** 🇩🇪\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
-                            bot.send_message(GROUP_CHAT_ID, msg)
-                            return 
-                    elif not is_auto and attempts == 1 and api_date != "":
-                        bot.send_message(GROUP_CHAT_ID, f"⚠️ **เยอรมัน VIP**: เว็บอัปเดตเป็นงวดวันที่ {api_date} แล้ว (ไม่สามารถดึงย้อนหลังได้)")
-                        return
+                    results = data_de.get("results", {})
+                    p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
+                    
+                    if len(p1) >= 3 and len(p2) >= 2:
+                        msg = (f"🇩🇪 **ผลหวยเยอรมัน VIP** 🇩🇪\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
         except Exception as e:
             print(f"[Error] เยอรมัน VIP: {e}")
             
@@ -557,13 +549,14 @@ def fetch_germany_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.13 ดึงผล: รัสเซีย VIP (23:50)
+# 🎰 2.13 ดึงผล: รัสเซีย VIP (23:50) [รองรับ ?date= ย้อนหลัง]
 # ==========================================
 def fetch_russia_vip(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_api = target_date.strftime("%Y-%m-%d") 
     today_str_display = target_date.strftime("%d-%m-%Y")
-    url = "https://api.laostars-vip.com/result"
+    
+    url = f"https://api.laostars-vip.com/ru?date={today_str_api}"
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -582,21 +575,16 @@ def fetch_russia_vip(offset_days=0, is_auto=True):
             if res.status_code in [200, 304]:
                 json_data = res.json()
                 if json_data.get("status") == "success":
-                    data_node = json_data.get("data", {}).get("ru", {})
-                    api_date = str(data_node.get("lotto_date", "")).strip()
+                    data_ru = json_data.get("data", {}).get("ru", {}) or json_data.get("data", {})
                     
-                    if api_date == today_str_api:
-                        results = data_node.get("results", {})
-                        p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
-                        
-                        if len(p1) >= 3 and len(p2) >= 2:
-                            msg = (f"🇷🇺 **ผลหวยรัสเซีย VIP** 🇷🇺\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
-                            bot.send_message(GROUP_CHAT_ID, msg)
-                            return 
-                    elif not is_auto and attempts == 1 and api_date != "":
-                        bot.send_message(GROUP_CHAT_ID, f"⚠️ **รัสเซีย VIP**: เว็บอัปเดตเป็นงวดวันที่ {api_date} แล้ว (ไม่สามารถดึงย้อนหลังได้)")
-                        return
+                    results = data_ru.get("results", {})
+                    p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
+                    
+                    if len(p1) >= 3 and len(p2) >= 2:
+                        msg = (f"🇷🇺 **ผลหวยรัสเซีย VIP** 🇷🇺\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
         except Exception as e:
             print(f"[Error] รัสเซีย VIP: {e}")
             
