@@ -455,6 +455,120 @@ def fetch_lao_star_vip(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวสตาร์ VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
         time.sleep(10)
+
+# ==========================================
+# 🎰 2.11 ดึงผล: อังกฤษ VIP (21:50)
+# ==========================================
+def fetch_england_vip(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    url = "https://api.laostars-vip.com/result"
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยอังกฤษ VIP** งวดวันที่ {today_str_display} ครับ...")
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200 and res.json().get("status") == "success":
+                # 💡 เจาะเข้าไปที่ตะกร้า "gb" (อังกฤษ)
+                data_node = res.json().get("data", {}).get("gb", {})
+                if str(data_node.get("lotto_date", "")).strip() == today_str_api:
+                    results = data_node.get("results", {})
+                    p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
+                    
+                    if len(p1) >= 3 and len(p2) >= 2:
+                        msg = (f"🇬🇧 **ผลหวยอังกฤษ VIP** 🇬🇧\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
+        except Exception as e:
+            print(f"[Error] อังกฤษ VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **อังกฤษ VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            return
+        time.sleep(10)
+
+# ==========================================
+# 🎰 2.12 ดึงผล: เยอรมัน VIP (22:50)
+# ==========================================
+def fetch_germany_vip(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    url = "https://api.laostars-vip.com/result"
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยเยอรมัน VIP** งวดวันที่ {today_str_display} ครับ...")
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200 and res.json().get("status") == "success":
+                # 💡 เจาะเข้าไปที่ตะกร้า "de" (เยอรมัน)
+                data_node = res.json().get("data", {}).get("de", {})
+                if str(data_node.get("lotto_date", "")).strip() == today_str_api:
+                    results = data_node.get("results", {})
+                    p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
+                    
+                    if len(p1) >= 3 and len(p2) >= 2:
+                        msg = (f"🇩🇪 **ผลหวยเยอรมัน VIP** 🇩🇪\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
+        except Exception as e:
+            print(f"[Error] เยอรมัน VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **เยอรมัน VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            return
+        time.sleep(10)
+
+# ==========================================
+# 🎰 2.13 ดึงผล: รัสเซีย VIP (23:50)
+# ==========================================
+def fetch_russia_vip(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    url = "https://api.laostars-vip.com/result"
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยรัสเซีย VIP** งวดวันที่ {today_str_display} ครับ...")
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200 and res.json().get("status") == "success":
+                # 💡 เจาะเข้าไปที่ตะกร้า "ru" (รัสเซีย)
+                data_node = res.json().get("data", {}).get("ru", {})
+                if str(data_node.get("lotto_date", "")).strip() == today_str_api:
+                    results = data_node.get("results", {})
+                    p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
+                    
+                    if len(p1) >= 3 and len(p2) >= 2:
+                        msg = (f"🇷🇺 **ผลหวยรัสเซีย VIP** 🇷🇺\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
+        except Exception as e:
+            print(f"[Error] รัสเซีย VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **รัสเซีย VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            return
+        time.sleep(10)
         
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
@@ -480,18 +594,14 @@ def send_welcome(message):
         "- 20:30 น. : ลาวสามัคคี\n"
         "- 21:00 น. : ลาวอาเซียน\n"
         "- 21:30 น. : ลาว VIP & ลาวสามัคคี VIP\n"
-        "- 22:00 น. : ลาวสตาร์ VIP\n\n"
+        "- 21:50 น. : อังกฤษ VIP\n"
+        "- 22:00 น. : ลาวสตาร์ VIP\n"
+        "- 22:50 น. : เยอรมัน VIP\n"
+        "- 23:50 น. : รัสเซีย VIP\n\n"
         "**คำสั่งทดสอบ:**\n"
-        "/test_special\n"
-        "/test_samakkhi\n"
-        "/test_normal\n"
-        "/test_vip\n"
-        "/test_develop\n"
-        "/test_lao_samakkhi\n"
-        "/test_lao_asean\n"
-        "/test_lao_vip\n"
-        "/test_lao_samakkhi_vip\n"
-        "/test_lao_star_vip\n"
+        "/test_special | /test_samakkhi | /test_normal | /test_vip | /test_develop\n"
+        "/test_lao_samakkhi | /test_lao_asean | /test_lao_vip | /test_lao_samakkhi_vip\n"
+        "/test_lao_star_vip | /test_england_vip | /test_germany_vip | /test_russia_vip\n"
         "/yesterday (ดึงผลเมื่อวานทั้งหมด)"
     )
     bot.reply_to(message, help_text)
@@ -509,6 +619,9 @@ def test_all_yesterday(message):
     threading.Thread(target=fetch_lao_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_lao_samakkhi_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_lao_star_vip, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_england_vip, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_germany_vip, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_russia_vip, args=(1, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
@@ -610,6 +723,9 @@ def time_checker():
             has_run_lao_asean = False
             has_run_lao_vip = False
             has_run_lao_samakkhi_vip = False
+            has_run_england_vip = False
+            has_run_germany_vip = False
+            has_run_russia_vip = False
             last_check_date = current_date
 
         if now.hour == 17 and now.minute == 30:
@@ -648,9 +764,21 @@ def time_checker():
                 has_run_lao_samakkhi_vip = True
                 threading.Thread(target=fetch_lao_samakkhi_vip, daemon=True).start()
 
+        if now.hour == 21 and now.minute == 50 and not has_run_england_vip:
+            has_run_england_vip = True
+            threading.Thread(target=fetch_england_vip, daemon=True).start()
+
         if now.hour == 22 and now.minute == 00 and not has_run_lao_star_vip:
             has_run_lao_star_vip = True
             threading.Thread(target=fetch_lao_star_vip, daemon=True).start()
+
+        if now.hour == 22 and now.minute == 50 and not has_run_germany_vip:
+            has_run_germany_vip = True
+            threading.Thread(target=fetch_germany_vip, daemon=True).start()
+
+        if now.hour == 23 and now.minute == 50 and not has_run_russia_vip:
+            has_run_russia_vip = True
+            threading.Thread(target=fetch_russia_vip, daemon=True).start()
 
         time.sleep(30)
 
