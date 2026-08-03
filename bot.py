@@ -692,6 +692,27 @@ def test_lao_star_vip_cmd(message):
     txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวสตาร์ VIP**{txt}...")
     threading.Thread(target=fetch_lao_star_vip, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_england_vip'])
+def test_england_vip_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **อังกฤษ VIP**{txt}...")
+    threading.Thread(target=fetch_england_vip, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_germany_vip'])
+def test_germany_vip_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **เยอรมัน VIP**{txt}...")
+    threading.Thread(target=fetch_germany_vip, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_russia_vip'])
+def test_russia_vip_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **รัสเซีย VIP**{txt}...")
+    threading.Thread(target=fetch_russia_vip, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
