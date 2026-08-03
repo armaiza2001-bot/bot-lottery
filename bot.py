@@ -594,6 +594,59 @@ def fetch_russia_vip(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ **รัสเซีย VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
         time.sleep(10)
+
+# ==========================================
+# 🎰 2.14 ดึงผล: ฮานอย EXTRA (22:30)
+# ==========================================
+def fetch_hanoi_extra(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    # 💡 ใส่ ?date= เผื่อเว็บรองรับการดึงผลย้อนหลัง
+    url = f"https://api.xosoextra.com/result?date={today_str_api}"
+    
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอย EXTRA** งวดวันที่ {today_str_display} ครับ...")
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200:
+                json_data = res.json()
+                if json_data.get("status") == "success":
+                    data_node = json_data.get("data", {})
+                    api_date = str(data_node.get("lotto_date", "")).strip()
+                    
+                    if api_date == today_str_api:
+                        results = data_node.get("results", {})
+                        
+                        # ดึงข้อมูลและตัดตัวเลข
+                        prize_1st = str(results.get("prize_1st", ""))
+                        prize_2digits = str(results.get("prize_2digits_1", ""))
+                        
+                        if len(prize_1st) >= 3 and len(prize_2digits) >= 2:
+                            top_3 = prize_1st[-3:]
+                            bottom_2 = prize_2digits[-2:]
+                            
+                            msg = (f"🇻🇳 **ผลหวยฮานอย EXTRA** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return 
+                    elif not is_auto and attempts == 1 and api_date != "":
+                        bot.send_message(GROUP_CHAT_ID, f"⚠️ **ฮานอย EXTRA**: ข้อมูลใน API ตอนนี้เป็นของวันที่ {api_date}")
+                        return
+        except Exception as e:
+            print(f"[Error] ฮานอย EXTRA: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอย EXTRA**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            return
+        time.sleep(10)
         
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
@@ -738,6 +791,13 @@ def test_russia_vip_cmd(message):
     txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **รัสเซีย VIP**{txt}...")
     threading.Thread(target=fetch_russia_vip, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_hanoi_extra'])
+def test_hanoi_extra_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอย EXTRA**{txt}...")
+    threading.Thread(target=fetch_hanoi_extra, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -753,6 +813,7 @@ def time_checker():
     has_run_lao_vip = False
     has_run_lao_samakkhi_vip = False
     has_run_lao_star_vip = False
+    has_run_hanoi_extra = False
     last_check_date = ""
 
     while True:
@@ -817,6 +878,10 @@ def time_checker():
         if now.hour == 22 and now.minute == 00 and not has_run_lao_star_vip:
             has_run_lao_star_vip = True
             threading.Thread(target=fetch_lao_star_vip, daemon=True).start()
+
+        if now.hour == 22 and now.minute == 30 and not has_run_hanoi_extra:
+            has_run_hanoi_extra = True
+            threading.Thread(target=fetch_hanoi_extra, daemon=True).start()
 
         if now.hour == 22 and now.minute == 50 and not has_run_germany_vip:
             has_run_germany_vip = True
