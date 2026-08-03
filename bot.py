@@ -648,8 +648,8 @@ def fetch_hanoi_extra(offset_days=0, is_auto=True):
                             top_3 = prize_1st[-3:]
                             bottom_2 = prize_2digits[-2:]
                             
-                            msg = (f"🇻🇳 **ผลหวยฮานอย EXTRA** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇻🇳 ผลหวยฮานอย EXTRA 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
                     elif not is_auto and attempts == 1 and api_date != "":
