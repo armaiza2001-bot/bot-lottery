@@ -111,17 +111,18 @@ def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.3 ดึงผล: ฮานอยปกติ (18:30) [แกะ HTML ตามหน้าเว็บจริง]
+# 🎰 2.3 ดึงผล: ฮานอยปกติ (18:30) [เจาะตรงผ่าน Archive URL ชัวร์ 100%]
 # ==========================================
 def fetch_hanoi_normal(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
-    today_str_html = target_date.strftime("%d/%m/%Y") # เว็บใช้ format 03/08/2026
     
-    main_url = "https://www.minhngoc.net.vn/xo-so-truc-tiep/mien-bac.html"
+    # 🎯 ใช้ลิงก์คลังข้อมูลที่ล็อกวันที่ไว้เลย หมดปัญหาหน้า Live รีเซ็ต!
+    url = f"https://www.minhngoc.net.vn/ket-qua-xo-so/mien-bac/{today_str_display}.html"
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': '*/*'
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
     }
 
     if is_auto:
@@ -131,40 +132,32 @@ def fetch_hanoi_normal(offset_days=0, is_auto=True):
     while True:
         attempts += 1
         try:
-            # โหลดหน้า HTML สดๆ เสมอ
-            res = requests.get(f"{main_url}?v={int(time.time())}", headers=headers, timeout=15)
+            res = requests.get(url, headers=headers, timeout=15)
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            # 🎯 1. เช็ควันที่จาก h1 หรือ div title ตามรูปที่คุณหามาเป๊ะๆ!
-            page_title = soup.find('h1', class_='pagetitle')
-            box_title = soup.find('div', class_='title')
+            # ดิ่งเข้าไปหาตัวเลขเลย ไม่ต้องเช็ควันที่แล้วเพราะ URL ล็อกมาให้แล้ว
+            prize_special = soup.find('td', class_='giaidb')
+            prize_1 = soup.find('td', class_='giai1')
             
-            is_correct_date = False
-            if page_title and today_str_html in page_title.text:
-                is_correct_date = True
-            elif box_title and today_str_html in box_title.text:
-                is_correct_date = True
-            
-            # 🎯 2. ถ้าวันที่ตรงปุ๊บ ให้วิ่งไปโกยตัวเลขจาก td
-            if is_correct_date:
-                prize_special = soup.find('td', class_='giaidb')
-                prize_1 = soup.find('td', class_='giai1')
+            if prize_special and prize_1:
+                text_db = prize_special.text.replace(" ", "").replace("-", "").strip()
+                text_1 = prize_1.text.replace(" ", "").replace("-", "").strip()
                 
-                if prize_special and prize_1:
-                    # ดึง text ออกมา ตัดช่องว่างทิ้ง
-                    text_db = prize_special.text.replace(" ", "").replace("-", "").strip()
-                    text_1 = prize_1.text.replace(" ", "").replace("-", "").strip()
-                    
-                    # ถ้าเลขมาครบ 5 ตัว (เว็บหยุดหมุนแล้ว) ก็ส่งแจ้งเลย!
-                    if len(text_db) == 5 and len(text_1) == 5 and text_db.isdigit() and text_1.isdigit():
-                        msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {text_db[-3:]}\n👇 **2 ตัวล่าง:** {text_1[-2:]}\n")
-                        bot.send_message(GROUP_CHAT_ID, msg)
-                        return
+                if len(text_db) == 5 and len(text_1) == 5 and text_db.isdigit() and text_1.isdigit():
+                    msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                           f"🎯 **3 ตัวบน:** {text_db[-3:]}\n👇 **2 ตัวล่าง:** {text_1[-2:]}\n")
+                    bot.send_message(GROUP_CHAT_ID, msg)
+                    return
+                elif not is_auto and attempts == 1:
+                    # โหมด Debug ช่วยดูว่ามันดึงอะไรมาตอนตัวเลขมาไม่ครบ
+                    bot.send_message(GROUP_CHAT_ID, f"🔍 [Debug] เจอช่องแล้วแต่เลขไม่ครบ บน:'{text_db}', ล่าง:'{text_1}'")
+            else:
+                if not is_auto and attempts == 1:
+                     bot.send_message(GROUP_CHAT_ID, f"⚠️ [Debug] หาคลาส giaidb หรือ giai1 ไม่พบในหน้าเว็บ")
 
         except Exception as e:
-            print(f"[Error] ฮานอยปกติ (HTML): {e}")
+            print(f"[Error] ฮานอยปกติ (Archive): {e}")
             
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยปกติ**: ไม่พบข้อมูลวันที่ {today_str_display} (หรือผลยังไม่ออก)")
