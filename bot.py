@@ -713,6 +713,63 @@ def fetch_lao_redcross(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวกาชาด**: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
         time.sleep(10)
+
+# ==========================================
+# 🎰 2.16 ดึงผล: ดาวโจนส์ VIP (00:30)
+# ==========================================
+def fetch_dowjones_vip(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    # 💡 ใช้พารามิเตอร์ ?draw= ตามที่คุณหามาได้
+    url = f"https://api.dowjonespowerball.com/result?draw={today_str_api}"
+    
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยดาวโจนส์ VIP** งวดวันที่ {today_str_display} ครับ...")
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                # รองรับโครงสร้างแบบมี data ครอบ หรือ ส่งมาตรงๆ
+                data_node = json_data.get("data") if "data" in json_data else json_data
+                
+                # เว็บนี้ใช้วันที่ในคีย์ show_1st (เช่น "2026-08-03 00:30")
+                show_1st = str(data_node.get("show_1st", "")).strip()
+                
+                # เช็คว่าวันที่ใน API ตรงกับวันที่เราต้องการดึงหรือไม่
+                if today_str_api in show_1st:
+                    results = data_node.get("results", {})
+                    
+                    p1 = str(results.get("prize_1st", "")).strip()
+                    p2 = str(results.get("prize_2nd", "")).strip()
+                    
+                    # 🎯 ล็อค 2 ชั้น: ความยาวถึงเกณฑ์ และ ต้องเป็น "ตัวเลขล้วน"
+                    if len(p1) >= 3 and len(p2) >= 2 and p1.isdigit() and p2.isdigit():
+                        top_3 = p1[-3:]
+                        bottom_2 = p2[-2:]
+                        
+                        msg = (f"🇺🇸 **ผลหวยดาวโจนส์ VIP** 🇺🇸\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
+                elif not is_auto and attempts == 1 and show_1st != "":
+                    bot.send_message(GROUP_CHAT_ID, f"⚠️ **ดาวโจนส์ VIP**: ข้อมูลใน API ตอนนี้เป็นงวด {show_1st}")
+                    return
+        except Exception as e:
+            print(f"[Error] ดาวโจนส์ VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ดาวโจนส์ VIP**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            return
+        time.sleep(10)
         
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
@@ -744,10 +801,11 @@ def send_welcome(message):
         "- 22:50 น. : เยอรมัน VIP\n"
         "- 23:30 น. : ลาวกาชาด\n\n"
         "- 23:50 น. : รัสเซีย VIP\n\n"
+        "- 00:30 น. : ดาวโจนส์ VIP\n\n"
         "**คำสั่งทดสอบ:**\n"
         "/test_special | /test_samakkhi | /test_normal | /test_vip | /test_develop\n"
         "/test_lao_samakkhi | /test_lao_asean | /test_lao_vip | /test_lao_samakkhi_vip\n"
-        "/test_lao_star_vip | /test_england_vip | /test_hanoi_extra | /test_germany_vip | /test_lao_redcross | /test_russia_vip\n"
+        "/test_lao_star_vip | /test_england_vip | /test_hanoi_extra | /test_germany_vip | /test_lao_redcross | /test_russia_vip | /test_dowjones_vip\n"
         "/yesterday (ดึงผลเมื่อวานทั้งหมด)"
     )
     bot.reply_to(message, help_text)
@@ -873,6 +931,13 @@ def test_lao_redcross_cmd(message):
     txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวกาชาด**{txt}...")
     threading.Thread(target=fetch_lao_redcross, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_dowjones_vip'])
+def test_dowjones_vip_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ดาวโจนส์ VIP**{txt}...")
+    threading.Thread(target=fetch_dowjones_vip, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -890,6 +955,7 @@ def time_checker():
     has_run_lao_star_vip = False
     has_run_hanoi_extra = False
     has_run_lao_redcross = False
+    has_run_dowjones_vip = False
     last_check_date = ""
 
     while True:
@@ -970,6 +1036,10 @@ def time_checker():
         if now.hour == 23 and now.minute == 50 and not has_run_russia_vip:
             has_run_russia_vip = True
             threading.Thread(target=fetch_russia_vip, daemon=True).start()
+
+        if now.hour == 0 and now.minute == 30 and not has_run_dowjones_vip:
+            has_run_dowjones_vip = True
+            threading.Thread(target=fetch_dowjones_vip, daemon=True).start()
 
         time.sleep(30)
 
