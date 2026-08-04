@@ -785,66 +785,52 @@ def fetch_dowjones_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 📈 2.17 ฟังก์ชันดึงผล: หวยหุ้นปกติ (อังกฤษ, เยอรมัน, รัสเซีย) ผ่าน API
+# 🇬🇧 ดึงผลหวยหุ้นอังกฤษ (จากดัชนี FTSE 100 โดยตรง)
 # ==========================================
-def fetch_stock_normal_api(keyword, display_name):
-    # 1. ตั้งค่าวันที่ปัจจุบันเพื่อเอาไปล็อคเช็คกับ API
-    target_date = datetime.now(tz)
-    today_str_api = target_date.strftime("%Y-%m-%d") # จะได้หน้าตาแบบ 2026-08-04
+def fetch_england_stock_fast(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    url = "https://lotto2news.com/api/v1/result"
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอังกฤษ** งวดวันที่ {today_str_display} (จากกระดานหุ้นโลก) ครับ...")
+
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/^FTSE"
     headers = {
-        "x-api-key": "hk_113aff7017e3fca80b04a5e04391da55e5a0fa34", 
-        "Content-Type": "application/json"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
-    
-    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **{display_name}** งวด {today_str_display} (ผ่านระบบ API) ครับ...")
-    
-    attempts = 0
-    while attempts < 30: # 📌 ขยายเวลารอเป็น 30 ครั้ง (30 นาที) เผื่อเว็บอัปเดตช้า
-        attempts += 1
-        try:
-            res = requests.get(url, headers=headers, timeout=15)
-            if res.status_code == 200:
-                data = res.json().get("data", [])
-                for lotto in data:
-                    name = lotto.get("name", "")
-                    
-                    if keyword in name and "VIP" not in name.upper() and "วีไอพี" not in name:
-                        latest = lotto.get("latest", {})
-                        
-                        # 📌 ดึงวันที่จาก API มาเช็ค (กันการดึงผลเก่าของเมื่อวาน)
-                        api_date = str(latest.get("date", ""))
-                        
-                        # 🎯 ตรวจสอบว่าวันที่ตรงกับ "วันนี้" หรือไม่
-                        if today_str_api in api_date: 
-                            if latest.get("status") == "published" and not latest.get("isCanceled"):
-                                prizes = latest.get("prizes", [])
-                                
-                                # 🧩 สกัดตัวเลข 3 ตัว และ 2 ตัว จากโครงสร้าง API
-                                top_3 = "-"
-                                bottom_2 = "-"
-                                for p in prizes:
-                                    if p.get("type", "").lower() == "3up":
-                                        top_3 = str(p.get("number", ""))
-                                    elif p.get("type", "").lower() == "2down":
-                                        bottom_2 = str(p.get("number", ""))
-                                        
-                                # 📢 จัดหน้าตาส่งเข้ากลุ่ม
-                                msg = (f"📈 **ผล{display_name}** 📈\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return 
-                        else:
-                            # ⏳ ถ้าวันที่ยังไม่ตรง (เว็บ lotto2news ยังไม่อัปเดต) ให้บอทเงียบไว้ และรอเช็คใหม่นาทีหน้า
-                            pass
-        except Exception as e:
-            print(f"[Error] API {display_name}: {e}")
-            
-        time.sleep(60) # หน่วง 1 นาที
+
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            result = data.get("chart", {}).get("result", [])
+            if result:
+                meta = result[0].get("meta", {})
+                current_price = meta.get("regularMarketPrice", 0)
+                prev_close = meta.get("chartPreviousClose", 0)
+                change = current_price - prev_close
+                
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                price_str = f"{current_price:.2f}"
+                change_str = f"{change:.2f}"
+                
+                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วยของค่าดัชนี + ทศนิยม 2 ตำแหน่ง)
+                integer_part, decimal_part = price_str.split('.')
+                top_3 = integer_part[-1] + decimal_part 
+                
+                # 👇 ตัดเลข 2 ตัวล่าง (ทศนิยม 2 ตำแหน่งของค่าเปลี่ยนแปลง)
+                bottom_2 = change_str.split('.')[1]
+                
+                # 📢 ส่งผลเข้ากลุ่ม Telegram
+                msg = (f"🇬🇧 **ผลหวยหุ้นอังกฤษ** 🇬🇧\n📅 วันที่: {today_str_display}\n\n"
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                bot.send_message(GROUP_CHAT_ID, msg)
+                return
+    except Exception as e:
+        print(f"[Error] หวยหุ้นอังกฤษ: {e}")
         
-    bot.send_message(GROUP_CHAT_ID, f"❌ หมดเวลารอผล **{display_name}** (เว็บไม่อัปเดตผลภายใน 30 นาที)")
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอังกฤษ**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
         
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
@@ -1016,8 +1002,8 @@ def test_dowjones_vip_cmd(message):
 
 @bot.message_handler(commands=['test_england_normal'])
 def test_england_normal_cmd(message):
-    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นอังกฤษ (ปกติ)** ล่าสุด...")
-    threading.Thread(target=fetch_england_normal, daemon=True).start()
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นอังกฤษ** จากตลาดหุ้น...")
+    threading.Thread(target=fetch_england_stock_fast, args=(0, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_germany_normal'])
 def test_germany_normal_cmd(message):
