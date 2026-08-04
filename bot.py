@@ -990,72 +990,85 @@ def time_checker():
             has_run_russia_vip = False
             last_check_date = current_date
 
-        iif now.hour == 17 and now.minute == 30:
-        if not has_run_special:
-            has_run_special = True
-            threading.Thread(target=fetch_hanoi_special, daemon=True).start()
-            time.sleep(2)
-            
-        if not has_run_samakkhi:
-            has_run_samakkhi = True
-            threading.Thread(target=fetch_hanoi_samakkhi, daemon=True).start()
+        # 🕒 รอบ 17:30 น.
+        if now.hour == 17 and now.minute == 30:
+            if not has_run_special:
+                has_run_special = True
+                threading.Thread(target=fetch_hanoi_special, daemon=True).start()
+                time.sleep(2) # 📌 หน่วงเวลาคั่น
+                
+            if not has_run_samakkhi:
+                has_run_samakkhi = True
+                threading.Thread(target=fetch_hanoi_samakkhi, daemon=True).start()
 
+        # 🕒 รอบ 18:30 น.
         if now.hour == 18 and now.minute == 30 and not has_run_normal:
             has_run_normal = True
             threading.Thread(target=fetch_hanoi_normal, daemon=True).start()
-            
+
+        # 🕒 รอบ 19:30 น.
         if now.hour == 19 and now.minute == 30:
             if not has_run_vip:
                 has_run_vip = True
                 threading.Thread(target=fetch_hanoi_vip, daemon=True).start()
-                time.sleep(2)
+                time.sleep(2) # 📌 หน่วงเวลาคั่น
                 
-        if not has_run_develop:
-            has_run_develop = True
-            threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
-                
+            if not has_run_develop:
+                has_run_develop = True
+                threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
+
+        # 🕒 รอบ 20:30 น.
         if now.hour == 20 and now.minute == 30 and not has_run_lao_samakkhi:
             has_run_lao_samakkhi = True
             threading.Thread(target=fetch_lao_samakkhi, daemon=True).start()
-            
+
+        # 🕒 รอบ 21:00 น.
         if now.hour == 21 and now.minute == 00 and not has_run_lao_asean:
             has_run_lao_asean = True
             threading.Thread(target=fetch_lao_asean, daemon=True).start()
 
+        # 🕒 รอบ 21:30 น.
         if now.hour == 21 and now.minute == 30:
-        if not has_run_lao_vip:
-            has_run_lao_vip = True
-            threading.Thread(target=fetch_lao_vip, daemon=True).start()
-            time.sleep(2)
-            
-        if not has_run_lao_samakkhi_vip:
-            has_run_lao_samakkhi_vip = True
-            threading.Thread(target=fetch_lao_samakkhi_vip, daemon=True).start()
+            if not has_run_lao_vip:
+                has_run_lao_vip = True
+                threading.Thread(target=fetch_lao_vip, daemon=True).start()
+                time.sleep(2) # 📌 หน่วงเวลาคั่น
+                
+            if not has_run_lao_samakkhi_vip:
+                has_run_lao_samakkhi_vip = True
+                threading.Thread(target=fetch_lao_samakkhi_vip, daemon=True).start()
 
+        # 🕒 รอบ 21:50 น.
         if now.hour == 21 and now.minute == 50 and not has_run_england_vip:
             has_run_england_vip = True
             threading.Thread(target=fetch_england_vip, daemon=True).start()
 
+        # 🕒 รอบ 22:00 น.
         if now.hour == 22 and now.minute == 00 and not has_run_lao_star_vip:
             has_run_lao_star_vip = True
             threading.Thread(target=fetch_lao_star_vip, daemon=True).start()
 
+        # 🕒 รอบ 22:30 น.
         if now.hour == 22 and now.minute == 30 and not has_run_hanoi_extra:
             has_run_hanoi_extra = True
             threading.Thread(target=fetch_hanoi_extra, daemon=True).start()
 
+        # 🕒 รอบ 22:50 น.
         if now.hour == 22 and now.minute == 50 and not has_run_germany_vip:
             has_run_germany_vip = True
             threading.Thread(target=fetch_germany_vip, daemon=True).start()
 
+        # 🕒 รอบ 23:30 น.
         if now.hour == 23 and now.minute == 30 and not has_run_lao_redcross:
             has_run_lao_redcross = True
             threading.Thread(target=fetch_lao_redcross, daemon=True).start()
 
+        # 🕒 รอบ 23:50 น.
         if now.hour == 23 and now.minute == 50 and not has_run_russia_vip:
             has_run_russia_vip = True
             threading.Thread(target=fetch_russia_vip, daemon=True).start()
 
+        # 🕒 รอบ 00:30 น.
         if now.hour == 0 and now.minute == 30 and not has_run_dowjones_vip:
             has_run_dowjones_vip = True
             threading.Thread(target=fetch_dowjones_vip, daemon=True).start()
