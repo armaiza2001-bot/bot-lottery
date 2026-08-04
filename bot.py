@@ -990,13 +990,15 @@ def time_checker():
             has_run_russia_vip = False
             last_check_date = current_date
 
-        if now.hour == 17 and now.minute == 30:
-            if not has_run_special:
-                has_run_special = True
-                threading.Thread(target=fetch_hanoi_special, daemon=True).start()
-            if not has_run_samakkhi:
-                has_run_samakkhi = True
-                threading.Thread(target=fetch_hanoi_samakkhi, daemon=True).start()
+        iif now.hour == 17 and now.minute == 30:
+        if not has_run_special:
+            has_run_special = True
+            threading.Thread(target=fetch_hanoi_special, daemon=True).start()
+            time.sleep(2)
+            
+        if not has_run_samakkhi:
+            has_run_samakkhi = True
+            threading.Thread(target=fetch_hanoi_samakkhi, daemon=True).start()
 
         if now.hour == 18 and now.minute == 30 and not has_run_normal:
             has_run_normal = True
@@ -1019,12 +1021,14 @@ def time_checker():
             threading.Thread(target=fetch_lao_asean, daemon=True).start()
 
         if now.hour == 21 and now.minute == 30:
-            if not has_run_lao_vip:
-                has_run_lao_vip = True
-                threading.Thread(target=fetch_lao_vip, daemon=True).start()
-            if not has_run_lao_samakkhi_vip:
-                has_run_lao_samakkhi_vip = True
-                threading.Thread(target=fetch_lao_samakkhi_vip, daemon=True).start()
+        if not has_run_lao_vip:
+            has_run_lao_vip = True
+            threading.Thread(target=fetch_lao_vip, daemon=True).start()
+            time.sleep(2)  # 📌 เลื่อนเข้ามาหลบตรงนี้ครับ! มันจะทำงานแค่ครั้งเดียวตอนที่สั่งรันบอท
+            
+        if not has_run_lao_samakkhi_vip:
+            has_run_lao_samakkhi_vip = True
+            threading.Thread(target=fetch_lao_samakkhi_vip, daemon=True).start()
 
         if now.hour == 21 and now.minute == 50 and not has_run_england_vip:
             has_run_england_vip = True
