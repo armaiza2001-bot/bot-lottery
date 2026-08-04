@@ -116,7 +116,7 @@ def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
 def fetch_hanoi_normal(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
-    today_str_html = target_date.strftime("%d/%m/%Y") # 📌 เพิ่มตัวแปรนี้สำหรับเช็คในหน้าเว็บ (เช่น 04/08/2026)
+    today_str_html = target_date.strftime("%d/%m/%Y") # 📌 ตัวแปรนี้เอาไว้เช็คว่าเว็บเปลี่ยนเป็นวันปัจจุบันหรือยัง
     
     url = f"https://www.minhngoc.net.vn/ket-qua-xo-so/mien-bac/{today_str_display}.html"
     
@@ -136,7 +136,7 @@ def fetch_hanoi_normal(offset_days=0, is_auto=True):
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            # 🛡️ 1. เอา "ยามเฝ้าประตูเช็ควันที่" กลับมา! กันเว็บเนียนส่งผลเมื่อวานมาให้
+            # 🛡️ 1. เช็ควันที่หน้าเว็บก่อน! ถ้าเว็บยังโชว์ของเมื่อวานอยู่ จะได้ไม่ดึงเลขมั่ว
             page_title = soup.find('h1', class_='pagetitle')
             box_title = soup.find('div', class_='title')
             
@@ -146,7 +146,7 @@ def fetch_hanoi_normal(offset_days=0, is_auto=True):
             elif box_title and today_str_html in box_title.text:
                 is_correct_date = True
             
-            # 🎯 2. ถ้าวันที่บนเว็บตรงกับวันนี้ ค่อยไปดึงเลข
+            # 🎯 2. ถ้าวันที่ตรงกับวันนี้แล้ว ค่อยดึงตัวเลข
             if is_correct_date: 
                 prize_special = soup.find('td', class_='giaidb')
                 prize_1 = soup.find('td', class_='giai1')
@@ -156,8 +156,8 @@ def fetch_hanoi_normal(offset_days=0, is_auto=True):
                     text_1 = prize_1.text.replace(" ", "").replace("-", "").strip()
                     
                     if len(text_db) == 5 and len(text_1) == 5 and text_db.isdigit() and text_1.isdigit():
-                        msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {text_db[-3:]}\n👇 **2 ตัวล่าง:** {text_1[-2:]}\n")
+                        msg = (f"🇻🇳 ผลหวยฮานอยปกติ 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 3 ตัวบน: {text_db[-3:]}\n👇 2 ตัวล่าง: {text_1[-2:]}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return
                     elif not is_auto and attempts == 1:
