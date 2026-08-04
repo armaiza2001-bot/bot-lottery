@@ -783,6 +783,47 @@ def fetch_dowjones_vip(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ **ดาวโจนส์ VIP**: ไม่พบข้อมูลงวดวันที่ {today_str_display}")
             return
         time.sleep(10)
+
+# ==========================================
+# 📈 2.17 ฟังก์ชันดึงผล: หวยหุ้นปกติ (อังกฤษ, เยอรมัน, รัสเซีย) ผ่าน API
+# ==========================================
+def fetch_stock_normal_api(keyword, display_name):
+    url = "https://lotto2news.com/api/v1/result"
+    headers = {
+        "x-api-key": "hk_113aff7017e3fca80b04a5e04391da55e5a0fa34", # API Key ของคุณ
+        "Content-Type": "application/json"
+    }
+    
+    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **{display_name}** (ผ่านระบบ API) ครับ...")
+    
+    attempts = 0
+    while attempts < 10: 
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200:
+                data = res.json().get("data", [])
+                for lotto in data:
+                    name = lotto.get("name", "")
+                    if keyword in name and "VIP" not in name.upper() and "วีไอพี" not in name:
+                        latest = lotto.get("latest", {})
+                        if latest and latest.get("status") == "published" and not latest.get("isCanceled"):
+                            prizes = latest.get("prizes", [])
+                            msg = (f"✅ **ผล {display_name} มาแล้ว!**\n\n📦 ข้อมูลดิบจาก API:\n{prizes}")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return 
+        except Exception as e:
+            print(f"[Error] API {display_name}: {e}")
+        time.sleep(60)
+        
+    bot.send_message(GROUP_CHAT_ID, f"❌ หมดเวลารอผล **{display_name}** (เกิน 10 นาที)")
+
+def fetch_england_normal():
+    fetch_stock_normal_api("อังกฤษ", "หวยหุ้นอังกฤษ (ปกติ)")
+def fetch_germany_normal():
+    fetch_stock_normal_api("เยอรมัน", "หวยหุ้นเยอรมัน (ปกติ)")
+def fetch_russia_normal():
+    fetch_stock_normal_api("รัสเซีย", "หวยหุ้นรัสเซีย (ปกติ)")
         
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
@@ -969,6 +1010,9 @@ def time_checker():
     has_run_hanoi_extra = False
     has_run_lao_redcross = False
     has_run_dowjones_vip = False
+    has_run_england_normal = False
+    has_run_germany_normal = False
+    has_run_russia_normal = False
     last_check_date = ""
 
     while True:
@@ -988,6 +1032,10 @@ def time_checker():
             has_run_england_vip = False
             has_run_germany_vip = False
             has_run_russia_vip = False
+            has_run_england_normal = False
+            has_run_germany_normal = False
+            has_run_russia_normal = False
+            
             last_check_date = current_date
 
         # 🕒 รอบ 17:30 น.
@@ -1057,6 +1105,22 @@ def time_checker():
         if now.hour == 22 and now.minute == 50 and not has_run_germany_vip:
             has_run_germany_vip = True
             threading.Thread(target=fetch_germany_vip, daemon=True).start()
+
+        # 🕒 รอบ 23:00 น. (หวยหุ้นปกติ)
+        if now.hour == 23 and now.minute == 00:
+            if not has_run_england_normal:
+                has_run_england_normal = True
+                threading.Thread(target=fetch_england_normal, daemon=True).start()
+                time.sleep(2)
+                
+            if not has_run_germany_normal:
+                has_run_germany_normal = True
+                threading.Thread(target=fetch_germany_normal, daemon=True).start()
+                time.sleep(2)
+                
+            if not has_run_russia_normal:
+                has_run_russia_normal = True
+                threading.Thread(target=fetch_russia_normal, daemon=True).start()
 
         # 🕒 รอบ 23:30 น.
         if now.hour == 23 and now.minute == 30 and not has_run_lao_redcross:
