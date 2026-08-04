@@ -111,13 +111,13 @@ def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.3 ดึงผล: ฮานอยปกติ (18:30) [เจาะตรงผ่าน Archive URL ชัวร์ 100%]
+# 🎰 2.3 ดึงผล: ฮานอยปกติ (18:30) [Archive + ล็อควันที่ชัวร์ 100%]
 # ==========================================
 def fetch_hanoi_normal(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
+    today_str_html = target_date.strftime("%d/%m/%Y") # 📌 เพิ่มตัวแปรนี้สำหรับเช็คในหน้าเว็บ (เช่น 04/08/2026)
     
-    # 🎯 ใช้ลิงก์คลังข้อมูลที่ล็อกวันที่ไว้เลย หมดปัญหาหน้า Live รีเซ็ต!
     url = f"https://www.minhngoc.net.vn/ket-qua-xo-so/mien-bac/{today_str_display}.html"
     
     headers = {
@@ -136,25 +136,35 @@ def fetch_hanoi_normal(offset_days=0, is_auto=True):
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            # ดิ่งเข้าไปหาตัวเลขเลย ไม่ต้องเช็ควันที่แล้วเพราะ URL ล็อกมาให้แล้ว
-            prize_special = soup.find('td', class_='giaidb')
-            prize_1 = soup.find('td', class_='giai1')
+            # 🛡️ 1. เอา "ยามเฝ้าประตูเช็ควันที่" กลับมา! กันเว็บเนียนส่งผลเมื่อวานมาให้
+            page_title = soup.find('h1', class_='pagetitle')
+            box_title = soup.find('div', class_='title')
             
-            if prize_special and prize_1:
-                text_db = prize_special.text.replace(" ", "").replace("-", "").strip()
-                text_1 = prize_1.text.replace(" ", "").replace("-", "").strip()
+            is_correct_date = False
+            if page_title and today_str_html in page_title.text:
+                is_correct_date = True
+            elif box_title and today_str_html in box_title.text:
+                is_correct_date = True
+            
+            # 🎯 2. ถ้าวันที่บนเว็บตรงกับวันนี้ ค่อยไปดึงเลข
+            if is_correct_date: 
+                prize_special = soup.find('td', class_='giaidb')
+                prize_1 = soup.find('td', class_='giai1')
                 
-                if len(text_db) == 5 and len(text_1) == 5 and text_db.isdigit() and text_1.isdigit():
-                    msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                           f"🎯 **3 ตัวบน:** {text_db[-3:]}\n👇 **2 ตัวล่าง:** {text_1[-2:]}\n")
-                    bot.send_message(GROUP_CHAT_ID, msg)
-                    return
-                elif not is_auto and attempts == 1:
-                    # โหมด Debug ช่วยดูว่ามันดึงอะไรมาตอนตัวเลขมาไม่ครบ
-                    bot.send_message(GROUP_CHAT_ID, f"🔍 [Debug] เจอช่องแล้วแต่เลขไม่ครบ บน:'{text_db}', ล่าง:'{text_1}'")
+                if prize_special and prize_1:
+                    text_db = prize_special.text.replace(" ", "").replace("-", "").strip()
+                    text_1 = prize_1.text.replace(" ", "").replace("-", "").strip()
+                    
+                    if len(text_db) == 5 and len(text_1) == 5 and text_db.isdigit() and text_1.isdigit():
+                        msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {text_db[-3:]}\n👇 **2 ตัวล่าง:** {text_1[-2:]}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return
+                    elif not is_auto and attempts == 1:
+                        bot.send_message(GROUP_CHAT_ID, f"🔍 [Debug] เจอช่องแล้วแต่เลขไม่ครบ บน:'{text_db}', ล่าง:'{text_1}'")
             else:
                 if not is_auto and attempts == 1:
-                     bot.send_message(GROUP_CHAT_ID, f"⚠️ [Debug] หาคลาส giaidb หรือ giai1 ไม่พบในหน้าเว็บ")
+                    bot.send_message(GROUP_CHAT_ID, f"⚠️ [Debug] วันที่ในหน้าเว็บยังไม่ใช่ {today_str_display} (เว็บอาจจะยังเอาผลเก่ามาโชว์)")
 
         except Exception as e:
             print(f"[Error] ฮานอยปกติ (Archive): {e}")
