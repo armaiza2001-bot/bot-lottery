@@ -1008,9 +1008,11 @@ def time_checker():
             if not has_run_vip:
                 has_run_vip = True
                 threading.Thread(target=fetch_hanoi_vip, daemon=True).start()
-            if not has_run_develop:
-                has_run_develop = True
-                threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
+                time.sleep(2)
+                
+        if not has_run_develop:
+            has_run_develop = True
+            threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
                 
         if now.hour == 20 and now.minute == 30 and not has_run_lao_samakkhi:
             has_run_lao_samakkhi = True
@@ -1024,7 +1026,7 @@ def time_checker():
         if not has_run_lao_vip:
             has_run_lao_vip = True
             threading.Thread(target=fetch_lao_vip, daemon=True).start()
-            time.sleep(2)  # 📌 เลื่อนเข้ามาหลบตรงนี้ครับ! มันจะทำงานแค่ครั้งเดียวตอนที่สั่งรันบอท
+            time.sleep(2)
             
         if not has_run_lao_samakkhi_vip:
             has_run_lao_samakkhi_vip = True
