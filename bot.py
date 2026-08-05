@@ -70,6 +70,67 @@ def fetch_hanoi_special(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇸🇬 ดึงผลหวยหุ้นสิงคโปร์ VIP (อัปเดตโครงสร้าง JSON ล่าสุด)
+# ==========================================
+def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นสิงคโปร์ VIP** งวดวันที่ {today_str_display} ครับ...")
+
+    # URL ของ API หุ้นสิงคโปร์ VIP
+    base_url = "https://api.stocks-vip.com/api/sg"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Accept": "application/json"
+    }
+
+    try:
+        # ใส่ timestamp กันเว็บแคชข้อมูลเก่า
+        timestamp = int(datetime.now().timestamp() * 1000)
+        url = f"{base_url}?t={timestamp}"
+        
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            raw_data = res.json()
+            
+            # 🛑 เจาะโครงสร้าง: เช็คว่า status เป็น success และเจาะเข้า data -> prices
+            if raw_data.get("status") == "success":
+                prices_list = raw_data.get("data", {}).get("prices", [])
+                
+                if prices_list and len(prices_list) > 0:
+                    # ดึงข้อมูลจากก้อนสุดท้าย (ล่าสุดตอนตลาดปิด)
+                    latest_data = prices_list[-1]
+                    
+                    price = latest_data.get("price", 0)
+                    diff = latest_data.get("diff", "0")
+                    
+                    # แปลงเป็นทศนิยม 2 ตำแหน่ง
+                    price_str = f"{float(price):.2f}"
+                    diff_str = f"{float(diff):.2f}"
+                    
+                    # 🎯 ตัดเลข 3 ตัวบน
+                    integer_part, decimal_part = price_str.split('.')
+                    top_3 = integer_part[-1] + decimal_part 
+                    
+                    # 👇 ตัดเลข 2 ตัวล่าง (ใช้ replace เอาเครื่องหมายลบออกถ้ามี)
+                    bottom_2 = diff_str.replace('-', '').split('.')[1] 
+                    
+                    # 📢 ส่งผลเข้ากลุ่ม
+                    msg = (f"🇸🇬 **ผลหวยหุ้นสิงคโปร์ VIP** 🇸🇬\n📅 วันที่: {today_str_display}\n\n"
+                           f"📊 SGX VIP: {price_str} ({float(diff):+.2f})\n\n"
+                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                    bot.send_message(GROUP_CHAT_ID, msg)
+                    return
+    except Exception as e:
+        print(f"[Error] หวยหุ้นสิงคโปร์ VIP: {e}")
+        
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+
+# ==========================================
 # 🎰 2.2 ดึงผล: ฮานอยสามัคคี (17:30)
 # ==========================================
 def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
@@ -1193,6 +1254,11 @@ def test_singapore_cmd(message):
 def test_malay_cmd(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยมาเลย์** จากเว็บ Magnum4D...")
     threading.Thread(target=fetch_malay_magnum, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_singapore_vip'])
+def test_singapore_vip_cmd(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นสิงคโปร์ VIP**...")
+    threading.Thread(target=fetch_singapore_vip_fast, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -1220,6 +1286,7 @@ def time_checker():
     has_run_thai_evening = False
     has_run_singapore = False
     has_run_malay = False
+    has_run_singapore_vip = False
     
     last_check_date = ""
 
@@ -1250,6 +1317,7 @@ def time_checker():
             has_run_thai_evening = False
             has_run_singapore = False
             has_run_malay = False
+            has_run_singapore_vip = False
 
             last_check_date = current_date
 
@@ -1374,6 +1442,13 @@ def time_checker():
                 time.sleep(2)
 
         time.sleep(30)
+
+        # 🕒 รอบ 17:15 น. (หวยหุ้นสิงคโปร์ VIP) 
+        if now.hour == 17 and now.minute == 10:
+            if not has_run_singapore_vip:
+                has_run_singapore_vip = True
+                threading.Thread(target=fetch_singapore_vip_fast, daemon=True).start()
+                time.sleep(2)
 
 # ==========================================
 # 🚀 5. เริ่มการทำงานทั้งหมด
