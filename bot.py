@@ -1213,6 +1213,56 @@ def fetch_russia_normal(offset_days=0, is_auto=True):
         
     if not is_auto:
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นรัสเซีย**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+
+# ==========================================
+# 🇺🇸 ดึงผลหวยหุ้นดาวโจนส์ (ปกติ) จาก Yahoo Finance (^DJI)
+# ==========================================
+def fetch_dowjones_normal(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นดาวโจนส์** งวดวันที่ {today_str_display} ครับ...")
+
+    # ใช้ดัชนี ^DJI (Dow Jones Industrial Average)
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/^DJI"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            result = data.get("chart", {}).get("result", [])
+            if result:
+                meta = result[0].get("meta", {})
+                current_price = meta.get("regularMarketPrice", 0)
+                prev_close = meta.get("chartPreviousClose", 0)
+                change = current_price - prev_close
+                
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                price_str = f"{current_price:.2f}"
+                change_str = f"{change:.2f}"
+                
+                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วยหน้าจุด + ทศนิยม 2 ตำแหน่ง)
+                integer_part, decimal_part = price_str.split('.')
+                top_3 = integer_part[-1] + decimal_part 
+                
+                # 👇 ตัดเลข 2 ตัวล่าง (เอาเครื่องหมายลบออกก่อนถ้ามี)
+                bottom_2 = change_str.replace('-', '').split('.')[1] 
+                
+                # 📢 ส่งผลเข้ากลุ่ม Telegram
+                msg = (f"🇺🇸 **ผลหวยหุ้นดาวโจนส์ (ปกติ)** 🇺🇸\n📅 วันที่: {today_str_display}\n\n"
+                       f"📊 Dow Jones: {price_str} ({change:+.2f})\n\n"
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                bot.send_message(GROUP_CHAT_ID, msg)
+                return
+    except Exception as e:
+        print(f"[Error] หวยหุ้นดาวโจนส์: {e}")
+        
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นดาวโจนส์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
         
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
@@ -1232,8 +1282,12 @@ def get_offset(message):
 def send_welcome(message):
     help_text = (
         "📌 **ตารางแจ้งผลอัตโนมัติ:**\n"
-        "- 17:30 น. : ฮานอยพิเศษ & ฮานอยสามัคคี\n"
+        "- 16:30 น. : สิงคโปร์\n"
+        "- 16:40 น. : ไทยเย็น\n"
+        "- 17:15 น. : สิงคโปร์ VIP\n"
+        "- 17:30 น. : ฮานอยพิเศษ, ฮานอยสามัคคี & อินเดีย\n"
         "- 18:30 น. : ฮานอยปกติ\n"
+        "- 18:40 น. : มาเลย์ (พุธ, เสาร์, อาทิตย์)\n"
         "- 19:30 น. : ฮานอย VIP & ฮานอยพัฒนา\n"
         "- 20:30 น. : ลาวสามัคคี\n"
         "- 21:00 น. : ลาวอาเซียน\n"
@@ -1242,13 +1296,17 @@ def send_welcome(message):
         "- 22:00 น. : ลาวสตาร์ VIP\n"
         "- 22:30 น. : ฮานอย EXTRA\n"
         "- 22:50 น. : เยอรมัน VIP\n"
-        "- 23:30 น. : ลาวกาชาด\n"
+        "- 23:00 น. : เยอรมัน (ปกติ)\n"
+        "- 23:05 น. : รัสเซีย (ปกติ)\n"
+        "- 23:30 น. : ลาวกาชาด & อังกฤษ (ปกติ)\n"
         "- 23:50 น. : รัสเซีย VIP\n"
         "- 00:30 น. : ดาวโจนส์ VIP\n\n"
         "**คำสั่งทดสอบ:**\n"
         "/test_special | /test_samakkhi | /test_normal | /test_vip | /test_develop\n"
         "/test_lao_samakkhi | /test_lao_asean | /test_lao_vip | /test_lao_samakkhi_vip\n"
         "/test_lao_star_vip | /test_england_vip | /test_hanoi_extra | /test_germany_vip | /test_lao_redcross | /test_russia_vip | /test_dowjones_vip\n"
+        "/test_singapore | /test_singapore_vip | /test_malay | /test_india | /test_thai_evening\n"
+        "/test_england_normal | /test_germany_normal | /test_russia_normal\n"
         "/yesterday (ดึงผลเมื่อวานทั้งหมด)"
     )
     bot.reply_to(message, help_text)
@@ -1431,6 +1489,11 @@ def test_germany_cmd(message):
 def test_russia_cmd(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นรัสเซีย (RTS)**...")
     threading.Thread(target=fetch_russia_normal, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_dowjones_normal'])
+def test_dowjones_normal_cmd(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นดาวโจนส์ (ปกติ)**...")
+    threading.Thread(target=fetch_dowjones_normal, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -1460,6 +1523,7 @@ def time_checker():
     has_run_malay = False
     has_run_singapore_vip = False
     has_run_india = False
+    has_run_dowjones_normal = False
     
     last_check_date = ""
 
@@ -1492,6 +1556,7 @@ def time_checker():
             has_run_malay = False
             has_run_singapore_vip = False
             has_run_india = False
+            has_run_dowjones_normal = False
 
             last_check_date = current_date
 
@@ -1643,6 +1708,13 @@ def time_checker():
             if not has_run_russia_normal:
                 has_run_russia_normal = True
                 threading.Thread(target=fetch_russia_normal, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 04:10 น. (หวยหุ้นดาวโจนส์ ปกติ) 
+        if now.hour == 4 and now.minute == 10 and now.weekday() < 5: # จันทร์-ศุกร์ (เช้ามืด อังคาร-เสาร์)
+            if not has_run_dowjones_normal:
+                has_run_dowjones_normal = True
+                threading.Thread(target=fetch_dowjones_normal, daemon=True).start()
                 time.sleep(2)
 
 # ==========================================
