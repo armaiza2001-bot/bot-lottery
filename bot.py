@@ -131,7 +131,7 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇮🇳 ดึงผลหวยหุ้นอินเดีย (BSE SENSEX)
+# 🇮🇳 ดึงผลหวยหุ้นอินเดีย (เปลี่ยนมาใช้ดัชนี ^BSESN จาก Yahoo Finance)
 # ==========================================
 def fetch_india_stock_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -140,48 +140,37 @@ def fetch_india_stock_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอินเดีย** งวดวันที่ {today_str_display} ครับ...")
 
-    # URL ของ API หุ้นอินเดีย
-    url = "https://api.bseindia.com/RealTimeBseIndiaAPI/api/GetSensexDatanew/w"
-    
+    # ใช้ดัชนี ^BSESN S&P BSE SENSEX ของ Yahoo (เสถียรกว่าเว็บอินเดียมาก)
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/^BSESN"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Accept": "application/json"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
 
     try:
         res = requests.get(url, headers=headers, timeout=15)
         if res.status_code == 200:
             data = res.json()
-            
-            # API ส่งกลับมาเป็น List เราต้องวนลูปหาข้อมูลของ BSE SENSEX
-            sensex_data = None
-            if isinstance(data, list):
-                for item in data:
-                    if item.get("indxnm") == "BSE SENSEX":
-                        sensex_data = item
-                        break
-            
-            if sensex_data:
-                ltp = sensex_data.get("ltp", "0") # เช่น "78,581.00"
-                chg = sensex_data.get("chg", "0") # เช่น "+152.05"
+            result = data.get("chart", {}).get("result", [])
+            if result:
+                meta = result[0].get("meta", {})
+                current_price = meta.get("regularMarketPrice", 0)
+                prev_close = meta.get("chartPreviousClose", 0)
+                change = current_price - prev_close
                 
-                # ล้างคอมม่าและเครื่องหมายออก แล้วแปลงเป็นตัวเลขเพื่อฟอร์แมตทศนิยม 2 ตำแหน่ง
-                price_val = float(ltp.replace(",", ""))
-                change_val = float(chg.replace("+", "").replace("-", ""))
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                price_str = f"{current_price:.2f}"
+                change_str = f"{change:.2f}"
                 
-                price_str = f"{price_val:.2f}"
-                change_str = f"{change_val:.2f}"
-                
-                # 🎯 ตัดเลข 3 ตัวบน
+                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วย + ทศนิยม)
                 integer_part, decimal_part = price_str.split('.')
                 top_3 = integer_part[-1] + decimal_part 
                 
-                # 👇 ตัดเลข 2 ตัวล่าง
-                bottom_2 = change_str.split('.')[1] 
+                # 👇 ตัดเลข 2 ตัวล่าง (เอาเครื่องหมายลบออกก่อนถ้ามี)
+                bottom_2 = change_str.replace('-', '').split('.')[1] 
                 
-                # 📢 ส่งผลเข้ากลุ่ม
+                # 📢 ส่งผลเข้ากลุ่ม Telegram
                 msg = (f"🇮🇳 **ผลหวยหุ้นอินเดีย** 🇮🇳\n📅 วันที่: {today_str_display}\n\n"
-                       f"📊 BSE SENSEX: {ltp} ({chg})\n\n"
+                       f"📊 BSE SENSEX: {price_str} ({change:+.2f})\n\n"
                        f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
