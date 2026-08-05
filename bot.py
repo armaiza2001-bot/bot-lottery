@@ -1132,7 +1132,7 @@ def time_checker():
         if now.hour == 23 and now.minute == 00:
             if not has_run_england_normal:
                 has_run_england_normal = True
-                threading.Thread(target=fetch_england_normal, daemon=True).start()
+                threading.Thread(target=fetch_england_stock_fast, daemon=True).start()
                 time.sleep(2)
                 
             if not has_run_germany_normal:
