@@ -1106,6 +1106,56 @@ def fetch_england_stock_fast(offset_days=0, is_auto=True):
         
     if not is_auto:
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอังกฤษ**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+
+# ==========================================
+# 🇩🇪 ดึงผลหวยหุ้นเยอรมัน (DAX) จาก Yahoo Finance
+# ==========================================
+def fetch_germany_normal(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นเยอรมัน** งวดวันที่ {today_str_display} ครับ...")
+
+    # ใช้ดัชนี ^GDAXI สำหรับ DAX ของเยอรมัน
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/^GDAXI"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            result = data.get("chart", {}).get("result", [])
+            if result:
+                meta = result[0].get("meta", {})
+                current_price = meta.get("regularMarketPrice", 0)
+                prev_close = meta.get("chartPreviousClose", 0)
+                change = current_price - prev_close
+                
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                price_str = f"{current_price:.2f}"
+                change_str = f"{change:.2f}"
+                
+                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วย + ทศนิยม)
+                integer_part, decimal_part = price_str.split('.')
+                top_3 = integer_part[-1] + decimal_part 
+                
+                # 👇 ตัดเลข 2 ตัวล่าง (เอาเครื่องหมายลบออกก่อนถ้ามี)
+                bottom_2 = change_str.replace('-', '').split('.')[1] 
+                
+                # 📢 ส่งผลเข้ากลุ่ม Telegram
+                msg = (f"🇩🇪 **ผลหวยหุ้นเยอรมัน (DAX)** 🇩🇪\n📅 วันที่: {today_str_display}\n\n"
+                       f"📊 DAX: {price_str} ({change:+.2f})\n\n"
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                bot.send_message(GROUP_CHAT_ID, msg)
+                return
+    except Exception as e:
+        print(f"[Error] หวยหุ้นเยอรมัน: {e}")
+        
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นเยอรมัน**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
         
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
@@ -1314,6 +1364,11 @@ def test_singapore_vip_cmd(message):
 def test_india_cmd(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นอินเดีย**...")
     threading.Thread(target=fetch_india_stock_fast, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_germany'])
+def test_germany_cmd(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นเยอรมัน (DAX)**...")
+    threading.Thread(target=fetch_germany_normal, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -1512,6 +1567,13 @@ def time_checker():
             if not has_run_india:
                 has_run_india = True
                 threading.Thread(target=fetch_india_stock_fast, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 23:00 น. (หวยหุ้นเยอรมัน - ช่วงฤดูร้อน) 
+        if now.hour == 23 and now.minute == 0 and now.weekday() < 5:
+            if not has_run_germany_normal:
+                has_run_germany_normal = True
+                threading.Thread(target=fetch_germany_normal, daemon=True).start()
                 time.sleep(2)
 
 # ==========================================
