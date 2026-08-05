@@ -785,6 +785,55 @@ def fetch_dowjones_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (จากดัชนี SET)
+# ==========================================
+def fetch_thai_evening_fast(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทย (รอบเย็น)** งวดวันที่ {today_str_display} ครับ...")
+
+    # ใช้ดัชนี ^SET.BK สำหรับตลาดหุ้นไทย
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/^SET.BK"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            result = data.get("chart", {}).get("result", [])
+            if result:
+                meta = result[0].get("meta", {})
+                current_price = meta.get("regularMarketPrice", 0)
+                prev_close = meta.get("chartPreviousClose", 0)
+                change = current_price - prev_close
+                
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                price_str = f"{current_price:.2f}"
+                change_str = f"{change:.2f}"
+                
+                # 🎯 ตัดเลข 3 ตัวบน
+                integer_part, decimal_part = price_str.split('.')
+                top_3 = integer_part[-1] + decimal_part 
+                
+                # 👇 ตัดเลข 2 ตัวล่าง
+                bottom_2 = change_str.split('.')[1]
+                
+                # 📢 ส่งผลเข้ากลุ่ม Telegram
+                msg = (f"🇹🇭 **ผลหวยหุ้นไทย (รอบเย็น)** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                bot.send_message(GROUP_CHAT_ID, msg)
+                return
+    except Exception as e:
+        print(f"[Error] หวยหุ้นไทยเย็น: {e}")
+        
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นไทย (รอบเย็น)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+
+# ==========================================
 # 🇬🇧 ดึงผลหวยหุ้นอังกฤษ (จากดัชนี FTSE 100 โดยตรง)
 # ==========================================
 def fetch_england_stock_fast(offset_days=0, is_auto=True):
@@ -1014,6 +1063,11 @@ def test_germany_normal_cmd(message):
 def test_russia_normal_cmd(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นรัสเซีย (ปกติ)** ล่าสุด...")
     threading.Thread(target=fetch_russia_normal, daemon=True).start()
+
+@bot.message_handler(commands=['test_thai_evening'])
+def test_thai_evening_cmd(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นไทย (เย็น)** จากตลาดหุ้น...")
+    threading.Thread(target=fetch_thai_evening_fast, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -1032,9 +1086,14 @@ def time_checker():
     has_run_hanoi_extra = False
     has_run_lao_redcross = False
     has_run_dowjones_vip = False
+    has_run_england_vip = False
+    has_run_germany_vip = False
+    has_run_russia_vip = False
     has_run_england_normal = False
     has_run_germany_normal = False
     has_run_russia_normal = False
+    has_run_thai_evening = False
+    
     last_check_date = ""
 
     while True:
@@ -1051,13 +1110,18 @@ def time_checker():
             has_run_lao_asean = False
             has_run_lao_vip = False
             has_run_lao_samakkhi_vip = False
+            has_run_lao_star_vip = False
+            has_run_hanoi_extra = False
+            has_run_lao_redcross = False
+            has_run_dowjones_vip = False
             has_run_england_vip = False
             has_run_germany_vip = False
             has_run_russia_vip = False
             has_run_england_normal = False
             has_run_germany_normal = False
             has_run_russia_normal = False
-            
+            has_run_thai_evening = False
+
             last_check_date = current_date
 
         # 🕒 รอบ 17:30 น.
@@ -1158,6 +1222,13 @@ def time_checker():
         if now.hour == 0 and now.minute == 30 and not has_run_dowjones_vip:
             has_run_dowjones_vip = True
             threading.Thread(target=fetch_dowjones_vip, daemon=True).start()
+
+        # 🕒 รอบ 16:45 น. (หวยหุ้นไทยรอบเย็น)
+        if now.hour == 16 and now.minute == 45:
+            if not has_run_thai_evening:
+                has_run_thai_evening = True
+                threading.Thread(target=fetch_thai_evening_fast, daemon=True).start()
+                time.sleep(2)
 
         time.sleep(30)
 
