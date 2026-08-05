@@ -900,19 +900,15 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นไทย (รอบเย็น)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇲🇾 ดึงผลหวยมาเลย์ (Magnum 4D)
+# 🇲🇾 ดึงผลหวยมาเลย์ (Magnum 4D) + รองรับ Special Draw วันอังคาร
 # ==========================================
 def fetch_malay_magnum(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยมาเลย์** งวดวันที่ {today_str_display} ครับ...")
-
-    # ลิงก์ที่แกะมาจาก Network Tab ของเว็บ Magnum
-    url = "https://www.magnum4d.my/live-draw"
+    today_api_format = target_date.strftime("%d/%m/%Y")
     
-    # ต้องใส่ Header เพื่อบังคับให้เว็บส่งกลับมาเป็น JSON แทนที่จะเป็นหน้าเว็บ HTML
+    url = "https://www.magnum4d.my/live-draw"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Accept": "application/json",
@@ -926,20 +922,23 @@ def fetch_malay_magnum(offset_days=0, is_auto=True):
             results = data.get("Data", {}).get("Results", {})
             
             if results:
-                s12 = results.get("S12", "") # รางวัลที่ 1
-                s08 = results.get("S08", "") # รางวัลที่ 2
+                draw_date = results.get("DrawDate", "")
+                
+                if is_auto and draw_date != today_api_format:
+                    return # ให้บอทจบการทำงานเงียบๆ ไม่ต้องส่งอะไรเข้ากลุ่ม
+                
+                if is_auto:
+                    bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยมาเลย์** งวดวันที่ {today_str_display} ครับ...")
+
+                s12 = results.get("S12", "")
+                s08 = results.get("S08", "")
                 
                 if s12 and s08:
-                    # 🎯 ตัดเลข 3 ตัวบน (3 ตัวท้ายของ S12)
                     top_3 = s12[-3:]
                     
-                    # 👇 ตัดเลข 2 ตัวล่าง (2 ตัวท้ายของ S08)
                     bottom_2 = s08[-2:]
                     
-                    # 📢 ส่งผลเข้ากลุ่ม Telegram
                     msg = (f"🇲🇾 **ผลหวยมาเลย์ (Magnum 4D)** 🇲🇾\n📅 วันที่: {today_str_display}\n\n"
-                           f"🏆 1st Prize: {s12}\n"
-                           f"🥈 2nd Prize: {s08}\n\n"
                            f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                     bot.send_message(GROUP_CHAT_ID, msg)
                     return
@@ -947,7 +946,7 @@ def fetch_malay_magnum(offset_days=0, is_auto=True):
         print(f"[Error] หวยมาเลย์: {e}")
         
     if not is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยมาเลย์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยมาเลย์**: ไม่พบผลรางวัลของวันที่ {today_str_display} (อาจไม่มีรอบ Special Draw)")
 
 # ==========================================
 # 🇬🇧 ดึงผลหวยหุ้นอังกฤษ (จากดัชนี FTSE 100 โดยตรง)
@@ -1367,9 +1366,9 @@ def time_checker():
                 threading.Thread(target=fetch_singapore_fast, daemon=True).start()
                 time.sleep(2)
 
-        # 🕒 รอบ 18:40 น. (หวยมาเลย์)
-        if now.hour == 18 and now.minute == 33:
-            if not has_run_malay: # อย่าลืมไปเพิ่ม has_run_malay = False ด้านบนสุดและตอนรีเซ็ตเที่ยงคืนนะครับ
+        # 🕒 รอบ 18:40 น. (หวยมาเลย์ - อังคาร(พิเศษ), พุธ, เสาร์, อาทิตย์)
+        if now.hour == 18 and now.minute == 40 and now.weekday() in [1, 2, 5, 6]:
+            if not has_run_malay:
                 has_run_malay = True
                 threading.Thread(target=fetch_malay_magnum, daemon=True).start()
                 time.sleep(2)
