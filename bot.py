@@ -1283,30 +1283,38 @@ def send_welcome(message):
     help_text = (
         "📌 **ตารางแจ้งผลอัตโนมัติ:**\n"
         "- 16:30 น. : สิงคโปร์\n"
-        "- 16:40 น. : ไทยเย็น\n"
-        "- 17:15 น. : สิงคโปร์ VIP\n"
-        "- 17:30 น. : ฮานอยพิเศษ, ฮานอยสามัคคี & อินเดีย\n"
+        "- 16:45 น. : ไทยเย็น\n"
+        "- 17:12 น. : สิงคโปร์ VIP\n"
+        "- 17:30 น. : ฮานอยพิเศษ\n"
+        "- 17:30 น. : ฮานอยสามัคคี\n"
+        "- 17:11 น. : อินเดีย\n"
         "- 18:30 น. : ฮานอยปกติ\n"
-        "- 18:40 น. : มาเลย์ (พุธ, เสาร์, อาทิตย์)\n"
-        "- 19:30 น. : ฮานอย VIP & ฮานอยพัฒนา\n"
+        "- 18:45 น. : มาเลย์ (พุธ, เสาร์, อาทิตย์)\n"
+        "- 19:30 น. : ฮานอย VIP\n"
+        "- 19:30 น. : ฮานอยพัฒนา\n"
         "- 20:30 น. : ลาวสามัคคี\n"
         "- 21:00 น. : ลาวอาเซียน\n"
-        "- 21:30 น. : ลาว VIP & ลาวสามัคคี VIP\n"
+        "- 21:30 น. : ลาว VIP\n"
+        "- 21:30 น. : ลาวสามัคคี VIP\n"
         "- 21:50 น. : อังกฤษ VIP\n"
         "- 22:00 น. : ลาวสตาร์ VIP\n"
         "- 22:30 น. : ฮานอย EXTRA\n"
         "- 22:50 น. : เยอรมัน VIP\n"
+        "- 23:00 น. : อังกฤษ (ปกติ)\n"
         "- 23:00 น. : เยอรมัน (ปกติ)\n"
-        "- 23:05 น. : รัสเซีย (ปกติ)\n"
-        "- 23:30 น. : ลาวกาชาด & อังกฤษ (ปกติ)\n"
+        "- 23:00 น. : รัสเซีย (ปกติ)\n"
+        "- 23:30 น. : ลาวกาชาด\n"
         "- 23:50 น. : รัสเซีย VIP\n"
-        "- 00:30 น. : ดาวโจนส์ VIP\n\n"
+        "- 00:30 น. : ดาวโจนส์ VIP\n"
+        "- 04:10 น. : ดาวโจนส์ (ปกติ)\n\n"
         "**คำสั่งทดสอบ:**\n"
         "/test_special | /test_samakkhi | /test_normal | /test_vip | /test_develop\n"
+        "/test_hanoi_extra | /test_thai_evening | /test_malay\n"
         "/test_lao_samakkhi | /test_lao_asean | /test_lao_vip | /test_lao_samakkhi_vip\n"
-        "/test_lao_star_vip | /test_england_vip | /test_hanoi_extra | /test_germany_vip | /test_lao_redcross | /test_russia_vip | /test_dowjones_vip\n"
-        "/test_singapore | /test_singapore_vip | /test_malay | /test_india | /test_thai_evening\n"
-        "/test_england_normal | /test_germany_normal | /test_russia_normal\n"
+        "/test_lao_star_vip | /test_lao_redcross\n"
+        "/test_singapore | /test_singapore_vip | /test_india\n"
+        "/test_england_vip | /test_germany_vip | /test_russia_vip | /test_dowjones_vip\n"
+        "/test_england_normal | /test_germany_normal | /test_russia_normal | /test_dowjones_normal\n\n"
         "/yesterday (ดึงผลเมื่อวานทั้งหมด)"
     )
     bot.reply_to(message, help_text)
@@ -1665,14 +1673,14 @@ def time_checker():
                 time.sleep(2)
 
         # 🕒 รอบ 18:40 น. (หวยมาเลย์ - อังคาร(พิเศษ), พุธ, เสาร์, อาทิตย์)
-        if now.hour == 18 and now.minute == 40 and now.weekday() in [1, 2, 5, 6]:
+        if now.hour == 18 and now.minute == 45 and now.weekday() in [1, 2, 5, 6]:
             if not has_run_malay:
                 has_run_malay = True
                 threading.Thread(target=fetch_malay_magnum, daemon=True).start()
                 time.sleep(2)
 
                 # 🕒 รอบ 17:11 น. (หวยหุ้นสิงคโปร์ VIP) 
-        if now.hour == 17 and now.minute == 11:
+        if now.hour == 17 and now.minute == 12:
             if not has_run_singapore_vip:
                 has_run_singapore_vip = True
                 threading.Thread(target=fetch_singapore_vip_fast, daemon=True).start()
