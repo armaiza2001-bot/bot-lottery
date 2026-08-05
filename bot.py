@@ -785,6 +785,56 @@ def fetch_dowjones_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇸🇬 ดึงผลหวยหุ้นสิงคโปร์ (จากดัชนี STI)
+# ==========================================
+def fetch_singapore_fast(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นสิงคโปร์** งวดวันที่ {today_str_display} ครับ...")
+
+    # ใช้ดัชนี ^STI สำหรับ Straits Times Index ของสิงคโปร์
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/^STI"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            result = data.get("chart", {}).get("result", [])
+            if result:
+                meta = result[0].get("meta", {})
+                current_price = meta.get("regularMarketPrice", 0)
+                prev_close = meta.get("chartPreviousClose", 0)
+                change = current_price - prev_close
+                
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                price_str = f"{current_price:.2f}"
+                change_str = f"{change:.2f}"
+                
+                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วยหน้าจุด + ทศนิยม)
+                integer_part, decimal_part = price_str.split('.')
+                top_3 = integer_part[-1] + decimal_part 
+                
+                # 👇 ตัดเลข 2 ตัวล่าง (ทศนิยมของค่า Change)
+                bottom_2 = change_str.split('.')[1]
+                
+                # 📢 ส่งผลเข้ากลุ่ม Telegram
+                msg = (f"🇸🇬 **ผลหวยหุ้นสิงคโปร์** 🇸🇬\n📅 วันที่: {today_str_display}\n\n"
+                       f"📊 STI: {price_str} ({change:+.2f})\n\n"
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                bot.send_message(GROUP_CHAT_ID, msg)
+                return
+    except Exception as e:
+        print(f"[Error] หวยหุ้นสิงคโปร์: {e}")
+        
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+
+# ==========================================
 # 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ดึงจากดัชนี SET และ SET50)
 # ==========================================
 def fetch_thai_evening_fast(offset_days=0, is_auto=True):
@@ -1084,6 +1134,11 @@ def test_russia_normal_cmd(message):
 def test_thai_evening_cmd(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นไทย (เย็น)** จากตลาดหุ้น...")
     threading.Thread(target=fetch_thai_evening_fast, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_singapore'])
+def test_singapore_cmd(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นสิงคโปร์** จากตลาดหุ้น...")
+    threading.Thread(target=fetch_singapore_fast, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -1109,6 +1164,7 @@ def time_checker():
     has_run_germany_normal = False
     has_run_russia_normal = False
     has_run_thai_evening = False
+    has_run_singapore = False
     
     last_check_date = ""
 
@@ -1137,6 +1193,7 @@ def time_checker():
             has_run_germany_normal = False
             has_run_russia_normal = False
             has_run_thai_evening = False
+            has_run_singapore = False
 
             last_check_date = current_date
 
@@ -1244,6 +1301,13 @@ def time_checker():
             if not has_run_thai_evening:
                 has_run_thai_evening = True
                 threading.Thread(target=fetch_thai_evening_fast, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 16:30 น. (หวยหุ้นสิงคโปร์)
+        if now.hour == 16 and now.minute == 30:
+            if not has_run_singapore:
+                has_run_singapore = True
+                threading.Thread(target=fetch_singapore_fast, daemon=True).start()
                 time.sleep(2)
 
         time.sleep(30)
