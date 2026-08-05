@@ -1156,6 +1156,63 @@ def fetch_germany_normal(offset_days=0, is_auto=True):
         
     if not is_auto:
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นเยอรมัน**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+
+# ==========================================
+# 🇷🇺 ดึงผลหวยหุ้นรัสเซีย (อ้างอิง MOEX Blue Chip จาก rts-standard)
+# ==========================================
+def fetch_russia_normal(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นรัสเซีย** งวดวันที่ {today_str_display} ครับ...")
+
+    # 🛑 อัปเดต API เป็น MOEXBC เพื่อให้เลข 15,000+ ตรงกับเว็บ Investing.com
+    url = "https://iss.moex.com/iss/engines/stock/markets/index/securities/MOEXBC.json"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
+
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            
+            marketdata = data.get("marketdata", {})
+            columns = marketdata.get("columns", [])
+            row_data = marketdata.get("data", [[]])[0]
+            
+            if columns and row_data:
+                try:
+                    idx_current = columns.index("CURRENTVALUE")
+                    idx_change = columns.index("LASTCHANGE")
+                    
+                    current_price = float(row_data[idx_current])
+                    change = float(row_data[idx_change])
+                    
+                    price_str = f"{current_price:.2f}"
+                    change_str = f"{change:.2f}"
+                    
+                    # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วย + ทศนิยม 2 ตำแหน่ง)
+                    integer_part, decimal_part = price_str.split('.')
+                    top_3 = integer_part[-1] + decimal_part 
+                    
+                    # 👇 ตัดเลข 2 ตัวล่าง (เอาเครื่องหมายลบออกก่อน)
+                    bottom_2 = change_str.replace('-', '').split('.')[1] 
+                    
+                    # 📢 ส่งผลเข้ากลุ่ม Telegram
+                    msg = (f"🇷🇺 **ผลหวยหุ้นรัสเซีย (RTS Standard)** 🇷🇺\n📅 วันที่: {today_str_display}\n\n"
+                           f"📊 Index: {price_str} ({change:+.2f})\n\n"
+                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                    bot.send_message(GROUP_CHAT_ID, msg)
+                    return
+                except ValueError:
+                    print("[Error] หวยหุ้นรัสเซีย: ไม่พบข้อมูลใน API")
+    except Exception as e:
+        print(f"[Error] หวยหุ้นรัสเซีย: {e}")
+        
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นรัสเซีย**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
         
 # ==========================================
 # 💬 3. ระบบตอบกลับคำสั่ง Telegram
@@ -1369,6 +1426,11 @@ def test_india_cmd(message):
 def test_germany_cmd(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นเยอรมัน (DAX)**...")
     threading.Thread(target=fetch_germany_normal, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_russia'])
+def test_russia_cmd(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นรัสเซีย (RTS)**...")
+    threading.Thread(target=fetch_russia_normal, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -1574,6 +1636,13 @@ def time_checker():
             if not has_run_germany_normal:
                 has_run_germany_normal = True
                 threading.Thread(target=fetch_germany_normal, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 23:05 น. (หวยหุ้นรัสเซีย) 
+        if now.hour == 23 and now.minute == 5 and now.weekday() < 5:
+            if not has_run_russia_normal:
+                has_run_russia_normal = True
+                threading.Thread(target=fetch_russia_normal, daemon=True).start()
                 time.sleep(2)
 
 # ==========================================
