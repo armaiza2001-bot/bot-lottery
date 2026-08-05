@@ -1628,22 +1628,13 @@ def time_checker():
             has_run_germany_vip = True
             threading.Thread(target=fetch_germany_vip, daemon=True).start()
 
-        # 🕒 รอบ 23:00 น. (หวยหุ้นปกติ)
+        # 🕒 รอบ 23:00 น. (หวยหุ้นอังกฤษ)
         if now.hour == 23 and now.minute == 00:
             if not has_run_england_normal:
                 has_run_england_normal = True
                 threading.Thread(target=fetch_england_stock_fast, daemon=True).start()
                 time.sleep(2)
                 
-            if not has_run_germany_normal:
-                has_run_germany_normal = True
-                threading.Thread(target=fetch_germany_normal, daemon=True).start()
-                time.sleep(2)
-                
-            if not has_run_russia_normal:
-                has_run_russia_normal = True
-                threading.Thread(target=fetch_russia_normal, daemon=True).start()
-
         # 🕒 รอบ 23:30 น.
         if now.hour == 23 and now.minute == 30 and not has_run_lao_redcross:
             has_run_lao_redcross = True
@@ -1680,9 +1671,7 @@ def time_checker():
                 threading.Thread(target=fetch_malay_magnum, daemon=True).start()
                 time.sleep(2)
 
-        time.sleep(30)
-
-        # 🕒 รอบ 17:11 น. (หวยหุ้นสิงคโปร์ VIP) 
+                # 🕒 รอบ 17:11 น. (หวยหุ้นสิงคโปร์ VIP) 
         if now.hour == 17 and now.minute == 11:
             if not has_run_singapore_vip:
                 has_run_singapore_vip = True
@@ -1704,7 +1693,7 @@ def time_checker():
                 time.sleep(2)
 
         # 🕒 รอบ 23:05 น. (หวยหุ้นรัสเซีย) 
-        if now.hour == 23 and now.minute == 5 and now.weekday() < 5:
+        if now.hour == 23 and now.minute == 0 and now.weekday() < 5:
             if not has_run_russia_normal:
                 has_run_russia_normal = True
                 threading.Thread(target=fetch_russia_normal, daemon=True).start()
@@ -1716,6 +1705,9 @@ def time_checker():
                 has_run_dowjones_normal = True
                 threading.Thread(target=fetch_dowjones_normal, daemon=True).start()
                 time.sleep(2)
+
+
+        time.sleep(30)
 
 # ==========================================
 # 🚀 5. เริ่มการทำงานทั้งหมด
