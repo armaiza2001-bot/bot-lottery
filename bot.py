@@ -131,6 +131,67 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
+# 🇮🇳 ดึงผลหวยหุ้นอินเดีย (BSE SENSEX)
+# ==========================================
+def fetch_india_stock_fast(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอินเดีย** งวดวันที่ {today_str_display} ครับ...")
+
+    # URL ของ API หุ้นอินเดีย
+    url = "https://api.bseindia.com/RealTimeBseIndiaAPI/api/GetSensexDatanew/w"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Accept": "application/json"
+    }
+
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            
+            # API ส่งกลับมาเป็น List เราต้องวนลูปหาข้อมูลของ BSE SENSEX
+            sensex_data = None
+            if isinstance(data, list):
+                for item in data:
+                    if item.get("indxnm") == "BSE SENSEX":
+                        sensex_data = item
+                        break
+            
+            if sensex_data:
+                ltp = sensex_data.get("ltp", "0") # เช่น "78,581.00"
+                chg = sensex_data.get("chg", "0") # เช่น "+152.05"
+                
+                # ล้างคอมม่าและเครื่องหมายออก แล้วแปลงเป็นตัวเลขเพื่อฟอร์แมตทศนิยม 2 ตำแหน่ง
+                price_val = float(ltp.replace(",", ""))
+                change_val = float(chg.replace("+", "").replace("-", ""))
+                
+                price_str = f"{price_val:.2f}"
+                change_str = f"{change_val:.2f}"
+                
+                # 🎯 ตัดเลข 3 ตัวบน
+                integer_part, decimal_part = price_str.split('.')
+                top_3 = integer_part[-1] + decimal_part 
+                
+                # 👇 ตัดเลข 2 ตัวล่าง
+                bottom_2 = change_str.split('.')[1] 
+                
+                # 📢 ส่งผลเข้ากลุ่ม
+                msg = (f"🇮🇳 **ผลหวยหุ้นอินเดีย** 🇮🇳\n📅 วันที่: {today_str_display}\n\n"
+                       f"📊 BSE SENSEX: {ltp} ({chg})\n\n"
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                bot.send_message(GROUP_CHAT_ID, msg)
+                return
+    except Exception as e:
+        print(f"[Error] หวยหุ้นอินเดีย: {e}")
+        
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอินเดีย**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+
+# ==========================================
 # 🎰 2.2 ดึงผล: ฮานอยสามัคคี (17:30)
 # ==========================================
 def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
@@ -1259,6 +1320,11 @@ def test_malay_cmd(message):
 def test_singapore_vip_cmd(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นสิงคโปร์ VIP**...")
     threading.Thread(target=fetch_singapore_vip_fast, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_india'])
+def test_india_cmd(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นอินเดีย**...")
+    threading.Thread(target=fetch_india_stock_fast, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -1287,6 +1353,7 @@ def time_checker():
     has_run_singapore = False
     has_run_malay = False
     has_run_singapore_vip = False
+    has_run_india = False
     
     last_check_date = ""
 
@@ -1318,6 +1385,7 @@ def time_checker():
             has_run_singapore = False
             has_run_malay = False
             has_run_singapore_vip = False
+            has_run_india = False
 
             last_check_date = current_date
 
@@ -1443,11 +1511,18 @@ def time_checker():
 
         time.sleep(30)
 
-        # 🕒 รอบ 17:15 น. (หวยหุ้นสิงคโปร์ VIP) 
-        if now.hour == 17 and now.minute == 10:
+        # 🕒 รอบ 17:11 น. (หวยหุ้นสิงคโปร์ VIP) 
+        if now.hour == 17 and now.minute == 11:
             if not has_run_singapore_vip:
                 has_run_singapore_vip = True
                 threading.Thread(target=fetch_singapore_vip_fast, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 17:30 น. (หวยหุ้นอินเดีย) 
+        if now.hour == 17 and now.minute == 11 and now.weekday() < 5: # จันทร์-ศุกร์
+            if not has_run_india:
+                has_run_india = True
+                threading.Thread(target=fetch_india_stock_fast, daemon=True).start()
                 time.sleep(2)
 
 # ==========================================
