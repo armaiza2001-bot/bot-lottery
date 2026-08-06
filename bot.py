@@ -243,32 +243,35 @@ def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🎰 2.3 ดึงผล: ฮานอยปกติ (18:30) [Archive + ล็อควันที่ชัวร์ 100%]
+# 🇻🇳 ดึงผล: ฮานอยปกติ (18:30) [ดึงจากหน้า Live อัปเดตไวสุด]
 # ==========================================
 def fetch_hanoi_normal(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
-    today_str_html = target_date.strftime("%d/%m/%Y") # 📌 ตัวแปรนี้เอาไว้เช็คว่าเว็บเปลี่ยนเป็นวันปัจจุบันหรือยัง
+    today_str_html = target_date.strftime("%d/%m/%Y") 
     
-    url = f"https://www.minhngoc.net.vn/ket-qua-xo-so/mien-bac/{today_str_display}.html"
-    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยฮานอยปกติ** งวดวันที่ {today_str_display} ครับ...")
+
+    # 🚀 เปลี่ยนมาใช้หน้า Live หลักที่อัปเดตแบบ Real-time
+    url = "https://www.minhngoc.net.vn/xo-so-mien-bac.html"
+
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
     }
 
-    if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยปกติ** งวดวันที่ {today_str_display} ครับ...")
-
     attempts = 0
-    while True:
+    max_attempts = 30 # จำกัดการดึงสูงสุด 30 รอบ (ประมาณ 5 นาที) ป้องกันบอทค้าง
+
+    while attempts < max_attempts:
         attempts += 1
         try:
             res = requests.get(url, headers=headers, timeout=15)
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
-            
-            # 🛡️ 1. เช็ควันที่หน้าเว็บก่อน! ถ้าเว็บยังโชว์ของเมื่อวานอยู่ จะได้ไม่ดึงเลขมั่ว
+
+            # 🛡️ เช็ควันที่หน้าเว็บก่อนว่าอัปเดตเป็นของวันนี้หรือยัง
             page_title = soup.find('h1', class_='pagetitle')
             box_title = soup.find('div', class_='title')
             
@@ -277,34 +280,42 @@ def fetch_hanoi_normal(offset_days=0, is_auto=True):
                 is_correct_date = True
             elif box_title and today_str_html in box_title.text:
                 is_correct_date = True
-            
-            # 🎯 2. ถ้าวันที่ตรงกับวันนี้แล้ว ค่อยดึงตัวเลข
-            if is_correct_date: 
+
+            # 🎯 ถ้าวันที่ตรงกับวันนี้แล้ว ค่อยดึงตัวเลข
+            if is_correct_date:
                 prize_special = soup.find('td', class_='giaidb')
                 prize_1 = soup.find('td', class_='giai1')
-                
+
                 if prize_special and prize_1:
                     text_db = prize_special.text.replace(" ", "").replace("-", "").strip()
                     text_1 = prize_1.text.replace(" ", "").replace("-", "").strip()
-                    
+
+                    # ตรวจสอบว่าผลออกมาครบ 5 ตัวแล้วหรือยัง
                     if len(text_db) == 5 and len(text_1) == 5 and text_db.isdigit() and text_1.isdigit():
-                        msg = (f"🇻🇳 ผลหวยฮานอยปกติ 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 3 ตัวบน: {text_db[-3:]}\n👇 2 ตัวล่าง: {text_1[-2:]}\n")
+                        msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {text_db[-3:]}\n👇 **2 ตัวล่าง:** {text_1[-2:]}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return
-                    elif not is_auto and attempts == 1:
-                        bot.send_message(GROUP_CHAT_ID, f"🔍 [Debug] เจอช่องแล้วแต่เลขไม่ครบ บน:'{text_db}', ล่าง:'{text_1}'")
+                    else:
+                        if not is_auto and attempts == 1:
+                            bot.send_message(GROUP_CHAT_ID, f"🔍 [Debug] เจอช่องแล้วแต่เลขยังออกไม่ครบ บน:'{text_db}', ล่าง:'{text_1}'")
             else:
                 if not is_auto and attempts == 1:
-                    bot.send_message(GROUP_CHAT_ID, f"⚠️ [Debug] วันที่ในหน้าเว็บยังไม่ใช่ {today_str_display} (เว็บอาจจะยังเอาผลเก่ามาโชว์)")
+                    bot.send_message(GROUP_CHAT_ID, f"⚠️ [Debug] วันที่ในหน้าเว็บยังไม่ใช่ {today_str_display} (เว็บยังไม่รีเฟรชงวดใหม่)")
 
         except Exception as e:
-            print(f"[Error] ฮานอยปกติ (Archive): {e}")
+            print(f"[Error] ฮานอยปกติ: {e}")
             
+        # ถ้าเป็นการทดสอบดึงผลแบบแมนนวล (is_auto=False) ให้ลองแค่ 2 ครั้งพอ
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยปกติ**: ไม่พบข้อมูลวันที่ {today_str_display} (หรือผลยังไม่ออก)")
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยปกติ**: ไม่พบข้อมูลวันที่ {today_str_display} หรือผลยังไม่ออก")
             return
-        time.sleep(10)
+            
+        time.sleep(10) # พัก 10 วินาทีก่อนลองใหม่
+
+    # ถ้ารัน Auto จนครบ max_attempts แล้วยังไม่ได้ผล ให้แจ้งเตือน
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏰ **ฮานอยปกติ**: ดึงข้อมูลนานเกินเวลาที่กำหนด กรุณากดเช็คด้วยตัวเองอีกครั้งผ่าน /test_normal")
         
 # ==========================================
 # 🎰 2.4 ดึงผล: ฮานอย VIP (19:30)
