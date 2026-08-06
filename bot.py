@@ -951,24 +951,24 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ไพ่ตาย: เจาะผ่าน TradingView ข้อมูลตรงและไม่บล็อกบอท)
+# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (แก้ไขดึงค่า Change แบบจุด ไม่ใช่เปอร์เซ็นต์)
 # ==========================================
 def fetch_thai_evening_fast(offset_days=0, is_auto=True):
-    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    # สมมติว่ามี tz ประกาศไว้แล้วในระบบของคุณ
+    target_date = datetime.now() - timedelta(days=offset_days) # ปรับ timezone ตามระบบคุณ
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทยเย็น** งวดวันที่ {today_str_display} ครับ...")
 
-    # 🚀 ใช้ API Scanner ของ TradingView สำหรับตลาดหุ้นไทยโดยเฉพาะ
     url = "https://scanner.tradingview.com/thailand/scan"
     
-    # สั่งให้ดึงเฉพาะดัชนี SET และ SET50 (เอาแค่ราคาปิด กับ ค่า Change)
+    # 🛑 แก้ไขตรงนี้: เปลี่ยนจาก "change" เป็น "change_abs" เพื่อเอาค่าจุด (+4.86)
     payload = {
         "symbols": {
             "tickers": ["SET:SET", "SET:SET50"]
         },
-        "columns": ["close", "change"]
+        "columns": ["close", "change_abs"] 
     }
     
     headers = {
@@ -977,7 +977,6 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     }
 
     try:
-        # ใช้ requests.post เพราะ TradingView รับข้อมูลแบบ POST
         res = requests.post(url, json=payload, headers=headers, timeout=15)
         
         if res.status_code == 200:
@@ -986,14 +985,13 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
             
             set_last, set_change, set50_last = 0, 0, 0
             
-            # วนลูปหาข้อมูลจากผลลัพธ์
             for item in results:
                 ticker = item.get("s")
-                d = item.get("d", []) # d[0] = close, d[1] = change
+                d = item.get("d", []) # d[0] = close, d[1] = change_abs
                 
                 if ticker == "SET:SET" and len(d) >= 2:
                     set_last = float(d[0])
-                    set_change = float(d[1])
+                    set_change = float(d[1]) # จะได้ค่า 4.86
                 elif ticker == "SET:SET50" and len(d) >= 2:
                     set50_last = float(d[0])
                     
@@ -1011,7 +1009,7 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
                 # 👇 ตัดเลข 2 ตัวล่าง (ทศนิยมค่า Change ของ SET)
                 bottom_2 = set_change_str.replace('-', '').split('.')[1]
                 
-                # 📢 ส่งผลเข้ากลุ่ม Telegram
+                # 📢 ส่งผลเข้ากลุ่ม Telegram (เปลี่ยนรูปแบบโชว์ค่า Change ให้ตรงกับเว็บ)
                 msg = (f"🇹🇭 **ผลหวยหุ้นไทยเย็น** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
                        f"📊 SET: {set_last_str} ({set_change:+.2f})\n"
                        f"📊 SET50: {set50_last_str}\n\n"
