@@ -969,13 +969,16 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
 
     try:
         res = requests.get(url, headers=headers, timeout=15)
-        if res.status_code == 200:
+        # 304 คือ Not Modified (ข้อมูลยังไม่มีการอัปเดตใหม่) ซึ่งอาจพบได้บ่อยใน API ของ SET
+        if res.status_code in [200, 304]:
             data = res.json()
-            sectors = data.get("IndexIndustrySectors", [])
+            
+            # 🛑 แก้ไขจุดนี้: ใช้ i ตัวเล็กให้ตรงกับที่ API ส่งมาเป๊ะๆ
+            sectors = data.get("indexIndustrySectors", [])
             
             # ค้นหาข้อมูลของ SET และ SET50 จากใน List
-            set_data = next((item for item in sectors if item["symbol"] == "SET"), None)
-            set50_data = next((item for item in sectors if item["symbol"] == "SET50"), None)
+            set_data = next((item for item in sectors if item.get("symbol") == "SET"), None)
+            set50_data = next((item for item in sectors if item.get("symbol") == "SET50"), None)
             
             if set_data and set50_data:
                 set_last = set_data.get("last", 0)
