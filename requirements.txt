@@ -3,3 +3,4 @@ requests
 flask
 pytz
 beautifulsoup4
+cloudscraper
