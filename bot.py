@@ -950,61 +950,58 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ดึงจากดัชนี SET และ SET50)
+# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (SET + SET50)
 # ==========================================
 def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทย (รอบเย็น)** งวดวันที่ {today_str_display} ครับ...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทยเย็น** งวดวันที่ {today_str_display} ครับ...")
 
-    # ลิงก์ดึงข้อมูล SET และ SET50 จากตลาดโลก
-    url_set = "https://query1.finance.yahoo.com/v8/finance/chart/^SET.BK"
-    url_set50 = "https://query1.finance.yahoo.com/v8/finance/chart/^SET50.BK"
-    
+    # API ตรงจากตลาดหลักทรัพย์แห่งประเทศไทย
+    url = "https://www.set.or.th/api/set/index/info/list?type=INDEX"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Referer": "https://www.set.or.th/th/market/index/set/overview",
+        "Accept": "application/json, text/plain, */*"
     }
 
     try:
-        # 1. ยิง API ขอข้อมูลทั้งคู่
-        res_set = requests.get(url_set, headers=headers, timeout=15)
-        res_set50 = requests.get(url_set50, headers=headers, timeout=15)
-        
-        if res_set.status_code == 200 and res_set50.status_code == 200:
-            result_set = res_set.json().get("chart", {}).get("result", [])
-            result_set50 = res_set50.json().get("chart", {}).get("result", [])
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code == 200:
+            data = res.json()
+            sectors = data.get("IndexIndustrySectors", [])
             
-            if result_set and result_set50:
-                meta_set = result_set[0].get("meta", {})
-                meta_set50 = result_set50[0].get("meta", {})
+            # ค้นหาข้อมูลของ SET และ SET50 จากใน List
+            set_data = next((item for item in sectors if item["symbol"] == "SET"), None)
+            set50_data = next((item for item in sectors if item["symbol"] == "SET50"), None)
+            
+            if set_data and set50_data:
+                set_last = set_data.get("last", 0)
+                set_change = set_data.get("change", 0)
+                set50_last = set50_data.get("last", 0)
                 
-                # 2. ดึงตัวเลข SET
-                set_price = meta_set.get("regularMarketPrice", 0)
-                set_prev = meta_set.get("chartPreviousClose", 0)
-                set_change = set_price - set_prev
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                set_last_str = f"{float(set_last):.2f}"
+                set_change_str = f"{float(set_change):.2f}"
+                set50_last_str = f"{float(set50_last):.2f}"
                 
-                # 3. ดึงตัวเลข SET50
-                set50_price = meta_set50.get("regularMarketPrice", 0)
+                # 🎯 ตัดเลข 3 ตัวบน:
+                # 1. เอาตัวท้ายสุดของทศนิยม SET50 (เช่น 1084.85 -> เอา 5)
+                set50_last_digit = set50_last_str[-1]
+                # 2. เอาทศนิยม 2 ตำแหน่งของ SET (เช่น 1614.64 -> เอา 64)
+                set_decimals = set_last_str.split('.')[1]
+                # 3. นำมารวมกัน
+                top_3 = set50_last_digit + set_decimals
                 
-                # แปลงเป็นทศนิยม 2 ตำแหน่ง
-                set_price_str = f"{set_price:.2f}"
-                set_change_str = f"{set_change:.2f}"
-                set50_price_str = f"{set50_price:.2f}"
+                # 👇 ตัดเลข 2 ตัวล่าง: เอาทศนิยมของค่า Change SET (ลบเครื่องหมาย - ออกถ้ามี)
+                bottom_2 = set_change_str.replace('-', '').split('.')[1]
                 
-                # 🎯 ตัดเลข 3 ตัวบน: (ทศนิยมตัวท้ายสุดของ SET50) + (ทศนิยม 2 ตัวของ SET)
-                set50_decimal = set50_price_str.split('.')[1] # ตัวอย่าง: "26"
-                set_decimal = set_price_str.split('.')[1]     # ตัวอย่าง: "78"
-                top_3 = set50_decimal[-1] + set_decimal       # เอา "6" + "78" = "678"
-                
-                # 👇 ตัดเลข 2 ตัวล่าง: (ทศนิยม 2 ตัวของ Change SET)
-                bottom_2 = set_change_str.split('.')[1]       # ตัวอย่าง: "35"
-                
-                # 📢 ส่งผลเข้ากลุ่ม
-                msg = (f"🇹🇭 **ผลหวยหุ้นไทย (รอบเย็น)** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
-                       f"📊 SET: {set_price_str} ({set_change:+.2f})\n"
-                       f"📊 SET50: {set50_price_str}\n\n"
+                # 📢 ส่งผลเข้ากลุ่ม Telegram
+                msg = (f"🇹🇭 **ผลหวยหุ้นไทยเย็น** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
+                       f"📊 SET: {set_last_str} ({float(set_change):+.2f})\n"
+                       f"📊 SET50: {set50_last_str}\n\n"
                        f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
@@ -1012,7 +1009,7 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
         print(f"[Error] หวยหุ้นไทยเย็น: {e}")
         
     if not is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นไทย (รอบเย็น)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นไทยเย็น**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
 # 🇲🇾 ดึงผลหวยมาเลย์ (Magnum 4D) + รองรับ Special Draw วันอังคาร
