@@ -951,7 +951,7 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ใช้ Yahoo Quote API ตัวเดียวกับที่โชว์บนหน้าเว็บ)
+# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ไพ่ตาย: เจาะผ่าน TradingView ข้อมูลตรงและไม่บล็อกบอท)
 # ==========================================
 def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -960,31 +960,44 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทยเย็น** งวดวันที่ {today_str_display} ครับ...")
 
-    # 🚀 เปลี่ยนมาใช้ v7/finance/quote ซึ่งเป็นข้อมูล Real-time ชุดเดียวกับหน้าเว็บเป๊ะๆ
-    url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=^SET.BK,^SET50.BK"
+    # 🚀 ใช้ API Scanner ของ TradingView สำหรับตลาดหุ้นไทยโดยเฉพาะ
+    url = "https://scanner.tradingview.com/thailand/scan"
+    
+    # สั่งให้ดึงเฉพาะดัชนี SET และ SET50 (เอาแค่ราคาปิด กับ ค่า Change)
+    payload = {
+        "symbols": {
+            "tickers": ["SET:SET", "SET:SET50"]
+        },
+        "columns": ["close", "change"]
+    }
     
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-        "Accept": "application/json"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Content-Type": "application/json"
     }
 
     try:
-        res = requests.get(url, headers=headers, timeout=15)
+        # ใช้ requests.post เพราะ TradingView รับข้อมูลแบบ POST
+        res = requests.post(url, json=payload, headers=headers, timeout=15)
         
         if res.status_code == 200:
             data = res.json()
-            results = data.get("quoteResponse", {}).get("result", [])
+            results = data.get("data", [])
             
-            # ค้นหาข้อมูลของ SET และ SET50 จากผลลัพธ์
-            set_data = next((item for item in results if item.get("symbol") == "^SET.BK"), None)
-            set50_data = next((item for item in results if item.get("symbol") == "^SET50.BK"), None)
+            set_last, set_change, set50_last = 0, 0, 0
             
-            if set_data and set50_data:
-                # ดึงค่า regularMarketPrice ซึ่งตรงกับตัวเลขใหญ่หน้าเว็บ
-                set_last = set_data.get("regularMarketPrice", 0)
-                set_change = set_data.get("regularMarketChange", 0)
-                set50_last = set50_data.get("regularMarketPrice", 0)
+            # วนลูปหาข้อมูลจากผลลัพธ์
+            for item in results:
+                ticker = item.get("s")
+                d = item.get("d", []) # d[0] = close, d[1] = change
                 
+                if ticker == "SET:SET" and len(d) >= 2:
+                    set_last = float(d[0])
+                    set_change = float(d[1])
+                elif ticker == "SET:SET50" and len(d) >= 2:
+                    set50_last = float(d[0])
+                    
+            if set_last and set50_last:
                 # จัดรูปแบบทศนิยม 2 ตำแหน่ง
                 set_last_str = f"{set_last:.2f}"
                 set_change_str = f"{set_change:.2f}"
@@ -1006,9 +1019,9 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
             else:
-                print("[Error] หวยหุ้นไทยเย็น: ไม่พบข้อมูล SET หรือ SET50 ใน Yahoo API")
+                print("[Error] หวยหุ้นไทยเย็น: ดึงข้อมูลจาก TradingView มาไม่ครบ")
         else:
-            print(f"[Error] หวยหุ้นไทยเย็น: Yahoo API ตอบกลับสถานะ {res.status_code}")
+            print(f"[Error] หวยหุ้นไทยเย็น: TradingView ตอบกลับสถานะ {res.status_code}")
             
     except Exception as e:
         print(f"[Error] หวยหุ้นไทยเย็น: {e}")
