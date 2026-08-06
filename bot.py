@@ -951,7 +951,7 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ย้ายมาใช้ Yahoo Finance แก้ปัญหาเซิร์ฟเวอร์โดนบล็อก)
+# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (จาก Yahoo Finance บังคับดึงราคาปิดสิ้นวัน)
 # ==========================================
 def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -960,16 +960,15 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทยเย็น** งวดวันที่ {today_str_display} ครับ...")
 
-    # ใช้ดัชนีของ Yahoo Finance แทนเว็บ SET โดยตรง
-    url_set = "https://query1.finance.yahoo.com/v8/finance/chart/^SET.BK"
-    url_set50 = "https://query1.finance.yahoo.com/v8/finance/chart/^SET50.BK"
+    # 💡 ใส่พารามิเตอร์ ?range=1d&interval=1d เพื่อบังคับให้ดึงเฉพาะราคาปิดล่าสุดเท่านั้น
+    url_set = "https://query1.finance.yahoo.com/v8/finance/chart/^SET.BK?range=1d&interval=1d"
+    url_set50 = "https://query1.finance.yahoo.com/v8/finance/chart/^SET50.BK?range=1d&interval=1d"
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
     }
 
     try:
-        # ดึงข้อมูลทั้ง SET และ SET50 พร้อมกัน
         res_set = requests.get(url_set, headers=headers, timeout=15)
         res_set50 = requests.get(url_set50, headers=headers, timeout=15)
         
@@ -977,27 +976,39 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
             data_set = res_set.json()
             data_set50 = res_set50.json()
             
-            # เจาะลึกเข้าไปเอาตัวเลข SET
-            meta_set = data_set.get("chart", {}).get("result", [])[0].get("meta", {})
-            set_last = meta_set.get("regularMarketPrice", 0)
-            set_prev = meta_set.get("chartPreviousClose", 0)
+            # เจาะลึกเอาข้อมูล SET
+            result_set = data_set.get("chart", {}).get("result", [])[0]
+            # ดึงจาก array ราคาปิดของแท่งเทียนโดยตรง ชัวร์กว่าดึงจาก meta
+            set_close_list = result_set.get("indicators", {}).get("quote", [{}])[0].get("close", [])
+            
+            if set_close_list and set_close_list[-1] is not None:
+                set_last = set_close_list[-1]
+            else:
+                set_last = result_set.get("meta", {}).get("regularMarketPrice", 0)
+                
+            set_prev = result_set.get("meta", {}).get("chartPreviousClose", 0)
             set_change = set_last - set_prev
             
-            # เจาะลึกเข้าไปเอาตัวเลข SET50
-            meta_set50 = data_set50.get("chart", {}).get("result", [])[0].get("meta", {})
-            set50_last = meta_set50.get("regularMarketPrice", 0)
+            # เจาะลึกเอาข้อมูล SET50
+            result_set50 = data_set50.get("chart", {}).get("result", [])[0]
+            set50_close_list = result_set50.get("indicators", {}).get("quote", [{}])[0].get("close", [])
+            
+            if set50_close_list and set50_close_list[-1] is not None:
+                set50_last = set50_close_list[-1]
+            else:
+                set50_last = result_set50.get("meta", {}).get("regularMarketPrice", 0)
             
             # จัดรูปแบบทศนิยม 2 ตำแหน่ง
             set_last_str = f"{set_last:.2f}"
             set_change_str = f"{set_change:.2f}"
             set50_last_str = f"{set50_last:.2f}"
             
-            # 🎯 ตัดเลข 3 ตัวบนตามสูตร: (ท้ายสุด SET50 + ทศนิยม SET)
+            # 🎯 ตัดเลข 3 ตัวบน (ท้ายสุด SET50 + ทศนิยม 2 ตัว SET)
             set50_last_digit = set50_last_str[-1]
             set_decimals = set_last_str.split('.')[1]
             top_3 = set50_last_digit + set_decimals
             
-            # 👇 ตัดเลข 2 ตัวล่างตามสูตร: (ทศนิยม SET Change)
+            # 👇 ตัดเลข 2 ตัวล่าง (ทศนิยมค่า Change ของ SET)
             bottom_2 = set_change_str.replace('-', '').split('.')[1]
             
             # 📢 ส่งผลเข้ากลุ่ม Telegram
@@ -1008,7 +1019,7 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, msg)
             return
         else:
-            print(f"[Error] หวยหุ้นไทยเย็น: Yahoo Finance ตอบกลับ {res_set.status_code}")
+            print(f"[Error] หวยหุ้นไทยเย็น (Yahoo): สถานะ SET={res_set.status_code}, SET50={res_set50.status_code}")
             
     except Exception as e:
         print(f"[Error] หวยหุ้นไทยเย็น: {e}")
