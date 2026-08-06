@@ -132,7 +132,7 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇮🇳 ดึงผลหวยหุ้นอินเดีย (เปลี่ยนมาใช้ดัชนี ^BSESN จาก Yahoo Finance)
+# 🇮🇳 IN ดึงผลหวยหุ้นอินเดีย (เปลี่ยนมาใช้ TradingView ข้อมูลตรงเป๊ะ)
 # ==========================================
 def fetch_india_stock_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -141,40 +141,60 @@ def fetch_india_stock_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอินเดีย** งวดวันที่ {today_str_display} ครับ...")
 
-    # ใช้ดัชนี ^BSESN S&P BSE SENSEX ของ Yahoo (เสถียรกว่าเว็บอินเดียมาก)
-    url = "https://query1.finance.yahoo.com/v8/finance/chart/^BSESN"
+    # 🚀 ใช้ API Scanner ของ TradingView สำหรับตลาดหุ้นอินเดีย
+    url = "https://scanner.tradingview.com/india/scan"
+    
+    # สั่งให้ดึงดัชนี BSE SENSEX (เอาแค่ราคาปิด กับ ค่า Change แบบจุด)
+    payload = {
+        "symbols": {
+            "tickers": ["BSE:SENSEX"]
+        },
+        "columns": ["close", "change_abs"]
+    }
+    
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Content-Type": "application/json"
     }
 
     try:
-        res = requests.get(url, headers=headers, timeout=15)
+        res = requests.post(url, json=payload, headers=headers, timeout=15)
+        
         if res.status_code == 200:
             data = res.json()
-            result = data.get("chart", {}).get("result", [])
-            if result:
-                meta = result[0].get("meta", {})
-                current_price = meta.get("regularMarketPrice", 0)
-                prev_close = meta.get("chartPreviousClose", 0)
-                change = current_price - prev_close
-                
-                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
-                price_str = f"{current_price:.2f}"
-                change_str = f"{change:.2f}"
-                
-                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วย + ทศนิยม)
-                integer_part, decimal_part = price_str.split('.')
-                top_3 = integer_part[-1] + decimal_part 
-                
-                # 👇 ตัดเลข 2 ตัวล่าง (เอาเครื่องหมายลบออกก่อนถ้ามี)
-                bottom_2 = change_str.replace('-', '').split('.')[1] 
-                
-                # 📢 ส่งผลเข้ากลุ่ม Telegram
-                msg = (f"🇮🇳 **ผลหวยหุ้นอินเดีย** 🇮🇳\n📅 วันที่: {today_str_display}\n\n"
-                       f"📊 BSE SENSEX: {price_str} ({change:+.2f})\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                bot.send_message(GROUP_CHAT_ID, msg)
-                return
+            results = data.get("data", [])
+            
+            if results:
+                # ดึงข้อมูลจาก result ตัวแรก (BSE:SENSEX)
+                d = results[0].get("d", [])
+                if len(d) >= 2:
+                    current_price = float(d[0])
+                    change = float(d[1])
+                    
+                    # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                    price_str = f"{current_price:.2f}"
+                    change_str = f"{change:.2f}"
+                    
+                    # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วย + ทศนิยม)
+                    integer_part, decimal_part = price_str.split('.')
+                    top_3 = integer_part[-1] + decimal_part
+                    
+                    # 👇 ตัดเลข 2 ตัวล่าง (เอาทศนิยมของค่า change)
+                    bottom_2 = change_str.replace('-', '').split('.')[1]
+                    
+                    # 📢 ส่งผลเข้ากลุ่ม Telegram
+                    msg = (f"🇮🇳 **ผลหวยหุ้นอินเดีย** 🇮🇳\n📅 วันที่: {today_str_display}\n\n"
+                           f"📊 BSE SENSEX: {price_str} ({change:+.2f})\n\n"
+                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                    bot.send_message(GROUP_CHAT_ID, msg)
+                    return
+                else:
+                    print("[Error] หวยหุ้นอินเดีย: ข้อมูล d จาก TradingView ไม่ครบ")
+            else:
+                print("[Error] หวยหุ้นอินเดีย: ไม่พบข้อมูล Ticker ใน TradingView")
+        else:
+            print(f"[Error] หวยหุ้นอินเดีย: TradingView ตอบกลับสถานะ {res.status_code}")
+            
     except Exception as e:
         print(f"[Error] หวยหุ้นอินเดีย: {e}")
         
