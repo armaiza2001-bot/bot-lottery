@@ -951,7 +951,7 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ทะลวงระบบ Imperva ด้วย Cloudscraper)
+# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ย้ายมาใช้ Yahoo Finance แก้ปัญหาเซิร์ฟเวอร์โดนบล็อก)
 # ==========================================
 def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -960,56 +960,55 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทยเย็น** งวดวันที่ {today_str_display} ครับ...")
 
-    # ใช้ Timestamp เพื่อป้องกันเว็บจำข้อมูลเก่า
-    timestamp = int(datetime.now().timestamp() * 1000)
-    url = f"https://www.set.or.th/api/set/index/info/list?type=INDEX&_t={timestamp}"
+    # ใช้ดัชนีของ Yahoo Finance แทนเว็บ SET โดยตรง
+    url_set = "https://query1.finance.yahoo.com/v8/finance/chart/^SET.BK"
+    url_set50 = "https://query1.finance.yahoo.com/v8/finance/chart/^SET50.BK"
     
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Referer": "https://www.set.or.th/th/market/index/set/overview",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
     }
 
     try:
-        # 🚀 เปลี่ยนมาใช้ cloudscraper แทน requests ธรรมดา
-        scraper = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
-        res = scraper.get(url, headers=headers, timeout=15)
+        # ดึงข้อมูลทั้ง SET และ SET50 พร้อมกัน
+        res_set = requests.get(url_set, headers=headers, timeout=15)
+        res_set50 = requests.get(url_set50, headers=headers, timeout=15)
         
-        if res.status_code == 200:
-            data = res.json()
-            sectors = data.get("indexIndustrySectors", [])
+        if res_set.status_code == 200 and res_set50.status_code == 200:
+            data_set = res_set.json()
+            data_set50 = res_set50.json()
             
-            # ค้นหาข้อมูลของ SET และ SET50
-            set_data = next((item for item in sectors if item.get("symbol") == "SET"), None)
-            set50_data = next((item for item in sectors if item.get("symbol") == "SET50"), None)
+            # เจาะลึกเข้าไปเอาตัวเลข SET
+            meta_set = data_set.get("chart", {}).get("result", [])[0].get("meta", {})
+            set_last = meta_set.get("regularMarketPrice", 0)
+            set_prev = meta_set.get("chartPreviousClose", 0)
+            set_change = set_last - set_prev
             
-            if set_data and set50_data:
-                set_last = set_data.get("last", 0)
-                set_change = set_data.get("change", 0)
-                set50_last = set50_data.get("last", 0)
-                
-                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
-                set_last_str = f"{float(set_last):.2f}"
-                set_change_str = f"{float(set_change):.2f}"
-                set50_last_str = f"{float(set50_last):.2f}"
-                
-                # 🎯 ตัดเลข 3 ตัวบน
-                set50_last_digit = set50_last_str[-1]
-                set_decimals = set_last_str.split('.')[1]
-                top_3 = set50_last_digit + set_decimals
-                
-                # 👇 ตัดเลข 2 ตัวล่าง
-                bottom_2 = set_change_str.replace('-', '').split('.')[1]
-                
-                # 📢 ส่งผลเข้ากลุ่ม Telegram
-                msg = (f"🇹🇭 **ผลหวยหุ้นไทยเย็น** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
-                       f"📊 SET: {set_last_str} ({float(set_change):+.2f})\n"
-                       f"📊 SET50: {set50_last_str}\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                bot.send_message(GROUP_CHAT_ID, msg)
-                return
+            # เจาะลึกเข้าไปเอาตัวเลข SET50
+            meta_set50 = data_set50.get("chart", {}).get("result", [])[0].get("meta", {})
+            set50_last = meta_set50.get("regularMarketPrice", 0)
+            
+            # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+            set_last_str = f"{set_last:.2f}"
+            set_change_str = f"{set_change:.2f}"
+            set50_last_str = f"{set50_last:.2f}"
+            
+            # 🎯 ตัดเลข 3 ตัวบนตามสูตร: (ท้ายสุด SET50 + ทศนิยม SET)
+            set50_last_digit = set50_last_str[-1]
+            set_decimals = set_last_str.split('.')[1]
+            top_3 = set50_last_digit + set_decimals
+            
+            # 👇 ตัดเลข 2 ตัวล่างตามสูตร: (ทศนิยม SET Change)
+            bottom_2 = set_change_str.replace('-', '').split('.')[1]
+            
+            # 📢 ส่งผลเข้ากลุ่ม Telegram
+            msg = (f"🇹🇭 **ผลหวยหุ้นไทยเย็น** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
+                   f"📊 SET: {set_last_str} ({set_change:+.2f})\n"
+                   f"📊 SET50: {set50_last_str}\n\n"
+                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+            bot.send_message(GROUP_CHAT_ID, msg)
+            return
         else:
-            print(f"[Error] หวยหุ้นไทยเย็น: ติดบล็อก HTTP Status {res.status_code}")
+            print(f"[Error] หวยหุ้นไทยเย็น: Yahoo Finance ตอบกลับ {res_set.status_code}")
             
     except Exception as e:
         print(f"[Error] หวยหุ้นไทยเย็น: {e}")
