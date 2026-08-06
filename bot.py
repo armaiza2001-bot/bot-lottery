@@ -1,4 +1,5 @@
 import telebot
+import cloudscraper
 import requests
 import time
 import threading
@@ -950,7 +951,7 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (SET + SET50)
+# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ทะลวงระบบ Imperva ด้วย Cloudscraper)
 # ==========================================
 def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -959,24 +960,26 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทยเย็น** งวดวันที่ {today_str_display} ครับ...")
 
-    # API ตรงจากตลาดหลักทรัพย์แห่งประเทศไทย
-    url = "https://www.set.or.th/api/set/index/info/list?type=INDEX"
+    # ใช้ Timestamp เพื่อป้องกันเว็บจำข้อมูลเก่า
+    timestamp = int(datetime.now().timestamp() * 1000)
+    url = f"https://www.set.or.th/api/set/index/info/list?type=INDEX&_t={timestamp}"
+    
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.set.or.th/th/market/index/set/overview",
-        "Accept": "application/json, text/plain, */*"
     }
 
     try:
-        res = requests.get(url, headers=headers, timeout=15)
-        # 304 คือ Not Modified (ข้อมูลยังไม่มีการอัปเดตใหม่) ซึ่งอาจพบได้บ่อยใน API ของ SET
-        if res.status_code in [200, 304]:
+        # 🚀 เปลี่ยนมาใช้ cloudscraper แทน requests ธรรมดา
+        scraper = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+        res = scraper.get(url, headers=headers, timeout=15)
+        
+        if res.status_code == 200:
             data = res.json()
-            
-            # 🛑 แก้ไขจุดนี้: ใช้ i ตัวเล็กให้ตรงกับที่ API ส่งมาเป๊ะๆ
             sectors = data.get("indexIndustrySectors", [])
             
-            # ค้นหาข้อมูลของ SET และ SET50 จากใน List
+            # ค้นหาข้อมูลของ SET และ SET50
             set_data = next((item for item in sectors if item.get("symbol") == "SET"), None)
             set50_data = next((item for item in sectors if item.get("symbol") == "SET50"), None)
             
@@ -990,15 +993,12 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
                 set_change_str = f"{float(set_change):.2f}"
                 set50_last_str = f"{float(set50_last):.2f}"
                 
-                # 🎯 ตัดเลข 3 ตัวบน:
-                # 1. เอาตัวท้ายสุดของทศนิยม SET50 (เช่น 1084.85 -> เอา 5)
+                # 🎯 ตัดเลข 3 ตัวบน
                 set50_last_digit = set50_last_str[-1]
-                # 2. เอาทศนิยม 2 ตำแหน่งของ SET (เช่น 1614.64 -> เอา 64)
                 set_decimals = set_last_str.split('.')[1]
-                # 3. นำมารวมกัน
                 top_3 = set50_last_digit + set_decimals
                 
-                # 👇 ตัดเลข 2 ตัวล่าง: เอาทศนิยมของค่า Change SET (ลบเครื่องหมาย - ออกถ้ามี)
+                # 👇 ตัดเลข 2 ตัวล่าง
                 bottom_2 = set_change_str.replace('-', '').split('.')[1]
                 
                 # 📢 ส่งผลเข้ากลุ่ม Telegram
@@ -1008,6 +1008,9 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
                        f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
+        else:
+            print(f"[Error] หวยหุ้นไทยเย็น: ติดบล็อก HTTP Status {res.status_code}")
+            
     except Exception as e:
         print(f"[Error] หวยหุ้นไทยเย็น: {e}")
         
