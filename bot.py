@@ -896,7 +896,7 @@ def fetch_dowjones_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇸🇬 ดึงผลหวยหุ้นสิงคโปร์ (จากดัชนี STI)
+# 🇸🇬 ดึงผลหวยหุ้นสิงคโปร์ (ปกติ) จากเว็บ SGX โดยตรง
 # ==========================================
 def fetch_singapore_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -905,8 +905,8 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นสิงคโปร์** งวดวันที่ {today_str_display} ครับ...")
 
-    # ใช้ดัชนี ^STI สำหรับ Straits Times Index ของสิงคโปร์
-    url = "https://query1.finance.yahoo.com/v8/finance/chart/^STI"
+    # ใช้ API ตรงของตลาดสิงคโปร์ SGX 
+    url = "https://api.sgx.com/indices/v1.0/pid/.STI/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
@@ -915,27 +915,31 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
         res = requests.get(url, headers=headers, timeout=15)
         if res.status_code == 200:
             data = res.json()
-            result = data.get("chart", {}).get("result", [])
-            if result:
-                meta = result[0].get("meta", {})
-                current_price = meta.get("regularMarketPrice", 0)
-                prev_close = meta.get("chartPreviousClose", 0)
-                change = current_price - prev_close
+            
+            # เจาะเข้าไปใน Array "data" 
+            data_list = data.get("data", [])
+            
+            if data_list and len(data_list) > 0:
+                latest_data = data_list[0]
                 
-                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
-                price_str = f"{current_price:.2f}"
-                change_str = f"{change:.2f}"
+                # "lp" = Last Price (ดัชนี), "c" = Change (ค่าการเปลี่ยนแปลง)
+                current_price = latest_data.get("lp", 0)
+                change = latest_data.get("c", 0)
                 
-                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วยหน้าจุด + ทศนิยม)
+                # จัดรูปแบบทศนิยม 2 ตำแหน่งกันเหนียว
+                price_str = f"{float(current_price):.2f}"
+                change_str = f"{float(change):.2f}"
+                
+                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วยหน้าจุด + ทศนิยม 2 ตำแหน่ง)
                 integer_part, decimal_part = price_str.split('.')
                 top_3 = integer_part[-1] + decimal_part 
                 
-                # 👇 ตัดเลข 2 ตัวล่าง (ทศนิยมของค่า Change)
-                bottom_2 = change_str.split('.')[1]
+                # 👇 ตัดเลข 2 ตัวล่าง (เอาเครื่องหมายลบออกก่อนถ้ามี)
+                bottom_2 = change_str.replace('-', '').split('.')[1] 
                 
                 # 📢 ส่งผลเข้ากลุ่ม Telegram
                 msg = (f"🇸🇬 **ผลหวยหุ้นสิงคโปร์** 🇸🇬\n📅 วันที่: {today_str_display}\n\n"
-                       f"📊 STI: {price_str} ({change:+.2f})\n\n"
+                       f"📊 STI: {price_str} ({float(change):+.2f})\n\n"
                        f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
