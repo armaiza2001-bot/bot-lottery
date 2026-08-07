@@ -982,86 +982,78 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
     if not is_auto:
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
+import requests
+from datetime import datetime, timedelta
+
 # ==========================================
-# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (Real-time SET + ระบบสลับ Proxy อัตโนมัติ)
+# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ใช้ Yahoo Finance API)
 # ==========================================
 def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     target_date = datetime.now() - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นไทยเย็น** ตลาดกำลังเข้าสู่ช่วงสุ่มปิด...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทยเย็น** งวดวันที่ {today_str_display} ครับ...")
 
-    attempts = 0
-    max_attempts = 120 # รอสูงสุด 20 นาที (120 รอบ * 10 วินาที)
+    # ใช้ query1 ของ Yahoo ซึ่งเป็นตัวที่เสถียรและไม่ค่อยติดบล็อก
+    url_set = "https://query1.finance.yahoo.com/v8/finance/chart/^SET.BK?interval=1d&range=1d"
+    url_set50 = "https://query1.finance.yahoo.com/v8/finance/chart/^SET50.BK?interval=1d&range=1d"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+        "Accept": "application/json"
+    }
 
-    while attempts < max_attempts:
-        attempts += 1
-        timestamp_now = int(time.time() * 1000)
-        set_url = f"https://www.set.or.th/api/set/index/info/list?type=INDEX&_t={timestamp_now}"
+    try:
+        res_set = requests.get(url_set, headers=headers, timeout=15)
+        res_set50 = requests.get(url_set50, headers=headers, timeout=15)
         
-        # 🚀 ลิสต์ของ Proxy ฟรี เอาไว้สลับกันเผื่อโดนบล็อก
-        proxy_list = [
-            f"https://api.allorigins.win/raw?url={urllib.parse.quote(set_url)}&disableCache=true",
-            f"https://corsproxy.io/?{urllib.parse.quote(set_url)}"
-        ]
-        
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
-
-        success = False
-        # วนลูปสลับใช้ Proxy ทีละตัว
-        for proxy_url in proxy_list:
-            try:
-                res = requests.get(proxy_url, headers=headers, timeout=10)
-                if res.status_code == 200:
-                    data = res.json()
-                    sectors = data.get("indexIndustrySectors", [])
-                    
-                    set_data = next((item for item in sectors if item.get("symbol") == "SET"), None)
-                    set50_data = next((item for item in sectors if item.get("symbol") == "SET50"), None)
-                    
-                    if set_data and set50_data:
-                        market_status = set_data.get("marketStatus", "")
-                        
-                        # 🎯 ตลาดปิดสนิทแล้ว
-                        if market_status == "Closed":
-                            set_last = set_data.get("last", 0)
-                            set_change = set_data.get("change", 0)
-                            set50_last = set50_data.get("last", 0)
-                            
-                            set_last_str = f"{float(set_last):.2f}"
-                            set_change_str = f"{float(set_change):.2f}"
-                            set50_last_str = f"{float(set50_last):.2f}"
-                            
-                            top_3 = set50_last_str[-1] + set_last_str.split('.')[1]
-                            bottom_2 = set_change_str.replace('-', '').split('.')[1]
-                            
-                            msg = (f"🇹🇭 **ผลหวยหุ้นไทยเย็น** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
-                                   f"📊 SET: {set_last_str} ({float(set_change):+.2f})\n"
-                                   f"📊 SET50: {set50_last_str}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                            bot.send_message(GROUP_CHAT_ID, msg)
-                            return # จบการทำงาน
-                        else:
-                            # ตลาดยัง Open หรือ Random อยู่
-                            success = True # ดึงข้อมูลผ่าน แต่ยังไม่ปิด
-                            if not is_auto and attempts == 1:
-                                bot.send_message(GROUP_CHAT_ID, f"🔍 [Debug] ตลาดยังไม่ปิด (สถานะ: {market_status}) กำลังรอ...")
-                            break # หยุดลอง Proxy ตัวอื่น แล้วไปรอ 10 วิ
-                            
-            except Exception as e:
-                continue # ถ้า Proxy ตัวแรก Error (โดนบล็อก/ล่ม) ให้ไปลอง Proxy ตัวถัดไปทันที
-        
-        if not is_auto and attempts >= 3:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นไทยเย็น**: ตลาดยังไม่ปิด กรุณารออีกสักครู่แล้วกดใหม่ครับ")
-            return
+        if res_set.status_code == 200 and res_set50.status_code == 200:
+            data_set = res_set.json()
+            data_set50 = res_set50.json()
             
-        time.sleep(10) # ⏳ พัก 10 วินาที ค่อยไปถามใหม่
-
-    if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏰ **หวยหุ้นไทยเย็น**: รอผลนานเกินกำหนด กรุณากดเช็คด้วยตัวเอง /test_thai_evening")
+            # ดึงข้อมูล meta ซึ่งเป็นข้อมูลสรุปตัวเลขใหญ่ๆ ที่โชว์หน้าเว็บ
+            meta_set = data_set.get("chart", {}).get("result", [])[0].get("meta", {})
+            meta_set50 = data_set50.get("chart", {}).get("result", [])[0].get("meta", {})
+            
+            if meta_set and meta_set50:
+                # ดึงราคาปิด SET และคำนวณค่า Change (+/-)
+                set_last = meta_set.get("regularMarketPrice", 0)
+                set_prev = meta_set.get("chartPreviousClose", 0)
+                set_change = set_last - set_prev
+                
+                # ดึงราคาปิด SET50
+                set50_last = meta_set50.get("regularMarketPrice", 0)
+                
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                set_last_str = f"{set_last:.2f}"
+                set_change_str = f"{set_change:.2f}"
+                set50_last_str = f"{set50_last:.2f}"
+                
+                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วย SET50 + ทศนิยม 2 ตัว SET)
+                set50_last_digit = set50_last_str[-1]
+                set_decimals = set_last_str.split('.')[1]
+                top_3 = set50_last_digit + set_decimals
+                
+                # 👇 ตัดเลข 2 ตัวล่าง (ทศนิยมค่า Change ของ SET)
+                bottom_2 = set_change_str.replace('-', '').split('.')[1]
+                
+                msg = (f"🇹🇭 **ผลหวยหุ้นไทยเย็น** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
+                       f"📊 SET: {set_last_str} ({set_change:+.2f})\n"
+                       f"📊 SET50: {set50_last_str}\n\n"
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                bot.send_message(GROUP_CHAT_ID, msg)
+                return
+            else:
+                print("[Error] Yahoo Finance: ดึงโครงสร้าง Meta ไม่สำเร็จ")
+        else:
+            print(f"[Error] Yahoo Finance: SET={res_set.status_code}, SET50={res_set50.status_code}")
+            
+    except Exception as e:
+        print(f"[Error] Yahoo Finance Exception: {e}")
+        
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นไทยเย็น**: ไม่สามารถดึงข้อมูลจาก Yahoo Finance ได้ในขณะนี้")
 
 # ==========================================
 # 🇲🇾 ดึงผลหวยมาเลย์ (Magnum 4D) + รองรับ Special Draw วันอังคาร
