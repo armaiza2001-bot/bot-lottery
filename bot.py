@@ -992,9 +992,8 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทยเย็น** งวดวันที่ {today_str_display} ครับ...")
 
-    url = "https://www.set.or.th/api/set/index/info/list?type=INDEX"
+    url = "https://scanner.tradingview.com/thailand/scan"
     
-    # 🛑 แก้ไขตรงนี้: เปลี่ยนจาก "change" เป็น "change_abs" เพื่อเอาค่าจุด (+4.86)
     payload = {
         "symbols": {
             "tickers": ["SET:SET", "SET:SET50"]
