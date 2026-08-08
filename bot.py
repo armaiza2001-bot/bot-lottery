@@ -59,8 +59,8 @@ def fetch_hanoi_special(offset_days=0, is_auto=True):
                         top_3 = prize_special[-3:] 
                         bottom_2 = prize_1[-2:]    
                         
-                        msg = (f"🇻🇳 **ผลหวยฮานอยพิเศษ** 🇻🇳\n📅 วันที่: {api_date}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        msg = (f"🇻🇳 ผลหวยฮานอยพิเศษ 🇻🇳\n📅 วันที่: {api_date}\n\n"
+                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return 
         except Exception as e:
@@ -121,9 +121,9 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
                     bottom_2 = diff_str.replace('-', '').split('.')[1] 
                     
                     # 📢 ส่งผลเข้ากลุ่ม
-                    msg = (f"🇸🇬 **ผลหวยหุ้นสิงคโปร์ VIP** 🇸🇬\n📅 วันที่: {today_str_display}\n\n"
+                    msg = (f"🇸🇬 **ผลหวยหุ้นสิงคโปร์ VIP 🇸🇬\n📅 วันที่: {today_str_display}\n\n"
                            f"📊 SGX VIP: {price_str} ({float(diff):+.2f})\n\n"
-                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                           f"🎯 **3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                     bot.send_message(GROUP_CHAT_ID, msg)
                     return
     except Exception as e:
@@ -177,9 +177,9 @@ def fetch_india_stock_fast(offset_days=0, is_auto=True):
                 bottom_2 = change_str.replace('-', '').split('.')[1]
                 
                 # 📢 ส่งผลเข้ากลุ่ม Telegram
-                msg = (f"🇮🇳 **ผลหวยหุ้นอินเดีย** 🇮🇳\n📅 วันที่: {today_str_display}\n\n"
+                msg = (f"🇮🇳 ผลหวยหุ้นอินเดีย 🇮🇳\n📅 วันที่: {today_str_display}\n\n"
                        f"📊 BSE SENSEX: {price_str} ({change:+.2f})\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                       f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
             else:
@@ -223,8 +223,8 @@ def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
                         if len(prize_special) == 5 and len(prize_1) == 5:
                             top_3 = prize_special[-3:] 
                             bottom_2 = prize_1[-2:]    
-                            msg = (f"🇻🇳 **ผลหวยฮานอยสามัคคี** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇻🇳 ผลหวยฮานอยสามัคคี 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
         except Exception as e:
@@ -284,8 +284,8 @@ def fetch_hanoi_normal(offset_days=0, is_auto=True):
 
                     # ตรวจสอบว่าผลออกมาครบ 5 ตัวแล้วหรือยัง
                     if len(text_db) == 5 and len(text_1) == 5 and text_db.isdigit() and text_1.isdigit():
-                        msg = (f"🇻🇳 **ผลหวยฮานอยปกติ** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {text_db[-3:]}\n👇 **2 ตัวล่าง:** {text_1[-2:]}\n")
+                        msg = (f"🇻🇳 ผลหวยฮานอยปกติ 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 3 ตัวบน: {text_db[-3:]}\n👇 2 ตัวล่าง: {text_1[-2:]}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return
                     else:
@@ -336,8 +336,8 @@ def fetch_hanoi_vip(offset_days=0, is_auto=True):
                     if len(prize_special) == 5 and len(prize_1) == 5 and prize_special.isdigit() and prize_1.isdigit():
                         top_3 = prize_special[-3:] 
                         bottom_2 = prize_1[-2:]    
-                        msg = (f"🇻🇳 **ผลหวยฮานอย VIP** 🇻🇳\n📅 วันที่: {api_date}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        msg = (f"🇻🇳 ผลหวยฮานอย VIP 🇻🇳\n📅 วันที่: {api_date}\n\n"
+                               f"🎯 3 ตัวบน: {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return 
         except Exception as e:
@@ -377,8 +377,8 @@ def fetch_hanoi_develop(offset_days=0, is_auto=True):
                         if len(prize_special) == 5 and len(prize_1) == 5:
                             top_3 = prize_special[-3:] 
                             bottom_2 = prize_1[-2:]    
-                            msg = (f"🇻🇳 **ผลหวยฮานอยพัฒนา** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇻🇳 ผลหวยฮานอยพัฒนา 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
         except Exception as e:
@@ -417,8 +417,8 @@ def fetch_lao_samakkhi(offset_days=0, is_auto=True):
                         if len(digit4) == 4:
                             top_3 = digit4[-3:]  
                             bottom_2 = digit4[:2]  
-                            msg = (f"🇱🇦 **ผลหวยลาวสามัคคี** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇱🇦 ผลหวยลาวสามัคคี 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
         except Exception as e:
@@ -456,8 +456,8 @@ def fetch_lao_asean(offset_days=0, is_auto=True):
                     if len(digit5) == 5:
                         top_3 = digit5[-3:]  
                         bottom_2 = digit5[:2]  
-                        msg = (f"🇱🇦 **ผลหวยลาวอาเซียน** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        msg = (f"🇱🇦 ผลหวยลาวอาเซียน 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 3 ตัวบน:** {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return 
         except Exception as e:
@@ -501,8 +501,8 @@ def fetch_lao_vip(offset_days=0, is_auto=True):
                         top_3 = digit4[-3:]  
                         bottom_2 = digit4[:2] 
                         
-                        msg = (f"🇱🇦 **ผลหวยลาว VIP** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        msg = (f"🇱🇦 ผลหวยลาว VIP 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return 
         except Exception as e:
@@ -554,8 +554,8 @@ def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
                             top_3 = digit4[-3:]    
                             bottom_2 = digit4[:2]  
                             
-                            msg = (f"🇱🇦 **ผลหวยลาวสามัคคี VIP** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇱🇦 ผลหวยลาวสามัคคี VIP 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
         except Exception as e:
@@ -604,8 +604,8 @@ def fetch_lao_star_vip(offset_days=0, is_auto=True):
                             top_3 = digit5[-3:]    
                             bottom_2 = digit5[:2]  
                             
-                            msg = (f"🇱🇦 **ผลหวยลาวสตาร์ VIP** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇱🇦 ผลหวยลาวสตาร์ VIP 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
         except Exception as e:
@@ -648,8 +648,8 @@ def fetch_england_vip(offset_days=0, is_auto=True):
                         p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
                         
                         if len(p1) >= 3 and len(p2) >= 2 and p1.isdigit() and p2.isdigit():
-                            msg = (f"🇬🇧 **ผลหวยอังกฤษ VIP** 🇬🇧\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
+                            msg = (f"🇬🇧 ผลหวยอังกฤษ VIP 🇬🇧\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {p1[-3:]}\n👇 2 ตัวล่าง: {p2[-2:]}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
                     elif not is_auto and attempts == 1 and api_date != "":
@@ -694,8 +694,8 @@ def fetch_germany_vip(offset_days=0, is_auto=True):
                         p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
                         
                         if len(p1) >= 3 and len(p2) >= 2 and p1.isdigit() and p2.isdigit():
-                            msg = (f"🇩🇪 **ผลหวยเยอรมัน VIP** 🇩🇪\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
+                            msg = (f"🇩🇪 ผลหวยเยอรมัน VIP 🇩🇪\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {p1[-3:]}\n👇 2 ตัวล่าง: {p2[-2:]}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
                     elif not is_auto and attempts == 1 and api_date != "":
@@ -740,8 +740,8 @@ def fetch_russia_vip(offset_days=0, is_auto=True):
                         p1, p2 = str(results.get("prize_1st", "")), str(results.get("prize_2nd", ""))
                         
                         if len(p1) >= 3 and len(p2) >= 2 and p1.isdigit() and p2.isdigit():
-                            msg = (f"🇷🇺 **ผลหวยรัสเซีย VIP** 🇷🇺\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {p1[-3:]}\n👇 **2 ตัวล่าง:** {p2[-2:]}\n")
+                            msg = (f"🇷🇺 ผลหวยรัสเซีย VIP 🇷🇺\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {p1[-3:]}\n👇 2 ตัวล่าง: {p2[-2:]}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
                     elif not is_auto and attempts == 1 and api_date != "":
@@ -844,8 +844,8 @@ def fetch_lao_redcross(offset_days=0, is_auto=True):
                         top_3 = digit5[-3:]
                         bottom_2 = digit5[:2]
                         
-                        msg = (f"🇱🇦 **ผลหวยลาวกาชาด** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        msg = (f"🇱🇦 ผลหวยลาวกาชาด 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return 
                 elif not is_auto and attempts == 1 and api_date != "":
@@ -904,8 +904,8 @@ def fetch_dowjones_vip(offset_days=0, is_auto=True):
                             top_3 = p1[-3:]
                             bottom_2 = p2[-2:]
                             
-                            msg = (f"🇺🇸 **ผลหวยดาวโจนส์ VIP** 🇺🇸\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇺🇸 ผลหวยดาวโจนส์ VIP 🇺🇸\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return 
                     elif not is_auto and attempts == 1 and api_lotto_date != "":
@@ -962,9 +962,9 @@ def fetch_singapore_fast(offset_days=0, is_auto=True):
                 bottom_2 = change_str.replace('-', '').split('.')[1] 
                 
                 # 📢 ส่งผลเข้ากลุ่ม Telegram
-                msg = (f"🇸🇬 **ผลหวยหุ้นสิงคโปร์** 🇸🇬\n📅 วันที่: {today_str_display}\n\n"
+                msg = (f"🇸🇬 ผลหวยหุ้นสิงคโปร์ 🇸🇬\n📅 วันที่: {today_str_display}\n\n"
                        f"📊 STI: {price_str} ({float(change):+.2f})\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                       f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
     except Exception as e:
@@ -1029,10 +1029,10 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
                 # 👇 ตัดเลข 2 ตัวล่าง (ทศนิยมค่า Change ของ SET)
                 bottom_2 = set_change_str.replace('-', '').split('.')[1]
                 
-                msg = (f"🇹🇭 **ผลหวยหุ้นไทยเย็น** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
+                msg = (f"🇹🇭 ผลหวยหุ้นไทยเย็น 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
                        f"📊 SET: {set_last_str} ({set_change:+.2f})\n"
                        f"📊 SET50: {set50_last_str}\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
             else:
@@ -1085,8 +1085,8 @@ def fetch_malay_magnum(offset_days=0, is_auto=True):
                     
                     bottom_2 = s08[-2:]
                     
-                    msg = (f"🇲🇾 **ผลหวยมาเลย์ (Magnum 4D)** 🇲🇾\n📅 วันที่: {today_str_display}\n\n"
-                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                    msg = (f"🇲🇾 ผลหวยมาเลย์ (Magnum 4D) 🇲🇾\n📅 วันที่: {today_str_display}\n\n"
+                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                     bot.send_message(GROUP_CHAT_ID, msg)
                     return
     except Exception as e:
@@ -1133,8 +1133,8 @@ def fetch_england_stock_fast(offset_days=0, is_auto=True):
                 bottom_2 = change_str.split('.')[1]
                 
                 # 📢 ส่งผลเข้ากลุ่ม Telegram
-                msg = (f"🇬🇧 **ผลหวยหุ้นอังกฤษ** 🇬🇧\n📅 วันที่: {today_str_display}\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                msg = (f"🇬🇧 ผลหวยหุ้นอังกฤษ 🇬🇧\n📅 วันที่: {today_str_display}\n\n"
+                       f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง:** {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
     except Exception as e:
@@ -1182,9 +1182,9 @@ def fetch_germany_normal(offset_days=0, is_auto=True):
                 bottom_2 = change_str.replace('-', '').split('.')[1] 
                 
                 # 📢 ส่งผลเข้ากลุ่ม Telegram
-                msg = (f"🇩🇪 **ผลหวยหุ้นเยอรมัน (DAX)** 🇩🇪\n📅 วันที่: {today_str_display}\n\n"
+                msg = (f"🇩🇪 ผลหวยหุ้นเยอรมัน (DAX) 🇩🇪\n📅 วันที่: {today_str_display}\n\n"
                        f"📊 DAX: {price_str} ({change:+.2f})\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                       f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
     except Exception as e:
@@ -1237,9 +1237,9 @@ def fetch_russia_normal(offset_days=0, is_auto=True):
                     bottom_2 = change_str.replace('-', '').split('.')[1] 
                     
                     # 📢 ส่งผลเข้ากลุ่ม Telegram
-                    msg = (f"🇷🇺 **ผลหวยหุ้นรัสเซีย (RTS Standard)** 🇷🇺\n📅 วันที่: {today_str_display}\n\n"
+                    msg = (f"🇷🇺 ผลหวยหุ้นรัสเซีย (RTS Standard) 🇷🇺\n📅 วันที่: {today_str_display}\n\n"
                            f"📊 Index: {price_str} ({change:+.2f})\n\n"
-                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                     bot.send_message(GROUP_CHAT_ID, msg)
                     return
                 except ValueError:
@@ -1289,9 +1289,9 @@ def fetch_dowjones_normal(offset_days=0, is_auto=True):
                 bottom_2 = change_str.replace('-', '').split('.')[1] 
                 
                 # 📢 ส่งผลเข้ากลุ่ม Telegram
-                msg = (f"🇺🇸 **ผลหวยหุ้นดาวโจนส์ (ปกติ)** 🇺🇸\n📅 วันที่: {today_str_display}\n\n"
+                msg = (f"🇺🇸 ผลหวยหุ้นดาวโจนส์ (ปกติ) 🇺🇸\n📅 วันที่: {today_str_display}\n\n"
                        f"📊 Dow Jones: {price_str} ({change:+.2f})\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                       f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
     except Exception as e:
