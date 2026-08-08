@@ -1369,25 +1369,19 @@ def test_all_yesterday(message):
     threading.Thread(target=fetch_russia_vip, args=(1, False), daemon=True).start()
 
 # ==========================================
-# 🧹 คำสั่งสำหรับให้บอทลบข้อความของตัวเอง (โหมด Debug หาตัวการที่ทำให้ลบไม่ได้)
+# 🧹 คำสั่งสำหรับให้บอทลบข้อความของตัวเอง (ลบแค่ของบอทเท่านั้น)
 # ==========================================
 @bot.message_handler(commands=['del', 'delete'])
 def delete_bot_message(message):
-    try:
-        # เช็คว่ามีการ Reply ไหม
-        if message.reply_to_message:
-            # เช็คว่าเป็นข้อความบอทไหม
-            if message.reply_to_message.from_user.id == bot.get_me().id:
+    # เช็คว่ามีการ Reply ข้อความอยู่หรือไม่
+    if message.reply_to_message:
+        # เช็คว่าข้อความที่ถูก Reply เป็นของบอทหรือไม่
+        if message.reply_to_message.from_user.id == bot.get_me().id:
+            try:
+                # ลบเฉพาะข้อความของบอทที่ถูกตอบกลับ
                 bot.delete_message(message.chat.id, message.reply_to_message.message_id)
-                bot.delete_message(message.chat.id, message.message_id)
-            else:
-                bot.reply_to(message, "❌ ไม่ได้ลบ เพราะข้อความนี้ไม่ใช่ของบอทครับ")
-        else:
-            bot.reply_to(message, "❌ คุณลืมกด Reply (ตอบกลับ) ข้อความของบอทก่อนพิมพ์คำสั่งครับ")
-            
-    except Exception as e:
-        # ถ้าลบไม่ได้จริงๆ จะปริ้นท์ Error ออกมาบอก
-        bot.reply_to(message, f"❌ บอทลบไม่ได้ครับ! แจ้งเตือนจากระบบ:\n`{e}`")
+            except Exception:
+                pass # ถ้าลบไม่ได้ (เช่น โดนเตะออกจากสิทธิ์แอดมิน) ก็ให้เงียบไว้
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
