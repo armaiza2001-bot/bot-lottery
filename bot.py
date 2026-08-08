@@ -1368,6 +1368,27 @@ def test_all_yesterday(message):
     threading.Thread(target=fetch_germany_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_russia_vip, args=(1, False), daemon=True).start()
 
+# ==========================================
+# 🧹 คำสั่งสำหรับให้บอทลบข้อความของตัวเอง (Delete for everyone)
+# ==========================================
+@bot.message_handler(commands=['del', 'delete'])
+def delete_bot_message(message):
+    # ตรวจสอบว่ามีการ Reply ข้อความไหนอยู่หรือไม่
+    if message.reply_to_message:
+        # ตรวจสอบว่าข้อความที่ถูก Reply เป็นของบอทตัวนี้เองหรือไม่
+        if message.reply_to_message.from_user.id == bot.get_me().id:
+            try:
+                # 1. ลบข้อความของบอท (ลบสำหรับทุกคน)
+                bot.delete_message(message.chat.id, message.reply_to_message.message_id)
+                # 2. ลบข้อความคำสั่ง /del ของผู้ใช้ทิ้งด้วย เพื่อความสะอาด
+                bot.delete_message(message.chat.id, message.message_id)
+            except Exception as e:
+                bot.reply_to(message, f"❌ ไม่สามารถลบข้อความได้ (บอทอาจไม่มีสิทธิ์): {e}")
+        else:
+            bot.reply_to(message, "❌ คำสั่งนี้ใช้ลบได้เฉพาะ **ข้อความของบอท** เท่านั้นครับ")
+    else:
+        bot.reply_to(message, "⚠️ วิธีใช้งาน:\nกรุณากด **Reply (ตอบกลับ)** ที่ข้อความของบอทที่ต้องการลบ แล้วพิมพ์ `/del` ครับ")
+
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
     offset = get_offset(message)
