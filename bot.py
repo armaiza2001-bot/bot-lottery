@@ -1061,7 +1061,7 @@ def fetch_malay_magnum(offset_days=0, is_auto=True):
         "Accept": "application/json",
         "X-Requested-With": "XMLHttpRequest"
     }
-
+    
     try:
         res = requests.get(url, headers=headers, timeout=15)
         if res.status_code == 200:
@@ -1073,22 +1073,25 @@ def fetch_malay_magnum(offset_days=0, is_auto=True):
                 
                 if is_auto and draw_date != today_api_format:
                     return # ให้บอทจบการทำงานเงียบๆ ไม่ต้องส่งอะไรเข้ากลุ่ม
-                
+                    
                 if is_auto:
                     bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยมาเลย์** งวดวันที่ {today_str_display} ครับ...")
-
+                    
                 s12 = results.get("S12", "")
                 s08 = results.get("S08", "")
                 
                 if s12 and s08:
-                    top_3 = s12[-3:]
+                    # 🎯 แก้ไขแล้ว: S08 คือรางวัลที่ 1 (เอา 3 ตัวท้ายมาเป็น 3 ตัวบน)
+                    top_3 = s08[-3:]
                     
-                    bottom_2 = s08[-2:]
+                    # 👇 แก้ไขแล้ว: S12 คือรางวัลที่ 2 (เอา 2 ตัวท้ายมาเป็น 2 ตัวล่าง)
+                    bottom_2 = s12[-2:]
                     
-                    msg = (f"🇲🇾 ผลหวยมาเลย์ (Magnum 4D) 🇲🇾\n📅 วันที่: {today_str_display}\n\n"
-                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                    msg = (f"🇲🇾 **ผลหวยมาเลย์ (Magnum 4D)** 🇲🇾\n📅 วันที่: {today_str_display}\n\n"
+                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                     bot.send_message(GROUP_CHAT_ID, msg)
                     return
+                    
     except Exception as e:
         print(f"[Error] หวยมาเลย์: {e}")
         
