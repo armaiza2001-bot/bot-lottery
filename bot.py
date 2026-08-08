@@ -337,7 +337,7 @@ def fetch_hanoi_vip(offset_days=0, is_auto=True):
                         top_3 = prize_special[-3:] 
                         bottom_2 = prize_1[-2:]    
                         msg = (f"🇻🇳 ผลหวยฮานอย VIP 🇻🇳\n📅 วันที่: {api_date}\n\n"
-                               f"🎯 3 ตัวบน: {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return 
         except Exception as e:
