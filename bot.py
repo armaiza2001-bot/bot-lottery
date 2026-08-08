@@ -1684,7 +1684,7 @@ def time_checker():
             threading.Thread(target=fetch_germany_vip, daemon=True).start()
 
         # 🕒 รอบ 23:00 น. (หวยหุ้นอังกฤษ)
-        if now.hour == 23 and now.minute == 00:
+        if now.hour == 23 and now.minute == 0 and now.weekday() < 5:
             if not has_run_england_normal:
                 has_run_england_normal = True
                 threading.Thread(target=fetch_england_stock_fast, daemon=True).start()
