@@ -1047,7 +1047,7 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นไทยเย็น**: ไม่สามารถดึงข้อมูลจาก Yahoo Finance ได้ในขณะนี้")
 
 # ==========================================
-# 🇲🇾 ดึงผลหวยมาเลย์ (Magnum 4D) + รองรับ Special Draw วันอังคาร
+# 🇲🇾 ดึงผลหวยมาเลย์ (Magnum 4D) + ระบบถอดรหัส Key อัตโนมัติ
 # ==========================================
 def fetch_malay_magnum(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -1077,21 +1077,36 @@ def fetch_malay_magnum(offset_days=0, is_auto=True):
                 if is_auto:
                     bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยมาเลย์** งวดวันที่ {today_str_display} ครับ...")
                     
-                s12 = results.get("S12", "")
-                s08 = results.get("S08", "")
+                # 🔍 1. ดึงตัวอักษรที่บอกตำแหน่งรางวัลที่ 1 และ 2
+                t1_letter = results.get("T1", "") # ตัวอักษรของรางวัลที่ 1
+                t2_letter = results.get("T2", "") # ตัวอักษรของรางวัลที่ 2
                 
-                if s12 and s08:
-                    # 🎯 แก้ไขแล้ว: S08 คือรางวัลที่ 1 (เอา 3 ตัวท้ายมาเป็น 3 ตัวบน)
-                    top_3 = s08[-3:]
+                if t1_letter and t2_letter:
+                    # ⚙️ 2. แปลงตัวอักษรเป็นตัวเลข (A=1, B=2, ..., M=13) ด้วยการใช้ ASCII code
+                    # ord('A') จะได้ 65 ดังนั้นลบ 64 จะได้ 1 พอดี
+                    t1_idx = ord(t1_letter.upper()) - 64
+                    t2_idx = ord(t2_letter.upper()) - 64
                     
-                    # 👇 แก้ไขแล้ว: S12 คือรางวัลที่ 2 (เอา 2 ตัวท้ายมาเป็น 2 ตัวล่าง)
-                    bottom_2 = s12[-2:]
+                    # 🎯 3. ประกอบร่างสร้างชื่อ Key เช่น S02, S10
+                    key_1st = f"S{t1_idx:02d}"
+                    key_2nd = f"S{t2_idx:02d}"
                     
-                    msg = (f"🇲🇾 **ผลหวยมาเลย์ (Magnum 4D)** 🇲🇾\n📅 วันที่: {today_str_display}\n\n"
-                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                    bot.send_message(GROUP_CHAT_ID, msg)
-                    return
+                    # 📥 4. ดึงผลรางวัลที่ 1 และ 2 ออกมาอย่างแม่นยำ
+                    prize_1st = results.get(key_1st, "")
+                    prize_2nd = results.get(key_2nd, "")
                     
+                    if prize_1st and prize_2nd:
+                        # 🎯 3 ตัวบน: เอา 3 ตัวท้ายของรางวัลที่ 1
+                        top_3 = prize_1st[-3:]
+                        
+                        # 👇 2 ตัวล่าง: เอา 2 ตัวท้ายของรางวัลที่ 2
+                        bottom_2 = prize_2nd[-2:]
+                        
+                        msg = (f"🇲🇾 **ผลหวยมาเลย์ (Magnum 4D)** 🇲🇾\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return
+                        
     except Exception as e:
         print(f"[Error] หวยมาเลย์: {e}")
         
