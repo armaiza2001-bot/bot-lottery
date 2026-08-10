@@ -1721,7 +1721,7 @@ def time_checker():
             threading.Thread(target=fetch_dowjones_vip, daemon=True).start()
 
         # 🕒 รอบ 16:45 น. (หวยหุ้นไทยรอบเย็น)
-        if now.hour == 16 and now.minute == 45 and now.weekday() < 5:
+        if now.hour == 16 and now.minute == 50 and now.weekday() < 5:
             if not has_run_thai_evening:
                 has_run_thai_evening = True
                 threading.Thread(target=fetch_thai_evening_fast, daemon=True).start()
