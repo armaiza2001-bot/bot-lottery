@@ -31,6 +31,57 @@ def run_server():
     app.run(host='0.0.0.0', port=port)
 
 # ==========================================
+# 🇱🇦 ดึงผล: ลาว Extra (08:30)
+# ==========================================
+def fetch_lao_extra(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    url = "https://api.laoextra.com/result"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Accept': 'application/json'
+    }
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาว Extra** งวดวันที่ {today_str_display} ครับ...")
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                # รองรับโครงสร้าง API ทั้งแบบมี "data" ครอบ และแบบส่งข้อมูลมาตรงๆ
+                data_node = json_data.get("data", json_data) if isinstance(json_data, dict) else json_data
+                
+                api_date = str(data_node.get("lotto_date", "")).strip()
+                
+                if api_date == today_str_api:
+                    results_node = data_node.get("results", {})
+                    digit5 = str(results_node.get("digit5") or "").strip()
+                    
+                    # 🎯 ดูผลจาก 5 ตัว: ตัด 2 ตัวหน้า เป็นล่าง / 3 ตัวหลัง เป็นบน
+                    if len(digit5) == 5 and digit5.isdigit():
+                        top_3 = digit5[-3:]    
+                        bottom_2 = digit5[:2]  
+                        
+                        msg = (f"🇱🇦 **ผลหวยลาว Extra** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return 
+        except Exception as e:
+            print(f"[Error] ลาว Extra: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาว Extra**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            return
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -1427,6 +1478,7 @@ def get_offset(message):
 def send_welcome(message):
     help_text = (
         "📌 **ตารางแจ้งผลอัตโนมัติ และคำสั่งทดสอบ:**\n\n"
+        "- 08:30 น. : ลาว Extra /test_lao_extra\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -1489,6 +1541,13 @@ def delete_bot_message(message):
                 bot.delete_message(message.chat.id, message.reply_to_message.message_id)
             except Exception:
                 pass # ถ้าลบไม่ได้ (เช่น โดนเตะออกจากสิทธิ์แอดมิน) ก็ให้เงียบไว้
+                
+@bot.message_handler(commands=['test_lao_extra'])
+def test_lao_extra_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาว Extra**{txt}...")
+    threading.Thread(target=fetch_lao_extra, args=(offset, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
@@ -1692,6 +1751,7 @@ def time_checker():
     has_run_india = False
     has_run_dowjones_normal = False
     has_run_egypt = False
+    has_run_lao_extra = False
     
     last_check_date = ""
 
@@ -1726,6 +1786,7 @@ def time_checker():
             has_run_india = False
             has_run_dowjones_normal = False
             has_run_egypt = False
+            has_run_lao_extra = False
 
             last_check_date = current_date
 
@@ -1881,6 +1942,11 @@ def time_checker():
                 has_run_egypt = True
                 threading.Thread(target=fetch_egypt_stock_fast, daemon=True).start()
                 time.sleep(2)
+
+        # 🕒 รอบ 08:30 น.
+        if now.hour == 8 and now.minute == 30 and not has_run_lao_extra:
+            has_run_lao_extra = True
+            threading.Thread(target=fetch_lao_extra, daemon=True).start()
 
 
         time.sleep(30)
