@@ -136,7 +136,7 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
 # 🇪🇬 ดึงผลหวยหุ้นอียิปต์ จากเว็บ saihuay.com (ล้วงก้อนข้อมูล JSON ผ่าน __NEXT_DATA__)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
-    import cloudscraper
+    import requests
     from bs4 import BeautifulSoup
     import re
     from datetime import datetime, timedelta
@@ -160,15 +160,7 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     }
 
     try:
-        # 🛡️ ใช้ cloudscraper แทน requests ธรรมดา เพราะเซิร์ฟเวอร์ฝั่ง Render
-        # มักโดนระบบป้องกันบอทของเว็บปลายทางบล็อก ทำให้ได้หน้า challenge แทนหน้าจริง
-        scraper = cloudscraper.create_scraper(
-            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
-        )
-        res = scraper.get(url, headers=headers, timeout=20)
-        
-        # 🔎 log ไว้ดูใน Render logs เผื่อยังดึงไม่ได้ จะได้รู้ว่าโดนบล็อกตรงไหน
-        print(f"[Egypt Debug] status={res.status_code} length={len(res.text)}")
+        res = requests.get(url, headers=headers, timeout=15)
         
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, "html.parser")
@@ -205,12 +197,10 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
                         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ยังไม่มีผลของวันที่ {thai_date_str} ในฐานข้อมูลครับ")
                 return
             else:
-                # 🔎 พิมพ์ตัวอย่าง HTML ที่ได้กลับมาไว้ดูใน log ว่าโดนหน้า challenge/บล็อกหรือเปล่า
-                print(f"[Egypt Debug] No __NEXT_DATA__ found. HTML snippet: {res.text[:300]}")
                 if not is_auto:
                     bot.send_message(GROUP_CHAT_ID, f"❌ ไม่พบโครงสร้างข้อมูลฐานข้อมูลในเว็บสายหวย")
         else:
-            print(f"[Error] Saihuay: {res.status_code} | body: {res.text[:200]}")
+            print(f"[Error] Saihuay: {res.status_code}")
             
     except Exception as e:
         print(f"[Error] Saihuay Exception: {e}")
@@ -1735,7 +1725,7 @@ def time_checker():
             if not has_run_special:
                 has_run_special = True
                 threading.Thread(target=fetch_hanoi_special, daemon=True).start()
-                time.sleep(2) # 📌 หน่วงเวลาคั่น
+                time.sleep(2)
                 
             if not has_run_samakkhi:
                 has_run_samakkhi = True
