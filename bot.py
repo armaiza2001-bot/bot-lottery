@@ -133,7 +133,7 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ จากเว็บ saihuay.com (ตัวเลขเป๊ะ ตัดเลขมาให้แล้ว)
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ จากเว็บ saihuay.com (อัปเดตระบบสกัดข้อความทะลุ HTML)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     import requests
@@ -143,12 +143,12 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย (เพื่อให้ตรงกับข้อมูลในตารางหน้าเว็บ)
+    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย 
     thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
-    thai_day = target_date.day
+    thai_day = target_date.day # วันที่แบบไม่มีเลข 0 นำหน้า (เช่น 9 ไม่ใช่ 09) ซึ่งตรงกับหน้าเว็บ
     thai_month = thai_months[target_date.month]
     thai_year = target_date.year + 543
-    thai_date_str = f"{thai_day} {thai_month} {thai_year}" # จะได้รูปแบบ เช่น "11 ส.ค. 2569"
+    thai_date_str = f"{thai_day} {thai_month} {thai_year}" # จะได้ "11 ส.ค. 2569"
     
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยอียิปต์** งวดวันที่ {today_str_display} จากเว็บสายหวย ครับ...")
@@ -164,28 +164,44 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, "html.parser")
             
-            # 🔍 ค้นหาในตาราง (รองรับทั้งแท็ก tr และ div ที่เว็บสมัยใหม่ชอบใช้)
-            table_rows = soup.find_all(['tr', 'div'])
-            found = False
+            # 🚀 ทริคขั้นเทพ: สกัดเฉพาะ "ข้อความ" ออกมาเป็น List ตัดปัญหาเรื่องโครงสร้าง div ซ้อนกัน
+            text_items = soup.get_text(separator='|', strip=True).split('|')
             
-            for row in table_rows:
-                # ถ้าเจอวันที่ปัจจุบันในแถวนี้
-                if thai_date_str in row.text:
-                    # ดึงข้อความทั้งหมดในแถวนั้นมาแยกส่วน
-                    cols = [col.text.strip() for col in row.find_all(['td', 'div']) if col.text.strip()]
+            for i, item in enumerate(text_items):
+                # ตัดช่องว่างส่วนเกินออกเผื่อเว็บพิมพ์เว้นวรรคผิด
+                clean_item = ' '.join(item.split())
+                
+                # เช็คว่าข้อความตรงกับวันที่ที่เราหาอยู่หรือไม่
+                if clean_item == thai_date_str or clean_item == f"งวดวันที่ {thai_date_str}":
                     
-                    # เช็คว่ามีข้อมูลครบ 3 คอลัมน์ (วันที่, 3 ตัวบน, 2 ตัวล่าง)
-                    if len(cols) >= 3 and cols[0] == thai_date_str:
-                        top_3 = cols[1]
-                        bottom_2 = cols[2]
-                        
+                    # ถ้าเจอวันที่แล้ว ให้สแกนหา 'ตัวเลข' ในอีก 10 บรรทัดถัดไป
+                    numbers = []
+                    for j in range(1, 10):
+                        if i + j < len(text_items):
+                            # ล้างลูกน้ำเผื่อเว็บใส่มา แล้วเช็คว่าเป็นตัวเลขล้วนไหม
+                            val = text_items[i+j].replace(',', '').strip()
+                            if val.isdigit():
+                                numbers.append(val)
+                    
+                    top_3 = None
+                    bottom_2 = None
+                    
+                    # คัดแยกหาเลข 3 ตัวบน และ 2 ตัวล่าง จากที่สแกนเจอ
+                    for num in numbers:
+                        if len(num) == 3 and not top_3:
+                            top_3 = num
+                        elif len(num) == 2 and not bottom_2:
+                            bottom_2 = num
+                            
+                    # 🎯 ถ้าเจอครบทั้งบนและล่าง ให้ส่งผลเข้ากลุ่มทันที
+                    if top_3 and bottom_2:
                         msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
-                        found = True
                         return
-            
-            if not found and not is_auto:
+                        
+            # ถ้าสแกนจนจบเว็บแล้วไม่เจอ
+            if not is_auto:
                 bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ยังไม่มีการอัปเดตผลของวันที่ {thai_date_str} บนหน้าเว็บครับ")
                 return
         else:
