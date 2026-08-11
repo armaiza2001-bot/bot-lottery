@@ -133,20 +133,27 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (EGX30) จากเว็บ MarketWatch (ตัวเลขเป๊ะ ไม่บล็อกบอท)
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ จากเว็บ saihuay.com (ตัวเลขเป๊ะ ตัดเลขมาให้แล้ว)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
-    from bs4 import BeautifulSoup
     import requests
+    from bs4 import BeautifulSoup
+    from datetime import datetime, timedelta
     
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
+    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย (เพื่อให้ตรงกับข้อมูลในตารางหน้าเว็บ)
+    thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+    thai_day = target_date.day
+    thai_month = thai_months[target_date.month]
+    thai_year = target_date.year + 543
+    thai_date_str = f"{thai_day} {thai_month} {thai_year}" # จะได้รูปแบบ เช่น "11 ส.ค. 2569"
+    
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอียิปต์** งวดวันที่ {today_str_display} ครับ...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยอียิปต์** งวดวันที่ {today_str_display} จากเว็บสายหวย ครับ...")
 
-    # ใช้เว็บ MarketWatch แทน ตัวเลขตรงกับ Investing 100% และไม่มี Cloudflare บล็อก
-    url = "https://www.marketwatch.com/investing/index/egx30?countrycode=eg"
+    url = "https://saihuay.com/historical?lotto=egypt"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
     }
@@ -157,41 +164,35 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, "html.parser")
             
-            # MarketWatch เก็บตัวเลขไว้ใน tag <bg-quote> แบบเฉพาะตัว ดึงง่ายมากครับ
-            price_element = soup.find("bg-quote", attrs={"field": "Last"})
-            change_element = soup.find("bg-quote", attrs={"field": "Change"})
+            # 🔍 ค้นหาในตาราง (รองรับทั้งแท็ก tr และ div ที่เว็บสมัยใหม่ชอบใช้)
+            table_rows = soup.find_all(['tr', 'div'])
+            found = False
             
-            if price_element and change_element:
-                price_str = price_element.text.replace(",", "").strip()
-                change_str = change_element.text.replace(",", "").strip()
-                
-                current_price = float(price_str)
-                change_val = float(change_str)
-                
-                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
-                price_formatted = f"{current_price:.2f}"
-                change_formatted = f"{change_val:.2f}"
-                
-                # 🎯 ตัดเลข 3 ตัวบน (เอาเลขหลักหน่วย + ทศนิยม)
-                integer_part, decimal_part = price_formatted.split('.')
-                top_3 = integer_part[-1] + decimal_part
-                
-                # 👇 ตัดเลข 2 ตัวล่าง (เอาทศนิยมของค่า change)
-                bottom_2 = change_formatted.replace('-', '').split('.')[1]
-                
-                # 📢 ส่งผลเข้ากลุ่ม
-                msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์ (EGX30)** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
-                       f"📊 EGX30: {price_formatted} ({change_val:+.2f})\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                bot.send_message(GROUP_CHAT_ID, msg)
+            for row in table_rows:
+                # ถ้าเจอวันที่ปัจจุบันในแถวนี้
+                if thai_date_str in row.text:
+                    # ดึงข้อความทั้งหมดในแถวนั้นมาแยกส่วน
+                    cols = [col.text.strip() for col in row.find_all(['td', 'div']) if col.text.strip()]
+                    
+                    # เช็คว่ามีข้อมูลครบ 3 คอลัมน์ (วันที่, 3 ตัวบน, 2 ตัวล่าง)
+                    if len(cols) >= 3 and cols[0] == thai_date_str:
+                        top_3 = cols[1]
+                        bottom_2 = cols[2]
+                        
+                        msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        found = True
+                        return
+            
+            if not found and not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ยังไม่มีการอัปเดตผลของวันที่ {thai_date_str} บนหน้าเว็บครับ")
                 return
-            else:
-                print("[Error] MarketWatch (Egypt): หา Tag ตัวเลขไม่เจอ (เว็บอาจอัปเดต)")
         else:
-            print(f"[Error] MarketWatch (Egypt): ตอบกลับสถานะ {res.status_code}")
+            print(f"[Error] Saihuay (Egypt): ตอบกลับสถานะ {res.status_code}")
             
     except Exception as e:
-        print(f"[Error] MarketWatch (Egypt) Exception: {e}")
+        print(f"[Error] Saihuay (Egypt) Exception: {e}")
         
     if not is_auto:
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
