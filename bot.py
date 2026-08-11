@@ -133,30 +133,24 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ จากเว็บ saihuay.com (ล้วงก้อนข้อมูล JSON ผ่าน __NEXT_DATA__)
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ จากเว็บ saihuay.com (อิงโครงสร้างตารางตามโค้ดต้นแบบ)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     import requests
     from bs4 import BeautifulSoup
-    import re
     from datetime import datetime, timedelta
+    import re
     
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย 
-    thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
-    thai_day = target_date.day
-    thai_month = thai_months[target_date.month]
-    thai_year = target_date.year + 543
-    thai_date_str = f"{thai_day} {thai_month} {thai_year}" # เช่น 11 ส.ค. 2569
-    
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยอียิปต์** งวดวันที่ {today_str_display} จากฐานข้อมูลสายหวย...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอียิปต์** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
 
-    url = "https://saihuay.com/historical?lotto=egypt"
+    # เติม &lang=th ตามโค้ดต้นฉบับเลยครับ
+    url = "https://saihuay.com/historical?lotto=egypt&lang=th"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
 
     try:
@@ -164,46 +158,43 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
         
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, "html.parser")
+            top3, bot2 = None, None
             
-            # 🚀 เจาะหาแท็กสคริปต์ที่ซ่อนก้อนข้อมูล JSON ของเว็บเอาไว้
-            script_tag = soup.find("script", id="__NEXT_DATA__")
-            
-            if script_tag:
-                raw_json_string = script_tag.string
-                
-                # 🔍 ใช้ Regex สแกนหาตัวเลขที่อยู่ติดกับวันที่เป้าหมายในก้อน JSON ตรงๆ
-                # รูปแบบใน JSON มักจะเป็น "date":"11 ส.ค. 2569","three_digits":"932","two_digits":"68"
-                # เราดักจับเลข 3 ตัว และ 2 ตัว ที่อยู่ถัดจากวันที่
-                pattern = rf"{re.escape(thai_date_str)}.*?(\d{{3}}).*?(\d{{2}})"
-                
-                # ค้นหาทุกจุดที่ตรงเงื่อนไข
-                matches = re.finditer(pattern, raw_json_string)
-                
-                found = False
-                for match in matches:
-                    # 🛡️ ป้องกันการจับคู่ข้ามบรรทัด โดยเช็คว่าระยะห่างของข้อความต้องไม่ไกลเกิน 150 ตัวอักษร
-                    if match.end() - match.start() < 150:
-                        top_3 = match.group(1)
-                        bottom_2 = match.group(2)
-                        
-                        msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                        bot.send_message(GROUP_CHAT_ID, msg)
-                        found = True
-                        break # เจอข้อมูลแล้วหยุดค้นหาทันที
-                
-                if not found:
+            # ลุยดึงจากแท็ก table ตรงๆ 
+            table = soup.find("table")
+            if table:
+                tbody = table.find("tbody")
+                if tbody:
+                    # ดึงแถวแรก (ซึ่งจะเป็นงวดล่าสุดเสมอ)
+                    first_row = tbody.find("tr")
+                    if first_row:
+                        cells = first_row.find_all("td")
+                        # ตรวจสอบว่ามีคอลัมน์ครบไหม (วันที่, 3 ตัวบน, 2 ตัวล่าง)
+                        if len(cells) >= 3:
+                            top3 = cells[1].get_text(strip=True)
+                            bot2 = cells[2].get_text(strip=True)
+
+            # เช็คว่าเจอผลไหม และผลต้องไม่ใช่คำว่า pending หรือกำลังรอผล
+            if top3 and bot2 and "pending" not in top3.lower() and "pending" not in bot2.lower():
+                # ตรวจสอบว่าเป็นตัวเลขล้วนจริงๆ ไม่ใช่ข้อความแปลกปลอม
+                if re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2):
+                    msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
+                           f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
+                    bot.send_message(GROUP_CHAT_ID, msg)
+                    return
+                else:
                     if not is_auto:
-                        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ยังไม่มีผลของวันที่ {thai_date_str} ในฐานข้อมูลครับ")
-                return
+                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลล่าสุดที่พบยังไม่ใช่ตัวเลขที่สมบูรณ์ (บน: {top3}, ล่าง: {bot2})")
+                    return
             else:
                 if not is_auto:
-                    bot.send_message(GROUP_CHAT_ID, f"❌ ไม่พบโครงสร้างข้อมูลฐานข้อมูลในเว็บสายหวย")
+                    bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ยังไม่มีผล หรือผลกำลัง Pending ครับ")
+                return
         else:
-            print(f"[Error] Saihuay: {res.status_code}")
+            print(f"[Error] Saihuay (Egypt): ตอบกลับสถานะ {res.status_code}")
             
     except Exception as e:
-        print(f"[Error] Saihuay Exception: {e}")
+        print(f"[Error] Saihuay (Egypt) Exception: {e}")
         
     if not is_auto:
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
