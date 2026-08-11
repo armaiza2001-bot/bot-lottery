@@ -1862,7 +1862,7 @@ def time_checker():
                 time.sleep(2)
 
         # 🕒 รอบ 23:05 น. (หวยหุ้นรัสเซีย) 
-        if now.hour == 23 and now.minute == 0 and now.weekday() < 5:
+        if now.hour == 23 and now.minute == 5 and now.weekday() < 5:
             if not has_run_russia_normal:
                 has_run_russia_normal = True
                 threading.Thread(target=fetch_russia_normal, daemon=True).start()
