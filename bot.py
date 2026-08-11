@@ -133,7 +133,7 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (EGX30) ทะลวงตรงจากเว็บ Investing.com
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (โหมดค้นหาบั๊ก แจ้ง Error เข้าแชท)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     import cloudscraper
@@ -145,7 +145,6 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอียิปต์** งวดวันที่ {today_str_display} ครับ...")
 
-    # ใช้ cloudscraper จำลองเบราว์เซอร์เพื่อหลบ Cloudflare
     scraper = cloudscraper.create_scraper(browser={
         'browser': 'chrome',
         'platform': 'windows',
@@ -159,8 +158,6 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
         
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, "html.parser")
-            
-            # เจาะหา Tag ของราคาและค่า Change บนเว็บ Investing ล่าสุด
             price_element = soup.find(attrs={"data-test": "instrument-price-last"})
             change_element = soup.find(attrs={"data-test": "instrument-price-change"})
             
@@ -171,33 +168,31 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
                 current_price = float(price_str)
                 change_val = float(change_str)
                 
-                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
                 price_formatted = f"{current_price:.2f}"
                 change_formatted = f"{change_val:.2f}"
                 
-                # 🎯 ตัดเลข 3 ตัวบน (เอาเลขหลักหน่วย + ทศนิยม)
                 integer_part, decimal_part = price_formatted.split('.')
                 top_3 = integer_part[-1] + decimal_part
-                
-                # 👇 ตัดเลข 2 ตัวล่าง (เอาทศนิยมของค่า change)
                 bottom_2 = change_formatted.replace('-', '').split('.')[1]
                 
-                # 📢 ส่งผลเข้ากลุ่ม
                 msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์ (EGX30)** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
                        f"📊 EGX30: {price_formatted} ({change_val:+.2f})\n\n"
                        f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
             else:
-                print("[Error] Investing (Egypt): หาโครงสร้าง HTML ราคาไม่เจอ (เว็บอาจอัปเดต)")
+                # กรณีผ่านเว็บได้ แต่เว็บอาจเปลี่ยนโครงสร้าง
+                bot.send_message(GROUP_CHAT_ID, f"❌ เข้าเว็บได้ แต่หาตัวเลขไม่เจอครับ (หน้าเว็บอาจติด Captcha)")
         else:
-            print(f"[Error] Investing (Egypt): โดนบล็อกหรือตอบกลับสถานะ {res.status_code}")
+            # กรณีโดนบล็อก จะแจ้ง Status Code ออกมา
+            bot.send_message(GROUP_CHAT_ID, f"❌ โดนเว็บบล็อกเต็มๆ ครับ! (HTTP Status: {res.status_code})")
             
     except Exception as e:
-        print(f"[Error] Investing (Egypt) Exception: {e}")
+        # กรณีรันแล้วพัง จะแจ้ง Error ตรงๆ
+        bot.send_message(GROUP_CHAT_ID, f"❌ เกิดข้อผิดพลาดของระบบ:\n`{e}`")
         
     if not is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+        bot.send_message(GROUP_CHAT_ID, f"❌ **สรุป**: ไม่สามารถดึงข้อมูลหวยหุ้นอียิปต์ได้ตามสาเหตุด้านบนครับ")
 
 # ==========================================
 # 🇮🇳 IN ดึงผลหวยหุ้นอินเดีย (อัปเดต API ใหม่ BseIndiaAPI/api/IndexMovers/w)
