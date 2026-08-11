@@ -1749,7 +1749,7 @@ def time_checker():
                 time.sleep(2)
 
         # 🕒 รอบ 17:30 น. (หวยหุ้นอินเดีย) 
-        if now.hour == 17 and now.minute == 11 and now.weekday() < 5: # จันทร์-ศุกร์
+        if now.hour == 17 and now.minute == 12 and now.weekday() < 5: # จันทร์-ศุกร์
             if not has_run_india:
                 has_run_india = True
                 threading.Thread(target=fetch_india_stock_fast, daemon=True).start()
