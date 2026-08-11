@@ -133,93 +133,80 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (EGX30) จากเว็บ Bloomberg (บอสใหญ่!)
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ จากเว็บ saihuay.com (ล้วงก้อนข้อมูล JSON ผ่าน __NEXT_DATA__)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
-    import cloudscraper
+    import requests
     from bs4 import BeautifulSoup
+    import re
     from datetime import datetime, timedelta
     
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอียิปต์** งวดวันที่ {today_str_display} จาก Bloomberg ครับ...")
-
-    # ใช้ cloudscraper ปลอมตัวขั้นสุด
-    scraper = cloudscraper.create_scraper(browser={
-        'browser': 'chrome',
-        'platform': 'windows',
-        'desktop': True
-    })
+    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย 
+    thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+    thai_day = target_date.day
+    thai_month = thai_months[target_date.month]
+    thai_year = target_date.year + 543
+    thai_date_str = f"{thai_day} {thai_month} {thai_year}" # เช่น 11 ส.ค. 2569
     
-    url = "https://www.bloomberg.com/quote/EGX30:IND"
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยอียิปต์** งวดวันที่ {today_str_display} จากฐานข้อมูลสายหวย...")
+
+    url = "https://saihuay.com/historical?lotto=egypt"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
     }
 
     try:
-        res = scraper.get(url, headers=headers, timeout=20)
+        res = requests.get(url, headers=headers, timeout=15)
         
-        # เช็คว่าโดนหน้า Captcha บล็อกหรือไม่ (บางทีโดนบล็อกแต่ตอบ 200 OK)
-        if "Are you a robot?" in res.text or "robot" in res.text.lower():
-            if not is_auto:
-                bot.send_message(GROUP_CHAT_ID, f"❌ โดน Bloomberg จับได้ครับ! (เว็บเด้งหน้า Are you a robot?)")
-            return
-            
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, "html.parser")
             
-            # 🚀 ทริค: ค้นหาจาก Meta Tags ที่ซ่อนอยู่ใน HTML Header
-            price_tag = soup.find("meta", {"itemprop": "price"})
+            # 🚀 เจาะหาแท็กสคริปต์ที่ซ่อนก้อนข้อมูล JSON ของเว็บเอาไว้
+            script_tag = soup.find("script", id="__NEXT_DATA__")
             
-            # สำหรับค่า Change Bloomberg มักจะเก็บในคลาสที่มีคำว่า 'change'
-            # เราจะใช้วิธีหาตัวเลขที่มีเครื่องหมาย +/- และเป็นทศนิยม 2 ตำแหน่ง
-            change_text = None
-            span_tags = soup.find_all("span")
-            for span in span_tags:
-                text = span.get_text(strip=True)
-                # เช็คว่าเป็นค่า Change หรือไม่ (เช่น -46.68 หรือ +12.34)
-                if (text.startswith("-") or text.startswith("+")) and "." in text and text.replace("-","").replace("+","").replace(".","").isdigit():
-                    change_text = text
-                    break
-                    
-            if price_tag and change_text:
-                current_price = float(price_tag["content"])
-                change_val = float(change_text.replace(",", ""))
+            if script_tag:
+                raw_json_string = script_tag.string
                 
-                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
-                price_formatted = f"{current_price:.2f}"
-                change_formatted = f"{change_val:.2f}"
+                # 🔍 ใช้ Regex สแกนหาตัวเลขที่อยู่ติดกับวันที่เป้าหมายในก้อน JSON ตรงๆ
+                # รูปแบบใน JSON มักจะเป็น "date":"11 ส.ค. 2569","three_digits":"932","two_digits":"68"
+                # เราดักจับเลข 3 ตัว และ 2 ตัว ที่อยู่ถัดจากวันที่
+                pattern = rf"{re.escape(thai_date_str)}.*?(\d{{3}}).*?(\d{{2}})"
                 
-                # 🎯 ตัดเลข 3 ตัวบน (เอาเลขหลักหน่วย + ทศนิยม)
-                integer_part, decimal_part = price_formatted.split('.')
-                top_3 = integer_part[-1] + decimal_part
+                # ค้นหาทุกจุดที่ตรงเงื่อนไข
+                matches = re.finditer(pattern, raw_json_string)
                 
-                # 👇 ตัดเลข 2 ตัวล่าง (เอาทศนิยมของค่า change)
-                bottom_2 = change_formatted.replace('-', '').replace('+', '').split('.')[1]
+                found = False
+                for match in matches:
+                    # 🛡️ ป้องกันการจับคู่ข้ามบรรทัด โดยเช็คว่าระยะห่างของข้อความต้องไม่ไกลเกิน 150 ตัวอักษร
+                    if match.end() - match.start() < 150:
+                        top_3 = match.group(1)
+                        bottom_2 = match.group(2)
+                        
+                        msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        found = True
+                        break # เจอข้อมูลแล้วหยุดค้นหาทันที
                 
-                # 📢 ส่งผลเข้ากลุ่ม
-                msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์ (EGX30)** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
-                       f"📊 EGX30: {price_formatted} ({change_val:+.2f})\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                bot.send_message(GROUP_CHAT_ID, msg)
+                if not found:
+                    if not is_auto:
+                        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ยังไม่มีผลของวันที่ {thai_date_str} ในฐานข้อมูลครับ")
                 return
             else:
                 if not is_auto:
-                    bot.send_message(GROUP_CHAT_ID, f"❌ เข้าเว็บได้ แต่หาตัวเลขไม่เจอครับ (Bloomberg อาจเปลี่ยนโครงสร้างโค้ด)")
+                    bot.send_message(GROUP_CHAT_ID, f"❌ ไม่พบโครงสร้างข้อมูลฐานข้อมูลในเว็บสายหวย")
         else:
-            if not is_auto:
-                bot.send_message(GROUP_CHAT_ID, f"❌ โดน Bloomberg บล็อก (HTTP Status: {res.status_code})")
+            print(f"[Error] Saihuay: {res.status_code}")
             
     except Exception as e:
-        if not is_auto:
-            bot.send_message(GROUP_CHAT_ID, f"❌ เกิดข้อผิดพลาดของระบบ:\n`{e}`")
+        print(f"[Error] Saihuay Exception: {e}")
         
     if not is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"❌ **สรุป**: ไม่สามารถดึงข้อมูลหวยหุ้นอียิปต์ได้ครับ")
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
 # 🇮🇳 IN ดึงผลหวยหุ้นอินเดีย (อัปเดต API ใหม่ BseIndiaAPI/api/IndexMovers/w)
