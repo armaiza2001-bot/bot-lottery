@@ -133,11 +133,11 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (โหมดค้นหาบั๊ก แจ้ง Error เข้าแชท)
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (EGX30) จากเว็บ MarketWatch (ตัวเลขเป๊ะ ไม่บล็อกบอท)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
-    import cloudscraper
     from bs4 import BeautifulSoup
+    import requests
     
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
@@ -145,54 +145,56 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอียิปต์** งวดวันที่ {today_str_display} ครับ...")
 
-    scraper = cloudscraper.create_scraper(browser={
-        'browser': 'chrome',
-        'platform': 'windows',
-        'desktop': True
-    })
-    
-    url = "https://www.investing.com/indices/egx30"
+    # ใช้เว็บ MarketWatch แทน ตัวเลขตรงกับ Investing 100% และไม่มี Cloudflare บล็อก
+    url = "https://www.marketwatch.com/investing/index/egx30?countrycode=eg"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+    }
 
     try:
-        res = scraper.get(url, timeout=20)
+        res = requests.get(url, headers=headers, timeout=15)
         
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, "html.parser")
-            price_element = soup.find(attrs={"data-test": "instrument-price-last"})
-            change_element = soup.find(attrs={"data-test": "instrument-price-change"})
+            
+            # MarketWatch เก็บตัวเลขไว้ใน tag <bg-quote> แบบเฉพาะตัว ดึงง่ายมากครับ
+            price_element = soup.find("bg-quote", attrs={"field": "Last"})
+            change_element = soup.find("bg-quote", attrs={"field": "Change"})
             
             if price_element and change_element:
-                price_str = price_element.text.replace(",", "")
-                change_str = change_element.text.replace(",", "")
+                price_str = price_element.text.replace(",", "").strip()
+                change_str = change_element.text.replace(",", "").strip()
                 
                 current_price = float(price_str)
                 change_val = float(change_str)
                 
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
                 price_formatted = f"{current_price:.2f}"
                 change_formatted = f"{change_val:.2f}"
                 
+                # 🎯 ตัดเลข 3 ตัวบน (เอาเลขหลักหน่วย + ทศนิยม)
                 integer_part, decimal_part = price_formatted.split('.')
                 top_3 = integer_part[-1] + decimal_part
+                
+                # 👇 ตัดเลข 2 ตัวล่าง (เอาทศนิยมของค่า change)
                 bottom_2 = change_formatted.replace('-', '').split('.')[1]
                 
+                # 📢 ส่งผลเข้ากลุ่ม
                 msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์ (EGX30)** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
                        f"📊 EGX30: {price_formatted} ({change_val:+.2f})\n\n"
                        f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                 bot.send_message(GROUP_CHAT_ID, msg)
                 return
             else:
-                # กรณีผ่านเว็บได้ แต่เว็บอาจเปลี่ยนโครงสร้าง
-                bot.send_message(GROUP_CHAT_ID, f"❌ เข้าเว็บได้ แต่หาตัวเลขไม่เจอครับ (หน้าเว็บอาจติด Captcha)")
+                print("[Error] MarketWatch (Egypt): หา Tag ตัวเลขไม่เจอ (เว็บอาจอัปเดต)")
         else:
-            # กรณีโดนบล็อก จะแจ้ง Status Code ออกมา
-            bot.send_message(GROUP_CHAT_ID, f"❌ โดนเว็บบล็อกเต็มๆ ครับ! (HTTP Status: {res.status_code})")
+            print(f"[Error] MarketWatch (Egypt): ตอบกลับสถานะ {res.status_code}")
             
     except Exception as e:
-        # กรณีรันแล้วพัง จะแจ้ง Error ตรงๆ
-        bot.send_message(GROUP_CHAT_ID, f"❌ เกิดข้อผิดพลาดของระบบ:\n`{e}`")
+        print(f"[Error] MarketWatch (Egypt) Exception: {e}")
         
     if not is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"❌ **สรุป**: ไม่สามารถดึงข้อมูลหวยหุ้นอียิปต์ได้ตามสาเหตุด้านบนครับ")
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
 # 🇮🇳 IN ดึงผลหวยหุ้นอินเดีย (อัปเดต API ใหม่ BseIndiaAPI/api/IndexMovers/w)
