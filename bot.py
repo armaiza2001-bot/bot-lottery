@@ -133,64 +133,68 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (EGX30) จาก TradingView (เวลา 19:50)
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (EGX30) ทะลวงตรงจากเว็บ Investing.com
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
+    import cloudscraper
+    from bs4 import BeautifulSoup
+    
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอียิปต์** งวดวันที่ {today_str_display} ครับ...")
 
-    url = "https://scanner.tradingview.com/egypt/scan"
-    payload = {
-        "symbols": {"tickers": ["EGX:EGX30"]},
-        "columns": ["close", "change_abs"]
-    }
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Content-Type": "application/json"
-    }
+    # ใช้ cloudscraper จำลองเบราว์เซอร์เพื่อหลบ Cloudflare
+    scraper = cloudscraper.create_scraper(browser={
+        'browser': 'chrome',
+        'platform': 'windows',
+        'desktop': True
+    })
+    
+    url = "https://www.investing.com/indices/egx30"
 
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=15)
-        # 🛡️ เผื่อ TradingView สลับไปใช้ Endpoint รวม (Global)
-        if res.status_code != 200:
-            url_global = "https://scanner.tradingview.com/global/scan"
-            res = requests.post(url_global, json=payload, headers=headers, timeout=15)
-
+        res = scraper.get(url, timeout=20)
+        
         if res.status_code == 200:
-            data = res.json()
-            results = data.get("data", [])
+            soup = BeautifulSoup(res.text, "html.parser")
             
-            if results and len(results) > 0:
-                d = results[0].get("d", [])
-                if len(d) >= 2:
-                    current_price = float(d[0])
-                    change_val = float(d[1])
-                    
-                    price_formatted = f"{current_price:.2f}"
-                    change_formatted = f"{change_val:.2f}"
-                    
-                    integer_part, decimal_part = price_formatted.split('.')
-                    top_3 = integer_part[-1] + decimal_part
-                    
-                    bottom_2 = change_formatted.replace('-', '').split('.')[1]
-                    
-                    msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์ (EGX30)** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
-                           f"📊 EGX30: {price_formatted} ({change_val:+.2f})\n\n"
-                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                    bot.send_message(GROUP_CHAT_ID, msg)
-                    return
-                else:
-                    print("[Error] TradingView (Egypt): ข้อมูล d กลับมาไม่ครบ")
+            # เจาะหา Tag ของราคาและค่า Change บนเว็บ Investing ล่าสุด
+            price_element = soup.find(attrs={"data-test": "instrument-price-last"})
+            change_element = soup.find(attrs={"data-test": "instrument-price-change"})
+            
+            if price_element and change_element:
+                price_str = price_element.text.replace(",", "")
+                change_str = change_element.text.replace(",", "")
+                
+                current_price = float(price_str)
+                change_val = float(change_str)
+                
+                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
+                price_formatted = f"{current_price:.2f}"
+                change_formatted = f"{change_val:.2f}"
+                
+                # 🎯 ตัดเลข 3 ตัวบน (เอาเลขหลักหน่วย + ทศนิยม)
+                integer_part, decimal_part = price_formatted.split('.')
+                top_3 = integer_part[-1] + decimal_part
+                
+                # 👇 ตัดเลข 2 ตัวล่าง (เอาทศนิยมของค่า change)
+                bottom_2 = change_formatted.replace('-', '').split('.')[1]
+                
+                # 📢 ส่งผลเข้ากลุ่ม
+                msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์ (EGX30)** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
+                       f"📊 EGX30: {price_formatted} ({change_val:+.2f})\n\n"
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                bot.send_message(GROUP_CHAT_ID, msg)
+                return
             else:
-                print("[Error] TradingView (Egypt): ไม่พบข้อมูล Ticker EGX:EGX30")
+                print("[Error] Investing (Egypt): หาโครงสร้าง HTML ราคาไม่เจอ (เว็บอาจอัปเดต)")
         else:
-            print(f"[Error] TradingView (Egypt): ตอบกลับสถานะ {res.status_code}")
+            print(f"[Error] Investing (Egypt): โดนบล็อกหรือตอบกลับสถานะ {res.status_code}")
             
     except Exception as e:
-        print(f"[Error] TradingView (Egypt) Exception: {e}")
+        print(f"[Error] Investing (Egypt) Exception: {e}")
         
     if not is_auto:
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
