@@ -133,6 +133,69 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (EGX30) จาก TradingView (เวลา 19:50)
+# ==========================================
+def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอียิปต์** งวดวันที่ {today_str_display} ครับ...")
+
+    url = "https://scanner.tradingview.com/egypt/scan"
+    payload = {
+        "symbols": {"tickers": ["EGX:EGX30"]},
+        "columns": ["close", "change_abs"]
+    }
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        res = requests.post(url, json=payload, headers=headers, timeout=15)
+        # 🛡️ เผื่อ TradingView สลับไปใช้ Endpoint รวม (Global)
+        if res.status_code != 200:
+            url_global = "https://scanner.tradingview.com/global/scan"
+            res = requests.post(url_global, json=payload, headers=headers, timeout=15)
+
+        if res.status_code == 200:
+            data = res.json()
+            results = data.get("data", [])
+            
+            if results and len(results) > 0:
+                d = results[0].get("d", [])
+                if len(d) >= 2:
+                    current_price = float(d[0])
+                    change_val = float(d[1])
+                    
+                    price_formatted = f"{current_price:.2f}"
+                    change_formatted = f"{change_val:.2f}"
+                    
+                    integer_part, decimal_part = price_formatted.split('.')
+                    top_3 = integer_part[-1] + decimal_part
+                    
+                    bottom_2 = change_formatted.replace('-', '').split('.')[1]
+                    
+                    msg = (f"🇪🇬 **ผลหวยหุ้นอียิปต์ (EGX30)** 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
+                           f"📊 EGX30: {price_formatted} ({change_val:+.2f})\n\n"
+                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                    bot.send_message(GROUP_CHAT_ID, msg)
+                    return
+                else:
+                    print("[Error] TradingView (Egypt): ข้อมูล d กลับมาไม่ครบ")
+            else:
+                print("[Error] TradingView (Egypt): ไม่พบข้อมูล Ticker EGX:EGX30")
+        else:
+            print(f"[Error] TradingView (Egypt): ตอบกลับสถานะ {res.status_code}")
+            
+    except Exception as e:
+        print(f"[Error] TradingView (Egypt) Exception: {e}")
+        
+    if not is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นอียิปต์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+
+# ==========================================
 # 🇮🇳 IN ดึงผลหวยหุ้นอินเดีย (อัปเดต API ใหม่ BseIndiaAPI/api/IndexMovers/w)
 # ==========================================
 def fetch_india_stock_fast(offset_days=0, is_auto=True):
@@ -1352,6 +1415,7 @@ def send_welcome(message):
         "- 18:45 น. : มาเลย์ (พุธ, เสาร์, อาทิตย์) /test_malay\n"
         "- 19:30 น. : ฮานอย VIP /test_vip\n"
         "- 19:30 น. : ฮานอยพัฒนา /test_develop\n"
+        "- 19:50 น. : อียิปต์ /test_egypt\n"
         "- 20:30 น. : ลาวสามัคคี /test_lao_samakkhi\n"
         "- 21:00 น. : ลาวอาเซียน /test_lao_asean\n"
         "- 21:30 น. : ลาว VIP /test_lao_vip\n"
@@ -1570,6 +1634,11 @@ def test_russia_cmd(message):
 def test_dowjones_normal_cmd(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นดาวโจนส์ (ปกติ)**...")
     threading.Thread(target=fetch_dowjones_normal, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_egypt'])
+def test_egypt_cmd(message):
+    bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นอียิปต์ (EGX30)** ล่าสุด...")
+    threading.Thread(target=fetch_egypt_stock_fast, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -1600,6 +1669,7 @@ def time_checker():
     has_run_singapore_vip = False
     has_run_india = False
     has_run_dowjones_normal = False
+    has_run_egypt = False
     
     last_check_date = ""
 
@@ -1633,6 +1703,7 @@ def time_checker():
             has_run_singapore_vip = False
             has_run_india = False
             has_run_dowjones_normal = False
+            has_run_egypt = False
 
             last_check_date = current_date
 
@@ -1780,6 +1851,13 @@ def time_checker():
             if not has_run_dowjones_normal:
                 has_run_dowjones_normal = True
                 threading.Thread(target=fetch_dowjones_normal, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 19:50 น. (หวยหุ้นอียิปต์) - ทำงานทุกวัน ยกเว้นวันเสาร์
+        if now.hour == 19 and now.minute == 50 and now.weekday() != 5:
+            if not has_run_egypt:
+                has_run_egypt = True
+                threading.Thread(target=fetch_egypt_stock_fast, daemon=True).start()
                 time.sleep(2)
 
 
