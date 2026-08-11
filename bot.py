@@ -1513,19 +1513,43 @@ def send_welcome(message):
 @bot.message_handler(commands=['yesterday'])
 def test_all_yesterday(message):
     bot.reply_to(message, "🛠️ กำลังดึงผลย้อนหลัง 1 วัน สำหรับทุกหวย...")
+    
+    # 🌅 รอบเช้า - บ่าย
+    threading.Thread(target=fetch_lao_extra, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_singapore_fast, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_thai_evening_fast, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_india_stock_fast, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_singapore_vip_fast, args=(1, False), daemon=True).start()
+    
+    # 🌇 รอบเย็น (ฮานอย + อียิปต์ + มาเลย์)
     threading.Thread(target=fetch_hanoi_special, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_hanoi_samakkhi, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_hanoi_normal, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_malay_magnum, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_hanoi_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_hanoi_develop, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_egypt_stock_fast, args=(1, False), daemon=True).start()
+    
+    # 🌃 รอบค่ำ (ลาว)
     threading.Thread(target=fetch_lao_samakkhi, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_lao_asean, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_lao_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_lao_samakkhi_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_lao_star_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_england_vip, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_lao_star_vip, args=(1, False), daemon=True).start()
+    
+    # 🌌 รอบดึก (หวยหุ้นดึก + หวยลาว/ฮานอยรอบดึก)
+    threading.Thread(target=fetch_hanoi_extra, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_germany_vip, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_england_stock_fast, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_germany_normal, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_russia_normal, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_lao_redcross, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_russia_vip, args=(1, False), daemon=True).start()
+    
+    # 🌙 รอบเช้ามืด (ดาวโจนส์)
+    threading.Thread(target=fetch_dowjones_vip, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_dowjones_normal, args=(1, False), daemon=True).start()
 
 # ==========================================
 # 🧹 คำสั่งสำหรับให้บอทลบข้อความของตัวเอง (ลบแค่ของบอทเท่านั้น)
