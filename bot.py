@@ -133,7 +133,7 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇮🇳 IN ดึงผลหวยหุ้นอินเดีย (ดึงจาก API ตรงของเว็บ BSE India)
+# 🇮🇳 IN ดึงผลหวยหุ้นอินเดีย (อัปเดต API ใหม่ BseIndiaAPI/api/IndexMovers/w)
 # ==========================================
 def fetch_india_stock_fast(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
@@ -142,13 +142,13 @@ def fetch_india_stock_fast(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นอินเดีย** งวดวันที่ {today_str_display} ครับ...")
 
-    # ใช้ API สดๆ จากหน้าเว็บตลาดหลักทรัพย์อินเดีย
-    url = "https://api.bseindia.com/RealTimeBseIndiaAPI/api/GetSensexData/w"
+    # 🚀 อัปเดต URL ใหม่ตามโครงสร้างล่าสุดของเว็บ BSE
+    url = "https://api.bseindia.com/BseIndiaAPI/api/IndexMovers/w"
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
-        "Referer": "https://www.bseindia.com/" # 🛡️ ต้องใส่ตัวนี้ไว้เพื่อกันระบบของเว็บอินเดียบล็อก
+        "Referer": "https://www.bseindia.com/" # 🛡️ ขาดไม่ได้ ป้องกันการโดนบล็อก
     }
 
     try:
@@ -157,40 +157,39 @@ def fetch_india_stock_fast(offset_days=0, is_auto=True):
         if res.status_code == 200:
             data = res.json()
             
-            # ข้อมูลส่งมาเป็น List โครงสร้าง [{...}] เราต้องดึงตัวแรก (Index 0) ออกมา
-            if isinstance(data, list) and len(data) > 0:
-                sensex_data = data[0]
+            # 🔍 เจาะเข้าไปใน Key "Table" ตามรูปโครงสร้างใหม่
+            table_data = data.get("Table", [])
+            
+            if table_data and len(table_data) > 0:
+                # 🎯 วนลูปหาข้อมูลของ BSE SENSEX ป้องกันกรณีเว็บสลับตำแหน่ง
+                sensex_data = next((item for item in table_data if item.get("indexName") == "BSE SENSEX"), None)
                 
-                # เช็คให้ชัวร์ว่าเป็นข้อมูลของ SENSEX จริงๆ
-                if sensex_data.get("indxnm") == "BSE SENSEX":
-                    # ดึงค่า ltp (ราคา) และ chg (Change) โดยลบลูกน้ำ (,) ออกก่อนแปลงค่า
-                    ltp_str = sensex_data.get("ltp", "0").replace(",", "")
-                    chg_str = sensex_data.get("chg", "0").replace(",", "")
+                if sensex_data:
+                    # ดึงค่า LTP (ราคา) และ change (ค่าเปลี่ยนแปลง)
+                    current_price = float(sensex_data.get("LTP", 0))
+                    change_val = float(sensex_data.get("change", 0))
                     
-                    current_price = float(ltp_str)
-                    change = float(chg_str)
-                    
-                    # จัดรูปแบบให้มีทศนิยม 2 ตำแหน่งเป๊ะๆ
+                    # จัดรูปแบบให้มีทศนิยม 2 ตำแหน่ง
                     price_formatted = f"{current_price:.2f}"
-                    change_formatted = f"{change:.2f}"
+                    change_formatted = f"{change_val:.2f}"
                     
                     # 🎯 ตัดเลข 3 ตัวบน (เอาเลขหลักหน่วย + ทศนิยม)
                     integer_part, decimal_part = price_formatted.split('.')
                     top_3 = integer_part[-1] + decimal_part
                     
-                    # 👇 ตัดเลข 2 ตัวล่าง (เอาทศนิยมของค่า Change)
+                    # 👇 ตัดเลข 2 ตัวล่าง (เอาทศนิยมของค่า change)
                     bottom_2 = change_formatted.replace('-', '').split('.')[1]
                     
                     # 📢 ส่งผลเข้ากลุ่ม
                     msg = (f"🇮🇳 **ผลหวยหุ้นอินเดีย** 🇮🇳\n📅 วันที่: {today_str_display}\n\n"
-                           f"📊 BSE SENSEX: {price_formatted} ({change:+.2f})\n\n"
+                           f"📊 BSE SENSEX: {price_formatted} ({change_val:+.2f})\n\n"
                            f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                     bot.send_message(GROUP_CHAT_ID, msg)
                     return
                 else:
-                    print("[Error] BSE India: ไม่พบข้อมูลดัชนี BSE SENSEX ใน API")
+                    print("[Error] BSE India: ไม่พบ indexName 'BSE SENSEX' ในข้อมูล Table")
             else:
-                print("[Error] BSE India: ข้อมูลที่ตอบกลับมาเป็น List ว่างเปล่า")
+                print("[Error] BSE India: โครงสร้าง Table ว่างเปล่า")
         else:
             print(f"[Error] BSE India: ตอบกลับสถานะ {res.status_code}")
             
