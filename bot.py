@@ -82,6 +82,59 @@ def fetch_lao_extra(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇯🇵 ดึงผล: นิเคอิเช้า VIP
+# ==========================================
+def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") # รูปแบบ API ใช้ 2026-08-11
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    # 💡 ใส่ ?t=timestamp ป้องกันเว็บจำข้อมูลเก่า (Cache)
+    timestamp = int(datetime.now().timestamp() * 1000)
+    url = f"https://api.nikkeivipstock.com/api/history/jp?t={timestamp}"
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json'
+    }
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิเช้า VIP** งวดวันที่ {today_str_display} ครับ...")
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                if json_data.get("status") == "success":
+                    data_list = json_data.get("data", [])
+                    
+                    # วนลูปหาข้อมูลของวันนี้
+                    for item in data_list:
+                        if item.get("date") == today_str_api:
+                            # 🎯 เจาะเข้าโหนด "r1" (รอบเช้า)
+                            r1_data = item.get("r1", {})
+                            top_3 = str(r1_data.get("prize_1st", "")).strip()
+                            bottom_2 = str(r1_data.get("prize_2nd", "")).strip()
+                            
+                            # เช็คว่าผลออกครบหรือยัง
+                            if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า VIP** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                bot.send_message(GROUP_CHAT_ID, msg)
+                                return 
+        except Exception as e:
+            print(f"[Error] นิเคอิเช้า VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิเช้า VIP**: ไม่พบข้อมูลวันที่ {today_str_display} (ผลอาจจะยังไม่ออก)")
+            return
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -1479,6 +1532,7 @@ def send_welcome(message):
     help_text = (
         "📌 **ตารางแจ้งผลอัตโนมัติ และคำสั่งทดสอบ:**\n\n"
         "- 08:30 น. : ลาว Extra /test_lao_extra\n"
+        "- 09:30 น. : นิเคอิเช้า VIP /test_nikkei_morning_vip\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -1516,6 +1570,7 @@ def test_all_yesterday(message):
     
     # 🌅 รอบเช้า - บ่าย
     threading.Thread(target=fetch_lao_extra, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_nikkei_morning_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_singapore_fast, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_thai_evening_fast, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_india_stock_fast, args=(1, False), daemon=True).start()
@@ -1572,6 +1627,13 @@ def test_lao_extra_cmd(message):
     txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาว Extra**{txt}...")
     threading.Thread(target=fetch_lao_extra, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_nikkei_morning_vip'])
+def test_nikkei_morning_vip_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **นิเคอิเช้า VIP**{txt}...")
+    threading.Thread(target=fetch_nikkei_morning_vip, args=(offset, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
@@ -1776,6 +1838,7 @@ def time_checker():
     has_run_dowjones_normal = False
     has_run_egypt = False
     has_run_lao_extra = False
+    has_run_nikkei_morning_vip = False
     
     last_check_date = ""
 
@@ -1811,6 +1874,7 @@ def time_checker():
             has_run_dowjones_normal = False
             has_run_egypt = False
             has_run_lao_extra = False
+            has_run_nikkei_morning_vip = False
 
             last_check_date = current_date
 
@@ -1967,10 +2031,15 @@ def time_checker():
                 threading.Thread(target=fetch_egypt_stock_fast, daemon=True).start()
                 time.sleep(2)
 
-        # 🕒 รอบ 08:30 น.
+        # 🕒 รอบ 08:30 น. หวยลาว Extra
         if now.hour == 8 and now.minute == 30 and not has_run_lao_extra:
             has_run_lao_extra = True
             threading.Thread(target=fetch_lao_extra, daemon=True).start()
+
+        # 🕒 รอบนิเคอิเช้า VIP (เช่น 09:30 น.)
+        if now.hour == 9 and now.minute == 30 and not has_run_nikkei_morning_vip:
+            has_run_nikkei_morning_vip = True
+            threading.Thread(target=fetch_nikkei_morning_vip, daemon=True).start()
 
 
         time.sleep(30)
