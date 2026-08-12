@@ -565,6 +565,99 @@ def fetch_lao_tv(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇭🇰 ดึงผล: ฮั่งเส็งเช้า VIP (เวลา 10:35 น.) - ระบบ Hybrid
+# ==========================================
+def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮั่งเส็งเช้า VIP** งวดวันที่ {today_str_display}...")
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json'
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        timestamp = int(datetime.now().timestamp() * 1000)
+        
+        try:
+            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
+            if offset_days == 0:
+                url = f"https://api.stocks-vip.com/api/hk?t={timestamp}"
+                res = requests.get(url, headers=headers, timeout=15)
+                
+                if res.status_code == 200:
+                    json_data = res.json()
+                    
+                    if json_data.get("status") == "success":
+                        data = json_data.get("data", {})
+                        api_date = data.get("date", "")
+                        
+                        # เช็คว่าระบบขึ้นวันใหม่หรือยัง
+                        if api_date == today_str_api:
+                            # 🎯 เจาะเข้าไปเอาข้อมูลรอบเช้า (r1)
+                            r1 = data.get("results", {}).get("r1", {})
+                            price = r1.get("price")
+                            diff = r1.get("diff")
+                            
+                            # ถ้ามีตัวเลขโผล่มาแล้ว แสดงว่าตลาดปิดรอบเช้าแล้ว
+                            if price and diff:
+                                price_str = f"{float(price):.2f}"
+                                diff_str = f"{float(diff):.2f}"
+                                
+                                integer_part, decimal_part = price_str.split('.')
+                                top_3 = integer_part[-1] + decimal_part
+                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                
+                                msg = (f"🇭🇰 **ผลหวยฮั่งเส็งเช้า VIP** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
+                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                bot.send_message(GROUP_CHAT_ID, msg)
+                                return
+                        else:
+                            if not is_auto and attempts >= 2:
+                                bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
+                                return
+
+            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
+            else:
+                url = f"https://api.stocks-vip.com/api/history/hk?t={timestamp}"
+                res = requests.get(url, headers=headers, timeout=15)
+                
+                if res.status_code == 200:
+                    json_data = res.json()
+                    if json_data.get("status") == "success":
+                        for item in json_data.get("data", []):
+                            if item.get("date") == today_str_api:
+                                r1_data = item.get("r1", {})
+                                top_3 = str(r1_data.get("prize_1st", "")).strip()
+                                bottom_2 = str(r1_data.get("prize_2nd", "")).strip()
+                                
+                                if len(top_3) == 3 and len(bottom_2) == 2:
+                                    msg = (f"🇭🇰 **ผลหวยฮั่งเส็งเช้า VIP** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                    bot.send_message(GROUP_CHAT_ID, msg)
+                                    return
+                                    
+        except Exception as e:
+            print(f"[Error] ฮั่งเส็งเช้า VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮั่งเส็งเช้า VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
+            return
+            
+        # 💤 ถ้ายังไม่ออก บอทจะหลับ 10 วินาทีแล้ววนเช็คใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -1971,6 +2064,7 @@ def send_welcome(message):
         "- 10:05 น. : จีนเช้า VIP /test_china_morning_vip\n"
         "- 10:30 น. : จีนเช้า ปกติ /test_china_morning_normal\n"
         "- 10:30 น. : ลาวทีวี /test_lao_tv\n"
+        "- 10:35 น. : หุ้นฮั่งเส็งเช้า VIP /test_hangseng_morning_vip\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -2013,6 +2107,7 @@ def test_all_yesterday(message):
     threading.Thread(target=fetch_china_morning_normal, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_thai_evening_fast, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_india_stock_fast, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_hangseng_morning_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_singapore_vip_fast, args=(1, False), daemon=True).start()
     
     # 🌇 รอบเย็น (ฮานอย + อียิปต์ + มาเลย์)
@@ -2287,6 +2382,14 @@ def test_lao_tv_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวทีวี**{txt}...")
     import threading
     threading.Thread(target=fetch_lao_tv, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_hangseng_morning_vip'])
+def test_hangseng_morning_vip_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮั่งเส็งเช้า VIP**{txt}...")
+    import threading
+    threading.Thread(target=fetch_hangseng_morning_vip, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -2325,6 +2428,7 @@ def time_checker():
     has_run_china_morning_vip = False
     has_run_china_morning_normal = False
     has_run_lao_tv = False
+    has_run_hangseng_morning_vip = False
     
     last_check_date = ""
 
@@ -2366,6 +2470,7 @@ def time_checker():
             has_run_china_morning_vip = False
             has_run_china_morning_normal = False
             has_run_lao_tv = False
+            has_run_hangseng_morning_vip = False
 
             last_check_date = current_date
 
@@ -2556,6 +2661,11 @@ def time_checker():
         if now.hour == 10 and now.minute == 30 and not has_run_lao_tv:
             has_run_lao_tv = True
             threading.Thread(target=fetch_lao_tv, daemon=True).start()
+
+        # 🕒 รอบ 10:35 น. - ฮั่งเส็งเช้า VIP
+        if now.hour == 10 and now.minute == 35 and not has_run_hangseng_morning_vip:
+            has_run_hangseng_morning_vip = True
+            threading.Thread(target=fetch_hangseng_morning_vip, daemon=True).start()
 
 
         time.sleep(30)
