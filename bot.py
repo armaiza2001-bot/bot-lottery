@@ -165,7 +165,7 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) จากเว็บ saihuay.com (แก้ไขระบบให้บอทเฝ้ารอผลจนกว่าจะออก)
+# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) จากเว็บ saihuay.com (แก้บั๊กระบบหยุดรอผลให้สมบูรณ์)
 # ==========================================
 def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
     import requests
@@ -219,11 +219,9 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
                                     
                                     # ⏳ ดักสถานะกำลังโหลดผล (ไอคอนหมุน)
                                     if top3 == "" or bot2 == "":
-                                        # ถ้าไม่ได้ดึงออโต้ และครบ 2 รอบแล้ว ให้แจ้งเตือนแล้วหยุด
                                         if not is_auto and attempts >= 2:
                                             bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิเช้า (ปกติ)**: กำลังรอออกรางวัลครับ (หน้าเว็บกำลังโหลด)")
                                             return
-                                        # ถ้าดึงออโต้ โค้ดจะข้ามไปบรรทัดล่างสุด (time.sleep) เพื่อรอ 10 วินาทีแล้วดึงใหม่
                                         
                                     # ✅ กรณีตัวเลขออกแล้ว
                                     elif "pending" not in top3.lower() and "pending" not in bot2.lower():
@@ -237,9 +235,10 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
                                                 bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลล่าสุดยังไม่ใช่ตัวเลขสมบูรณ์ (บน: {top3}, ล่าง: {bot2})")
                                             return
                                 else:
-                                    if not is_auto:
+                                    # 🛠️ จุดที่แก้ไข: เอา return ซ่อนไว้ข้างใน if ให้มิดชิด บอทออโต้จะได้ไม่เผลอไปเหยียบ
+                                    if not is_auto and attempts >= 2:
                                         bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {thai_date_str} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {row_date})")
-                                    return
+                                        return
                                     
         except Exception as e:
             print(f"[Error] นิเคอิเช้า (ปกติ) สายหวย Exception: {e}")
