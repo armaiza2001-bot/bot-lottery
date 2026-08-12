@@ -251,6 +251,79 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇻🇳 ดึงผล: ฮานอยอาเซียน (เวลา 09:30 น.)
+# ==========================================
+def fetch_hanoi_asean(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **ฮานอยอาเซียน** งวดวันที่ {today_str_display}...")
+
+    url = "https://gg.hanoiasean.com/api/result"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                if json_data.get("status") == "success":
+                    data = json_data.get("data", {})
+                    api_date = data.get("lotto_date", "")
+                    
+                    # 🛑 เช็คว่าวันที่ใน API อัปเดตตรงกับวันที่เราต้องการดึงหรือยัง
+                    if api_date == today_str_api:
+                        results = data.get("results", {})
+                        prize_1st = str(results.get("prize_1st", "")).strip()
+                        prize_2nd = str(results.get("prize_2nd", "")).strip()
+                        
+                        # ตรวจสอบว่าผลออกครบหรือยัง (กันกรณีตัวเลขยังแหว่ง)
+                        if len(prize_1st) >= 3 and len(prize_2nd) >= 2:
+                            # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                            top_3 = prize_1st[-3:]
+                            bottom_2 = prize_2nd[-2:]
+                            
+                            msg = (f"🇻🇳 **ผลหวยฮานอยอาเซียน** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return
+                        else:
+                            if not is_auto and attempts >= 2:
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮานอยอาเซียน**: กำลังรอผลรางวัลอัปเดตครับ")
+                                return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
+                            return
+                else:
+                    print("[Error] ฮานอยอาเซียน: สถานะ API ไม่สำเร็จ")
+            else:
+                 print(f"[Error] ฮานอยอาเซียน: ตอบกลับสถานะ {res.status_code}")
+                    
+        except Exception as e:
+            print(f"[Error] ฮานอยอาเซียน Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยอาเซียน**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -1651,8 +1724,9 @@ def send_welcome(message):
     help_text = (
         "📌 **ตารางแจ้งผลอัตโนมัติ และคำสั่งทดสอบ:**\n\n"
         "- 08:30 น. : ลาว Extra /test_lao_extra\n"
-        "- 09:30 น. : นิเคอิเช้า VIP /test_nikkei_morning_vip\n"
-        "- 09:32 น. : นิเคอิเช้า ปกติ /test_nikkei_morning_normal\n"
+        "- 09:06 น. : นิเคอิเช้า VIP /test_nikkei_morning_vip\n"
+        "- 09:30 น. : นิเคอิเช้า ปกติ /test_nikkei_morning_normal\n"
+        "- 09:30 น. : ฮานอยอาเซียน /test_hanoi_asean\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -1935,6 +2009,14 @@ def test_dowjones_normal_cmd(message):
 def test_egypt_cmd(message):
     bot.reply_to(message, "🛠️ สั่งทดสอบดึงผล **หวยหุ้นอียิปต์ (EGX30)** ล่าสุด...")
     threading.Thread(target=fetch_egypt_stock_fast, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_hanoi_asean'])
+def test_hanoi_asean_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยอาเซียน**{txt}...")
+    import threading
+    threading.Thread(target=fetch_hanoi_asean, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -1969,6 +2051,7 @@ def time_checker():
     has_run_lao_extra = False
     has_run_nikkei_morning_vip = False
     has_run_nikkei_morning_normal = False
+    has_run_hanoi_asean = False
     
     last_check_date = ""
 
@@ -2006,6 +2089,7 @@ def time_checker():
             has_run_lao_extra = False
             has_run_nikkei_morning_vip = False
             has_run_nikkei_morning_normal = False
+            has_run_hanoi_asean = False
 
             last_check_date = current_date
 
@@ -2168,7 +2252,7 @@ def time_checker():
             threading.Thread(target=fetch_lao_extra, daemon=True).start()
 
         # 🕒 รอบนิเคอิเช้า VIP (เช่น 09:30 น.)
-        if now.hour == 9 and now.minute == 30 and not has_run_nikkei_morning_vip:
+        if now.hour == 9 and now.minute == 06 and not has_run_nikkei_morning_vip:
             has_run_nikkei_morning_vip = True
             threading.Thread(target=fetch_nikkei_morning_vip, daemon=True).start()
 
@@ -2176,6 +2260,11 @@ def time_checker():
         if now.hour == 9 and now.minute == 32 and not has_run_nikkei_morning_normal:
             has_run_nikkei_morning_normal = True
             threading.Thread(target=fetch_nikkei_morning_normal, daemon=True).start()
+
+        # 🕒 รอบ 09:30 น. - ฮานอยอาเซียน
+        if now.hour == 9 and now.minute == 30 and not has_run_hanoi_asean:
+            has_run_hanoi_asean = True
+            threading.Thread(target=fetch_hanoi_asean, daemon=True).start()
 
 
         time.sleep(30)
