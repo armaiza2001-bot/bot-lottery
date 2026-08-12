@@ -495,6 +495,76 @@ def fetch_china_morning_normal(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇱🇦 ดึงผล: ลาวทีวี (เวลา 10:30 น.)
+# ==========================================
+def fetch_lao_tv(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **ลาวทีวี** งวดวันที่ {today_str_display}...")
+
+    url = "https://api.lao-tv.com/result"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            # แนบ Timestamp หลอกแคชของเบราว์เซอร์เพื่อให้ได้ผลล่าสุดเสมอ
+            timestamp = int(datetime.now().timestamp() * 1000)
+            res = requests.get(f"{url}?_={timestamp}", headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                json_data = res.json()
+                data = json_data.get("data", {})
+                api_date = data.get("lotto_date", "")
+                
+                # 🛑 เช็คว่าวันที่ใน API อัปเดตเป็นงวดที่เราต้องการหรือยัง
+                if api_date == today_str_api:
+                    results = data.get("results", {})
+                    digit5 = str(results.get("digit5", "")).strip()
+                    
+                    # ตรวจสอบว่าผลออกครบ 5 ตัวหรือยัง
+                    if len(digit5) == 5:
+                        # 🎯 ตัดเลขจากผล 5 ตัว (หน้า 2 ตัว = ล่าง, หลัง 3 ตัว = บน)
+                        top_3 = digit5[-3:]
+                        bottom_2 = digit5[:2]
+                        
+                        msg = (f"🇱🇦 **ผลหวยลาวทีวี** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ลาวทีวี**: ผลรางวัลกำลังออก (รอตัวเลขครบ 5 ตัว)")
+                            return
+                else:
+                    if not is_auto and attempts >= 2:
+                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
+                        return
+            else:
+                 print(f"[Error] ลาวทีวี: ตอบกลับสถานะ {res.status_code}")
+                    
+        except Exception as e:
+            print(f"[Error] ลาวทีวี Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวทีวี**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -1900,6 +1970,7 @@ def send_welcome(message):
         "- 09:30 น. : ฮานอยอาเซียน /test_hanoi_asean\n"
         "- 10:05 น. : จีนเช้า VIP /test_china_morning_vip\n"
         "- 10:30 น. : จีนเช้า ปกติ /test_china_morning_normal\n"
+        "- 10:30 น. : ลาวทีวี /test_lao_tv\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -2208,6 +2279,14 @@ def test_china_morning_normal_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **หุ้นจีนเช้า (ปกติ)**{txt}...")
     import threading
     threading.Thread(target=fetch_china_morning_normal, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_lao_tv'])
+def test_lao_tv_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวทีวี**{txt}...")
+    import threading
+    threading.Thread(target=fetch_lao_tv, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -2245,6 +2324,7 @@ def time_checker():
     has_run_hanoi_asean = False
     has_run_china_morning_vip = False
     has_run_china_morning_normal = False
+    has_run_lao_tv = False
     
     last_check_date = ""
 
@@ -2285,6 +2365,7 @@ def time_checker():
             has_run_hanoi_asean = False
             has_run_china_morning_vip = False
             has_run_china_morning_normal = False
+            has_run_lao_tv = False
 
             last_check_date = current_date
 
@@ -2470,6 +2551,11 @@ def time_checker():
         if now.hour == 10 and now.minute == 30 and not has_run_china_morning_normal:
             has_run_china_morning_normal = True
             threading.Thread(target=fetch_china_morning_normal, daemon=True).start()
+
+        # 🕒 รอบ 10:30 น. - ลาวทีวี
+        if now.hour == 10 and now.minute == 30 and not has_run_lao_tv:
+            has_run_lao_tv = True
+            threading.Thread(target=fetch_lao_tv, daemon=True).start()
 
 
         time.sleep(30)
