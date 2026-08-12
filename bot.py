@@ -408,6 +408,93 @@ def fetch_china_morning_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇨🇳 ดึงผล: หุ้นจีนเช้า (ปกติ) (เวลา 10:30 น.)
+# ==========================================
+def fetch_china_morning_normal(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    import random
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นจีนเช้า (ปกติ)** งวดวันที่ {today_str_display}...")
+
+    # ใส่ Headers พรางตัว ป้องกันการโดนเว็บหลักบล็อค
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://www.szse.cn/",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        # สุ่มตัวเลขห้อยท้าย URL (เหมือนพฤติกรรมในเว็บจริง)
+        rand_val = random.random()
+        url = f"https://www.szse.cn/api/market/ssjjhq/getTimeData?random={rand_val}&marketId=1&code=399001"
+        
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                # ตรวจสอบสถานะความสำเร็จของเว็บเซินเจิ้น (code "0" คือสำเร็จ)
+                if str(json_data.get("code")) == "0":
+                    data = json_data.get("data", {})
+                    market_time = data.get("marketTime", "") # ex: "2026-08-12 15:00:00"
+                    
+                    # 🛑 เช็คก่อนว่าข้อมูลใน API ถูกอัปเดตเป็นของวันที่เราต้องการหรือยัง
+                    if today_str_api in market_time:
+                        picupdata = data.get("picupdata", [])
+                        found_result = False
+                        
+                        for item in picupdata:
+                            # 🕒 เวลา 11:30 ของจีน = 10:30 ของไทย
+                            if item[0] == "11:30":
+                                found_result = True
+                                price_str = str(item[1]) # ค่าดัชนี
+                                diff_str = str(item[2])  # ค่าการเปลี่ยนแปลง
+                                
+                                # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                                integer_part, decimal_part = price_str.split('.')
+                                top_3 = integer_part[-1] + decimal_part
+                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                
+                                msg = (f"🇨🇳 **ผลหวยหุ้นจีนเช้า (ปกติ)** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                bot.send_message(GROUP_CHAT_ID, msg)
+                                return
+                        
+                        # ถ้าระบบยังไม่แสดงเวลา 11:30 (ตลาดยังไม่ปิดรอบเช้า)
+                        if not found_result:
+                            if not is_auto and attempts >= 2:
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ **จีนเช้า (ปกติ)**: ตลาดยังไม่ปิดรอบเช้า (รอระบบอัปเดตตัวเลข 11:30 น.)")
+                                return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (ข้อมูลในเว็บยังเป็นงวด {market_time[:10]})")
+                            return
+                else:
+                    print(f"[Error] จีนเช้า (ปกติ): ระบบแจ้ง Code {json_data.get('code')}")
+            else:
+                print(f"[Error] จีนเช้า (ปกติ): ตอบกลับสถานะ {res.status_code}")
+                
+        except Exception as e:
+            print(f"[Error] จีนเช้า (ปกติ) Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **จีนเช้า (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -1812,6 +1899,7 @@ def send_welcome(message):
         "- 09:30 น. : นิเคอิเช้า ปกติ /test_nikkei_morning_normal\n"
         "- 09:30 น. : ฮานอยอาเซียน /test_hanoi_asean\n"
         "- 10:05 น. : จีนเช้า VIP /test_china_morning_vip\n"
+        "- 10:30 น. : จีนเช้า ปกติ /test_china_morning_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -1851,6 +1939,7 @@ def test_all_yesterday(message):
     threading.Thread(target=fetch_lao_extra, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_nikkei_morning_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_singapore_fast, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_china_morning_normal, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_thai_evening_fast, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_india_stock_fast, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_singapore_vip_fast, args=(1, False), daemon=True).start()
@@ -2111,6 +2200,14 @@ def test_china_morning_vip_cmd(message):
     
     import threading
     threading.Thread(target=fetch_china_morning_vip, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_china_morning_normal'])
+def test_china_morning_normal_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **หุ้นจีนเช้า (ปกติ)**{txt}...")
+    import threading
+    threading.Thread(target=fetch_china_morning_normal, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -2147,6 +2244,7 @@ def time_checker():
     has_run_nikkei_morning_normal = False
     has_run_hanoi_asean = False
     has_run_china_morning_vip = False
+    has_run_china_morning_normal = False
     
     last_check_date = ""
 
@@ -2186,6 +2284,7 @@ def time_checker():
             has_run_nikkei_morning_normal = False
             has_run_hanoi_asean = False
             has_run_china_morning_vip = False
+            has_run_china_morning_normal = False
 
             last_check_date = current_date
 
@@ -2366,6 +2465,11 @@ def time_checker():
         if now.hour == 10 and now.minute == 5 and not has_run_china_morning_vip:
             has_run_china_morning_vip = True
             threading.Thread(target=fetch_china_morning_vip, daemon=True).start()
+
+        # 🕒 รอบ 10:30 น. - จีนเช้า (ปกติ)
+        if now.hour == 10 and now.minute == 30 and not has_run_china_morning_normal:
+            has_run_china_morning_normal = True
+            threading.Thread(target=fetch_china_morning_normal, daemon=True).start()
 
 
         time.sleep(30)
