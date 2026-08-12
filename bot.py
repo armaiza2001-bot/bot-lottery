@@ -165,88 +165,89 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) เว็บตรง (อัปเกรดระบบ Session ทะลวง Cloudflare)
+# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) จากเว็บ saihuay.com (เสถียร 100% ไม่โดนบล็อค)
 # ==========================================
 def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
     import requests
+    from bs4 import BeautifulSoup
     from datetime import datetime, timedelta
+    import re
     import time
     
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    timestamp = int(datetime.now().timestamp() * 1000)
-
-    if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิเช้า (ปกติ)** งวดวันที่ {today_str_display} จากเว็บตรง...")
-
-    # 🚀 สร้าง Session เพื่อให้บอทจำคุกกี้ (Cookie) เหมือนเป็นเบราว์เซอร์จริงๆ
-    session = requests.Session()
+    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย (เพื่อเช็คกับหน้าเว็บ)
+    thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+    thai_day = target_date.day
+    thai_month = thai_months[target_date.month]
+    thai_year = target_date.year + 543
+    thai_date_str = f"{thai_day} {thai_month} {thai_year}"
     
-    # ใส่หน้ากากเป็น Google Chrome รุ่นล่าสุด
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7"
-    })
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิเช้า (ปกติ)** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
+
+    url = "https://saihuay.com/historical?lotto=nikkei_morning&lang=th"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
 
     attempts = 0
     while True:
         attempts += 1
         try:
-            # 🛡️ Step 1: แกล้งเข้าไปหน้าแรกของเว็บก่อน เพื่อรับคุกกี้ผ่านด่าน
-            session.get("https://indexes.nikkei.co.jp/en/nkave", timeout=15)
-            
-            # 🎯 Step 2: อัปเดต Headers เล็กน้อย แล้วยิงดึง API แบบเรียลไทม์
-            session.headers.update({
-                "Accept": "application/json, text/javascript, */*; q=0.01",
-                "X-Requested-With": "XMLHttpRequest",
-                "Referer": "https://indexes.nikkei.co.jp/en/nkave"
-            })
-            
-            api_url = f"https://indexes.nikkei.co.jp/en/nkave/get_real_data?idx=nk225&_={timestamp}"
-            res = session.get(api_url, timeout=15)
+            res = requests.get(url, headers=headers, timeout=15)
             
             if res.status_code == 200:
-                data = res.json()
-                price_val = data.get("price")
-                diff_val = data.get("diff")
+                soup = BeautifulSoup(res.text, "html.parser")
+                top3, bot2 = None, None
                 
-                if price_val and diff_val:
-                    price_str_raw = str(price_val).replace(",", "")
-                    diff_str_raw = str(diff_val).replace(",", "")
+                table = soup.find("table")
+                if table:
+                    tbody = table.find("tbody")
+                    if tbody:
+                        first_row = tbody.find("tr")
+                        if first_row:
+                            cells = first_row.find_all("td")
+                            if len(cells) >= 3:
+                                row_date = cells[0].get_text(strip=True)
+                                
+                                # 🛑 เช็ควันที่ว่าตรงกับวันนี้ไหม
+                                if thai_date_str in row_date:
+                                    top3 = cells[1].get_text(strip=True)
+                                    bot2 = cells[2].get_text(strip=True)
+                                    
+                                    # ⏳ ดักสถานะกำลังโหลดผล (ไอคอนหมุน)
+                                    if top3 == "" or bot2 == "":
+                                        if not is_auto:
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิเช้า (ปกติ)**: กำลังรอออกรางวัลครับ (หน้าเว็บกำลังโหลด)")
+                                        return
+                                else:
+                                    if not is_auto:
+                                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {thai_date_str} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {row_date})")
+                                    return
 
-                    price = float(price_str_raw)
-                    diff = float(diff_str_raw)
-
-                    price_str = f"{price:.2f}"
-                    diff_str = f"{diff:.2f}"
-
-                    integer_part, decimal_part = price_str.split('.')
-                    top_3 = integer_part[-1] + decimal_part
-                    bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-
-                    current_hour = datetime.now(tz).hour
-                    current_minute = datetime.now(tz).minute
-                    time_warning = ""
-                    
-                    if current_hour >= 10 and (current_hour > 10 or current_minute >= 30):
-                        time_warning = "\n\n*(⚠️ ข้อควรระวัง: ดึงผลช้ากว่า 10:30 น. ตัวเลขอาจเปลี่ยนเป็นของรอบบ่ายแล้ว)*"
-
-                    msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า (ปกติ)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                           f"📊 Index: {price_str} ({diff:+.2f})\n\n"
-                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}{time_warning}\n")
-                    bot.send_message(GROUP_CHAT_ID, msg)
-                    return
-                else:
-                    print("[Error] นิเคอิเช้า (ปกติ): ไม่พบ price หรือ diff ใน JSON")
+                # ✅ กรณีผลออกแล้ว และไม่ใช่ข้อความ Pending
+                if top3 and bot2 and "pending" not in top3.lower() and "pending" not in bot2.lower():
+                    # เช็คความชัวร์ว่าเป็นตัวเลขจริงๆ
+                    if re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2):
+                        msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า (ปกติ)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return
+                    else:
+                        if not is_auto:
+                            bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลล่าสุดที่พบยังไม่ใช่ตัวเลขที่สมบูรณ์ (บน: {top3}, ล่าง: {bot2})")
+                        return
+                        
             else:
-                 print(f"[Error] นิเคอิเช้า (ปกติ): ถูกเว็บต้านทาน (Status: {res.status_code})")
-                    
+                print(f"[Error] นิเคอิเช้า (สายหวย) ตอบกลับสถานะ {res.status_code}")
+                
         except Exception as e:
-            print(f"[Error] นิเคอิเช้า (ปกติ) เว็บตรง Exception: {e}")
+            print(f"[Error] นิเคอิเช้า (ปกติ) สายหวย Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิเช้า (ปกติ)**: ไม่สามารถดึงข้อมูลได้ (เว็บอาจบล็อค IP ชั่วคราว)")
+            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิเช้า (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
         time.sleep(10)
 
