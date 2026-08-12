@@ -165,6 +165,77 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) จากเว็บตรง (Official Nikkei Index)
+# ==========================================
+def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    # เจน Timestamp เพื่อไม่ให้เว็บจำค่าเก่า
+    timestamp = int(datetime.now().timestamp() * 1000)
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิเช้า (ปกติ)** งวดวันที่ {today_str_display} จากเว็บตรง...")
+
+    url = f"https://indexes.nikkei.co.jp/en/nkave/get_real_data?idx=nk225&_={timestamp}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                data = res.json()
+                
+                # 🧹 ดึงค่ามาแล้วเอาลูกน้ำ (,) ออกก่อนแปลงเป็นตัวเลข
+                price_str_raw = data.get("price", "0").replace(",", "")
+                diff_str_raw = data.get("diff", "0").replace(",", "")
+
+                price = float(price_str_raw)
+                diff = float(diff_str_raw)
+
+                # จัดฟอร์แมตให้มีทศนิยม 2 ตำแหน่ง
+                price_str = f"{price:.2f}"
+                diff_str = f"{diff:.2f}"
+
+                # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                integer_part, decimal_part = price_str.split('.')
+                top_3 = integer_part[-1] + decimal_part
+                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+
+                # ⚠️ ระบบป้องกันคนกดเทสต์ผิดเวลา
+                current_hour = datetime.now(tz).hour
+                current_minute = datetime.now(tz).minute
+                time_warning = ""
+                
+                # ถ้าดึงหลัง 10:30 น. (เวลาไทย) ตลาดช่วงบ่ายเริ่มวิ่งแล้ว
+                if current_hour >= 10 and (current_hour > 10 or current_minute >= 30):
+                    time_warning = "\n\n*(⚠️ ข้อควรระวัง: ดึงผลช้ากว่า 10:30 น. ตัวเลขอาจเปลี่ยนเป็นของรอบบ่ายแล้ว)*"
+
+                msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า (ปกติ)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                       f"📊 Index: {price_str} ({diff:+.2f})\n\n"
+                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}{time_warning}")
+                bot.send_message(GROUP_CHAT_ID, msg)
+                return
+                    
+        except Exception as e:
+            print(f"[Error] นิเคอิเช้า (ปกติ) เว็บตรง: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิเช้า (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -1563,6 +1634,7 @@ def send_welcome(message):
         "📌 **ตารางแจ้งผลอัตโนมัติ และคำสั่งทดสอบ:**\n\n"
         "- 08:30 น. : ลาว Extra /test_lao_extra\n"
         "- 09:30 น. : นิเคอิเช้า VIP /test_nikkei_morning_vip\n"
+        "- 09:32 น. : นิเคอิเช้า ปกติ /test_nikkei_morning_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -1664,6 +1736,15 @@ def test_nikkei_morning_vip_cmd(message):
     txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **นิเคอิเช้า VIP**{txt}...")
     threading.Thread(target=fetch_nikkei_morning_vip, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_nikkei_morning_normal'])
+def test_nikkei_morning_normal_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **นิเคอิเช้า (ปกติ)**{txt}...")
+    
+    import threading
+    threading.Thread(target=fetch_nikkei_morning_normal, args=(offset, False), daemon=True).start()
 
 @bot.message_handler(commands=['test_special'])
 def test_special(message):
@@ -1869,6 +1950,7 @@ def time_checker():
     has_run_egypt = False
     has_run_lao_extra = False
     has_run_nikkei_morning_vip = False
+    has_run_nikkei_morning_normal = False
     
     last_check_date = ""
 
@@ -1905,6 +1987,7 @@ def time_checker():
             has_run_egypt = False
             has_run_lao_extra = False
             has_run_nikkei_morning_vip = False
+            has_run_nikkei_morning_normal = False
 
             last_check_date = current_date
 
@@ -2070,6 +2153,11 @@ def time_checker():
         if now.hour == 9 and now.minute == 30 and not has_run_nikkei_morning_vip:
             has_run_nikkei_morning_vip = True
             threading.Thread(target=fetch_nikkei_morning_vip, daemon=True).start()
+
+        # 🕒 รอบ 09:32 น. - นิเคอิเช้า (ปกติ) [รอให้ตลาดปิดสนิทและตัวเลขนิ่ง 100%]
+        if now.hour == 9 and now.minute == 32 and not has_run_nikkei_morning_normal:
+            has_run_nikkei_morning_normal = True
+            threading.Thread(target=fetch_nikkei_morning_normal, daemon=True).start()
 
 
         time.sleep(30)
