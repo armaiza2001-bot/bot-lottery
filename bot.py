@@ -1811,6 +1811,7 @@ def send_welcome(message):
         "- 09:06 น. : นิเคอิเช้า VIP /test_nikkei_morning_vip\n"
         "- 09:30 น. : นิเคอิเช้า ปกติ /test_nikkei_morning_normal\n"
         "- 09:30 น. : ฮานอยอาเซียน /test_hanoi_asean\n"
+        "- 10:05 น. : จีนเช้า VIP /test_china_morning_vip\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
