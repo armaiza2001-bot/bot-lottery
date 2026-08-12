@@ -82,7 +82,7 @@ def fetch_lao_extra(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: นิเคอิเช้า VIP (อัปเดตระบบ Hybrid: ดึงแบบ Real-time)
+# 🇯🇵 ดึงผล: นิเคอิเช้า VIP (แก้ไขบั๊ก API โครงสร้างซ้อนกัน)
 # ==========================================
 def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
     import requests
@@ -107,37 +107,40 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
     while True:
         attempts += 1
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (ดึงจาก Real-time API เพราะอัปเดตไวกว่า)
+            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
             if offset_days == 0:
                 url = f"https://api.nikkeivipstock.com/api/jp?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
+                
                 if res.status_code == 200:
-                    data_list = res.json()
+                    json_data = res.json()
                     
-                    # ค้นหาก้อนข้อมูลที่ปิดตลาดรอบเช้า
-                    for item in data_list:
-                        if item.get("note") == "Morning-Close":
-                            price = item.get("price", 0)
-                            diff = item.get("diff", "0")
-                            
-                            # จัดรูปแบบให้มีทศนิยม 2 ตำแหน่งเสมอ
-                            price_str = f"{float(price):.2f}"
-                            diff_str = f"{float(diff):.2f}"
-                            
-                            # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
-                            integer_part, decimal_part = price_str.split('.')
-                            top_3 = integer_part[-1] + decimal_part
-                            bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-                            
-                            msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า VIP** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                            bot.send_message(GROUP_CHAT_ID, msg)
-                            return
+                    if json_data.get("status") == "success":
+                        # 🛑 จุดที่แก้ไข: มุดเข้าไปในกล่อง "data" แล้วดึงลิสต์ "prices" ออกมา
+                        prices_list = json_data.get("data", {}).get("prices", [])
+                        
+                        for item in prices_list:
+                            if item.get("note") == "Morning-Close":
+                                price = item.get("price", 0)
+                                diff = item.get("diff", "0")
+                                
+                                price_str = f"{float(price):.2f}"
+                                diff_str = f"{float(diff):.2f}"
+                                
+                                integer_part, decimal_part = price_str.split('.')
+                                top_3 = integer_part[-1] + decimal_part
+                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                
+                                msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า VIP** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                bot.send_message(GROUP_CHAT_ID, msg)
+                                return
 
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (ดึงจาก History API)
+            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
                 url = f"https://api.nikkeivipstock.com/api/history/jp?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
+                
                 if res.status_code == 200:
                     json_data = res.json()
                     if json_data.get("status") == "success":
