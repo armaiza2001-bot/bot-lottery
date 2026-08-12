@@ -165,7 +165,7 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) จากเว็บตรง (อัปเดตระบบพรางตัว Bypass Cloudflare)
+# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) เว็บตรง (อัปเกรดระบบ Session ทะลวง Cloudflare)
 # ==========================================
 def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
     import requests
@@ -180,28 +180,34 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิเช้า (ปกติ)** งวดวันที่ {today_str_display} จากเว็บตรง...")
 
-    url = f"https://indexes.nikkei.co.jp/en/nkave/get_real_data?idx=nk225&_={timestamp}"
+    # 🚀 สร้าง Session เพื่อให้บอทจำคุกกี้ (Cookie) เหมือนเป็นเบราว์เซอร์จริงๆ
+    session = requests.Session()
     
-    # 🎭 อัปเดต Headers พรางตัวให้เหมือนคนใช้ Chrome จริงๆ
-    headers = {
+    # ใส่หน้ากากเป็น Google Chrome รุ่นล่าสุด
+    session.headers.update({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "X-Requested-With": "XMLHttpRequest",
-        "Referer": "https://indexes.nikkei.co.jp/en/nkave",
-        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Connection": "keep-alive"
-    }
+        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7"
+    })
 
     attempts = 0
     while True:
         attempts += 1
         try:
-            res = requests.get(url, headers=headers, timeout=15)
+            # 🛡️ Step 1: แกล้งเข้าไปหน้าแรกของเว็บก่อน เพื่อรับคุกกี้ผ่านด่าน
+            session.get("https://indexes.nikkei.co.jp/en/nkave", timeout=15)
+            
+            # 🎯 Step 2: อัปเดต Headers เล็กน้อย แล้วยิงดึง API แบบเรียลไทม์
+            session.headers.update({
+                "Accept": "application/json, text/javascript, */*; q=0.01",
+                "X-Requested-With": "XMLHttpRequest",
+                "Referer": "https://indexes.nikkei.co.jp/en/nkave"
+            })
+            
+            api_url = f"https://indexes.nikkei.co.jp/en/nkave/get_real_data?idx=nk225&_={timestamp}"
+            res = session.get(api_url, timeout=15)
             
             if res.status_code == 200:
                 data = res.json()
-                
-                # ป้องกันกรณี API ส่งค่ากลับมาเป็น None
                 price_val = data.get("price")
                 diff_val = data.get("diff")
                 
@@ -228,19 +234,19 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
 
                     msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า (ปกติ)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
                            f"📊 Index: {price_str} ({diff:+.2f})\n\n"
-                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}{time_warning}")
+                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}{time_warning}\n")
                     bot.send_message(GROUP_CHAT_ID, msg)
                     return
                 else:
                     print("[Error] นิเคอิเช้า (ปกติ): ไม่พบ price หรือ diff ใน JSON")
             else:
-                 print(f"[Error] นิเคอิเช้า (ปกติ): ถูกเว็บต้านทาน (Status Code: {res.status_code})")
+                 print(f"[Error] นิเคอิเช้า (ปกติ): ถูกเว็บต้านทาน (Status: {res.status_code})")
                     
         except Exception as e:
-            print(f"[Error] นิเคอิเช้า (ปกติ) เว็บตรง: {e}")
+            print(f"[Error] นิเคอิเช้า (ปกติ) เว็บตรง Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิเช้า (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิเช้า (ปกติ)**: ไม่สามารถดึงข้อมูลได้ (เว็บอาจบล็อค IP ชั่วคราว)")
             return
         time.sleep(10)
 
