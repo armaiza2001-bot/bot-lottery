@@ -2251,7 +2251,7 @@ def time_checker():
             threading.Thread(target=fetch_lao_extra, daemon=True).start()
 
         # 🕒 รอบนิเคอิเช้า VIP (เช่น 09:30 น.)
-        if now.hour == 9 and now.minute == 06 and not has_run_nikkei_morning_vip:
+        if now.hour == 9 and now.minute == 6 and not has_run_nikkei_morning_vip:
             has_run_nikkei_morning_vip = True
             threading.Thread(target=fetch_nikkei_morning_vip, daemon=True).start()
 
