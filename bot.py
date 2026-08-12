@@ -11,7 +11,6 @@ import re
 from flask import Flask
 from bs4 import BeautifulSoup
 
-# ดึงค่าตัวแปรจาก Render
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 GROUP_CHAT_ID = os.environ.get('GROUP_CHAT_ID')
 
