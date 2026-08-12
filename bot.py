@@ -354,7 +354,7 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นสิงคโปร์ VIP**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ จากเว็บ saihuay.com (อัปเดตระบบเฝ้ารอผล)
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ จากเว็บ saihuay.com (แก้บั๊กระบบหยุดรอผล)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     import requests
@@ -424,9 +424,11 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
                                                 bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลล่าสุดที่พบยังไม่ใช่ตัวเลขที่สมบูรณ์ (บน: {top3}, ล่าง: {bot2})")
                                             return
                                 else:
-                                    if not is_auto:
+                                    # 🛠️ จุดที่แก้ไข: ไม่ให้บอท return จนกว่าจะหมดเวลา เพื่อให้มันวนลูปรอวันที่ใหม่โผล่มา
+                                    if not is_auto and attempts >= 2:
                                         bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {thai_date_str} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {row_date})")
-                                    return
+                                        return
+                                        
             else:
                 print(f"[Error] Saihuay (Egypt): ตอบกลับสถานะ {res.status_code}")
                 
@@ -439,7 +441,6 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
             
         # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
         time.sleep(10)
-
 # ==========================================
 # 🇮🇳 IN ดึงผลหวยหุ้นอินเดีย (อัปเดต API ใหม่ BseIndiaAPI/api/IndexMovers/w)
 # ==========================================
