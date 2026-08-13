@@ -813,84 +813,84 @@ def fetch_taiwan_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇰🇷 ดึงผล: หุ้นเกาหลี (ปกติ) (เวลา 13:30 น.) จากเว็บ saihuay.com
+# 🇹🇼 ดึงผล: หุ้นไต้หวัน (ปกติ) (เวลา 12:30 น.)
 # ==========================================
-def fetch_korea_normal(offset_days=0, is_auto=True):
+def fetch_taiwan_normal(offset_days=0, is_auto=True):
     import requests
-    from bs4 import BeautifulSoup
     from datetime import datetime, timedelta
-    import re
     import time
     
     target_date = datetime.now(tz) - timedelta(days=offset_days)
+    # ⚠️ ข้อควรระวัง: เว็บไต้หวันใช้วันที่รูปแบบ YYYY/MM/DD (ใช้สแลช)
+    today_str_api = target_date.strftime("%Y/%m/%d") 
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย (เพราะเว็บสายหวยใช้วันที่ภาษาไทย)
-    thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
-    thai_day = target_date.day
-    thai_month = thai_months[target_date.month]
-    thai_year = target_date.year + 543
-    thai_date_str = f"{thai_day} {thai_month} {thai_year}"
-    
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี (ปกติ)** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นไต้หวัน (ปกติ)** งวดวันที่ {today_str_display}...")
 
-    # เปลี่ยน URL มาใช้สายหวยเรียบร้อย
-    url = "https://saihuay.com/historical?lotto=korea&lang=th"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://www.twse.com.tw/",
+        "Accept": "application/json"
     }
 
     attempts = 0
     while True:
         attempts += 1
+        timestamp = int(time.time() * 1000)
+        url = f"https://www.twse.com.tw/res/data/zh/home/marquee.json?_={timestamp}"
+        
         try:
             res = requests.get(url, headers=headers, timeout=15)
             
             if res.status_code == 200:
-                soup = BeautifulSoup(res.text, "html.parser")
+                data = res.json()
+                taiex = data.get("mi", {}).get("taiex", {})
+                dt = taiex.get("datetime", "") # รูปแบบ: "2026/08/13 13:31:00"
                 
-                table = soup.find("table")
-                if table:
-                    tbody = table.find("tbody")
-                    if tbody:
-                        first_row = tbody.find("tr")
-                        if first_row:
-                            cells = first_row.find_all("td")
-                            if len(cells) >= 3:
-                                row_date = cells[0].get_text(strip=True)
-                                
-                                # 🛑 เช็ควันที่ในตาราง
-                                if thai_date_str in row_date:
-                                    top3 = cells[1].get_text(strip=True)
-                                    bot2 = cells[2].get_text(strip=True)
-                                    
-                                    # ⏳ เช็คความบริสุทธิ์ของตัวเลข (ดักจับไอคอนหมุนๆ, ขีด, หรือตัวหนังสือ)
-                                    if not (re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2)):
-                                        if not is_auto and attempts >= 2:
-                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี (ปกติ)**: ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
-                                            return
-                                        
-                                    # ✅ กรณีออกเป็นตัวเลขล้วน 100% แล้ว
-                                    else:
-                                        msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี (ปกติ)** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
-                                               f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
-                                        bot.send_message(GROUP_CHAT_ID, msg)
-                                        return
-                                else:
-                                    if not is_auto and attempts >= 2:
-                                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {thai_date_str} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {row_date})")
-                                        return
-                                        
+                # 🛑 เช็คว่าวันที่ใน API อัปเดตตรงกับวันที่เราต้องการดึงหรือยัง
+                if dt.startswith(today_str_api):
+                    time_part = dt.split(" ")[1] if " " in dt else ""
+                    
+                    # 🕒 เช็คเวลาไต้หวัน (ต้องเป็น 13:30:00 เป็นต้นไป ถึงจะถือว่าตลาดปิด)
+                    if time_part >= "13:30:00":
+                        price = str(taiex.get("index", ""))
+                        diff = str(taiex.get("diff", ""))
+                        
+                        if price and diff:
+                            price_str = f"{float(price):.2f}"
+                            diff_str = f"{float(diff):.2f}"
+                            
+                            # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                            integer_part, decimal_part = price_str.split('.')
+                            top_3 = integer_part[-1] + decimal_part
+                            bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                            
+                            msg = (f"🇹🇼 **ผลหวยหุ้นไต้หวัน (ปกติ)** 🇹🇼\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ไต้หวัน (ปกติ)**: ตลาดยังไม่ปิด (เวลาเซิร์ฟเวอร์ไต้หวันล่าสุด {time_part})")
+                            return
+                else:
+                    if not is_auto and attempts >= 2:
+                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (ข้อมูลเว็บเป็นของงวด {dt})")
+                        return
+            else:
+                 print(f"[Error] ไต้หวัน (ปกติ): ตอบกลับสถานะ {res.status_code}")
+                    
         except Exception as e:
-            print(f"[Error] เกาหลี (ปกติ) สายหวย Exception: {e}")
+            print(f"[Error] ไต้หวัน (ปกติ) Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **เกาหลี (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ไต้หวัน (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
         time.sleep(10)
+        
 # ==========================================
 # 🇰🇷 ดึงผล: หุ้นเกาหลี VIP (เวลา 12:35 น.) - ระบบ Hybrid
 # ==========================================
@@ -985,7 +985,7 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇰🇷 ดึงผล: หุ้นเกาหลี (ปกติ) (เวลา 13:30 น.) - ระบบ Web Scraping
+# 🇰🇷 ดึงผล: หุ้นเกาหลี (ปกติ) (เวลา 13:30 น.) จากเว็บ saihuay.com
 # ==========================================
 def fetch_korea_normal(offset_days=0, is_auto=True):
     import requests
@@ -997,89 +997,71 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # 🛑 บล็อคการดึงย้อนหลัง เพราะ TradingView แสดงแค่ข้อมูลวันล่าสุด
-    if offset_days > 0:
-        if not is_auto:
-            bot.send_message(GROUP_CHAT_ID, "⚠️ **หุ้นเกาหลี (ปกติ)**: ลิงก์เป้าหมายแสดงเฉพาะผลล่าสุด ไม่สามารถดึงผลย้อนหลังได้ครับ")
-        return
-        
+    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย (เพราะเว็บสายหวยใช้วันที่ภาษาไทย)
+    thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+    thai_day = target_date.day
+    thai_month = thai_months[target_date.month]
+    thai_year = target_date.year + 543
+    thai_date_str = f"{thai_day} {thai_month} {thai_year}"
+    
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี (ปกติ)** งวดวันที่ {today_str_display} จาก TradingView...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี (ปกติ)** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
 
-    url = "https://th.tradingview.com/symbols/KRX-KTOP30/"
+    # เปลี่ยน URL มาใช้สายหวยเรียบร้อย
+    url = "https://saihuay.com/historical?lotto=korea&lang=th"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml",
-        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
 
     attempts = 0
     while True:
         attempts += 1
         try:
-            res = requests.get(f"{url}?_={int(time.time())}", headers=headers, timeout=15)
+            res = requests.get(url, headers=headers, timeout=15)
             
             if res.status_code == 200:
                 soup = BeautifulSoup(res.text, "html.parser")
-                text = soup.get_text(separator=" ")
                 
-                # 🛑 ไฮไลท์การแก้ปัญหา: เช็คว่าตลาด "ปิด" หรือยัง!
-                # ถ้ายังไม่มีคำว่า "เวลาปิด" หรือ "Closed" ในหน้าเว็บ ถือว่ายังไม่ชัวร์ ให้รอต่อไป
-                if "เวลาปิด" not in text and "Closed" not in text and "ปิดตลาด" not in text:
-                    if not is_auto and attempts >= 2:
-                        bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี (ปกติ)**: ตลาดยังไม่ปิด หรือหน้าเว็บยังไม่อัปเดตสถานะครับ")
-                        return
-                    # ถ้าเป็นออโต้ โค้ดจะทะลุไปที่ time.sleep(10) เพื่อวนลูปรอต่อไป
-                
-                # ✅ ถ้าตลาดปิดแล้ว ค่อยเจาะเอาตัวเลขมา
-                else:
-                    price_str = ""
-                    diff_str = ""
-                    
-                    title_text = soup.title.string if soup.title else ""
-                    match_title = re.search(r'([\d,]+\.\d{2})\s*[▲▼+-]\s*([+-]?[\d,]+\.\d{2})', title_text)
-                    
-                    if match_title:
-                        price_str = match_title.group(1)
-                        diff_str = match_title.group(2)
-                    else:
-                        match_body = re.search(r'(\d{1,3}(?:,\d{3})+\.\d{2})\s*(?:POINT)?\s*([+-]?\d{1,3}(?:,\d{3})*\.\d{2})', text)
-                        if match_body:
-                            price_str = match_body.group(1)
-                            diff_str = match_body.group(2)
-                            
-                    if price_str and diff_str:
-                        price_val = price_str.replace(',', '')
-                        diff_val = diff_str.replace(',', '').replace('+', '')
-                        
-                        integer_part, decimal_part = f"{float(price_val):.2f}".split('.')
-                        top_3 = integer_part[-1] + decimal_part
-                        bottom_2 = f"{float(diff_val):.2f}".replace('-', '').replace('+', '').split('.')[1]
-                        
-                        msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี (ปกติ)** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                        bot.send_message(GROUP_CHAT_ID, msg)
-                        return
-                    else:
-                        if not is_auto and attempts >= 2:
-                            bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี (ปกติ)**: ตลาดปิดแล้ว แต่ดึงตัวเลขไม่สำเร็จครับ")
-                            return
-                        
-            elif res.status_code == 403:
-                if not is_auto and attempts >= 2:
-                    bot.send_message(GROUP_CHAT_ID, "❌ **เกาหลี (ปกติ)**: ระบบถูก TradingView ปฏิเสธการเข้าถึง (403 Forbidden)")
-                    return
-            else:
-                print(f"[Error] เกาหลี (ปกติ): ตอบกลับสถานะ {res.status_code}")
-                    
+                table = soup.find("table")
+                if table:
+                    tbody = table.find("tbody")
+                    if tbody:
+                        first_row = tbody.find("tr")
+                        if first_row:
+                            cells = first_row.find_all("td")
+                            if len(cells) >= 3:
+                                row_date = cells[0].get_text(strip=True)
+                                
+                                # 🛑 เช็ควันที่ในตาราง
+                                if thai_date_str in row_date:
+                                    top3 = cells[1].get_text(strip=True)
+                                    bot2 = cells[2].get_text(strip=True)
+                                    
+                                    # ⏳ เช็คความบริสุทธิ์ของตัวเลข (ดักจับไอคอนหมุนๆ, ขีด, หรือตัวหนังสือ)
+                                    if not (re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2)):
+                                        if not is_auto and attempts >= 2:
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี (ปกติ)**: ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
+                                            return
+                                        
+                                    # ✅ กรณีออกเป็นตัวเลขล้วน 100% แล้ว
+                                    else:
+                                        msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี (ปกติ)** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                else:
+                                    if not is_auto and attempts >= 2:
+                                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {thai_date_str} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {row_date})")
+                                        return
+                                        
         except Exception as e:
-            print(f"[Error] เกาหลี (ปกติ) Exception: {e}")
+            print(f"[Error] เกาหลี (ปกติ) สายหวย Exception: {e}")
             
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ **เกาหลี (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนเช็คหน้าเว็บใหม่
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
         time.sleep(10)
 
 # ==========================================
