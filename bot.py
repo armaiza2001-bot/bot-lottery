@@ -652,6 +652,89 @@ def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
+# ==========================================
+def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮั่งเส็งบ่าย (ปกติ)** งวดวันที่ {today_str_display}...")
+
+    # ใส่ Headers พรางตัว ป้องกันการโดนบล็อค
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://www.hsi.com.hk/",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        # แนบ Timestamp ป้องกันแคชเบราว์เซอร์
+        timestamp = int(time.time() * 1000)
+        url = f"https://www.hsi.com.hk/data/eng/rt/index-series/hsi/performance.do?_={timestamp}"
+        
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                data = res.json()
+                found_result = False
+                
+                # 🚨 จุดที่แก้ไข: เจาะเข้าโฟลเดอร์ indexSeriesList ก่อน ตามรูป Preview ที่คุณส่งมา
+                index_series_list = data.get("indexSeriesList", [])
+                
+                for series in index_series_list:
+                    if series.get("seriesCode") == "hsi":
+                        for idx in series.get("indexList", []):
+                            if idx.get("indexName") == "Hang Seng Index":
+                                last_update = str(idx.get("lastUpdate", "")) # ex: "2026-08-13 16:08:34"
+                                
+                                # 🛑 เช็คว่าข้อมูลอัปเดตเป็นของวันที่ต้องการหรือยัง
+                                if last_update.startswith(today_str_api):
+                                    
+                                    # 🕒 เช็คเวลาฮ่องกง (ต้องเลย 16:08 น. ไปแล้ว ถึงจะถือว่าตลาดปิดรอบบ่าย)
+                                    time_part = last_update.split(" ")[1] if " " in last_update else ""
+                                    if time_part >= "16:08:00":
+                                        found_result = True
+                                        price_str = str(idx.get("indexValue", "")).replace(",", "")
+                                        diff_str = str(idx.get("changeValue", "")).replace(",", "")
+                                        
+                                        # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                                        integer_part, decimal_part = f"{float(price_str):.2f}".split('.')
+                                        top_3 = integer_part[-1] + decimal_part
+                                        bottom_2 = f"{float(diff_str):.2f}".replace('-', '').replace('+', '').split('.')[1]
+                                        
+                                        msg = (f"🇭🇰 **ผลหวยฮั่งเส็งบ่าย (ปกติ)** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                
+                # ถ้าระบบยังไม่แสดงเวลาหลัง 16:08 (ตลาดยังไม่ปิดรอบบ่าย)
+                if not found_result:
+                    if not is_auto and attempts >= 2:
+                        bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮั่งเส็งบ่าย (ปกติ)**: ตลาดยังไม่ปิดรอบบ่าย (รอระบบฮ่องกงอัปเดต)")
+                        return
+            else:
+                print(f"[Error] ฮั่งเส็งบ่าย (ปกติ): ตอบกลับสถานะ {res.status_code}")
+                
+        except Exception as e:
+            print(f"[Error] ฮั่งเส็งบ่าย (ปกติ) Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮั่งเส็งบ่าย (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -2059,6 +2142,7 @@ def send_welcome(message):
         "- 10:30 น. : จีนเช้า ปกติ /test_china_morning_normal\n"
         "- 10:30 น. : ลาวทีวี /test_lao_tv\n"
         "- 10:35 น. : หุ้นฮั่งเส็งเช้า VIP /test_hangseng_morning_vip\n"
+        "- 10:35 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -2384,6 +2468,14 @@ def test_hangseng_morning_vip_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮั่งเส็งเช้า VIP**{txt}...")
     import threading
     threading.Thread(target=fetch_hangseng_morning_vip, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_hangseng_afternoon_normal'])
+def test_hangseng_afternoon_normal_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮั่งเส็งบ่าย (ปกติ)**{txt}...")
+    import threading
+    threading.Thread(target=fetch_hangseng_afternoon_normal, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -2423,6 +2515,7 @@ def time_checker():
     has_run_china_morning_normal = False
     has_run_lao_tv = False
     has_run_hangseng_morning_vip = False
+    has_run_hangseng_afternoon_normal = False
     
     last_check_date = ""
 
@@ -2465,6 +2558,7 @@ def time_checker():
             has_run_china_morning_normal = False
             has_run_lao_tv = False
             has_run_hangseng_morning_vip = False
+            has_run_hangseng_afternoon_normal = False
 
             last_check_date = current_date
 
@@ -2660,6 +2754,11 @@ def time_checker():
         if now.hour == 10 and now.minute == 35 and not has_run_hangseng_morning_vip:
             has_run_hangseng_morning_vip = True
             threading.Thread(target=fetch_hangseng_morning_vip, daemon=True).start()
+
+        # 🕒 รอบ 15:10 น. - ฮั่งเส็งบ่าย (ปกติ)
+        if now.hour == 15 and now.minute == 10 and not has_run_hangseng_afternoon_normal:
+            has_run_hangseng_afternoon_normal = True
+            threading.Thread(target=fetch_hangseng_afternoon_normal, daemon=True).start()
 
 
         time.sleep(30)
