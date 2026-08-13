@@ -1070,98 +1070,88 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: หุ้นนิเคอิ (บ่าย) (เวลา 13:30 น.) - Official API
+# 🇯🇵 ดึงผล: หุ้นนิเคอิ (บ่าย) (เวลา 13:30 น.) จากเว็บ saihuay.com
 # ==========================================
 def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
     import requests
+    from bs4 import BeautifulSoup
     from datetime import datetime, timedelta
+    import re
     import time
     
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    if offset_days > 0:
-        if not is_auto:
-            bot.send_message(GROUP_CHAT_ID, "⚠️ **นิเคอิ (บ่าย)**: API นี้ดึงได้เฉพาะผลของวันล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
-        return
-        
-    if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นนิเคอิ (บ่าย)** งวดวันที่ {today_str_display}...")
-
-    url = "https://indexes.nikkei.co.jp/en/nkave/get_real_data?idx=nk225"
+    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย
+    thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+    thai_day = target_date.day
+    thai_month = thai_months[target_date.month]
+    thai_year = target_date.year + 543
+    thai_date_str = f"{thai_day} {thai_month} {thai_year}"
     
-    # 🛡️ อัปเกรด Session และ Stealth Headers ให้เนียนเหมือนคนเป๊ะๆ
-    session = requests.Session()
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นนิเคอิ (บ่าย)** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
+
+    # ⚠️ ข้อควรระวัง: ลองเช็ค URL ของเว็บสายหวยดูนะครับว่า นิเคอิ (บ่าย) เขาใช้พารามิเตอร์ชื่ออะไร
+    # (ผมเดาว่าเป็น nikkei_afternoon หรือ nikkeib ถ้าคุณรู้ชื่อที่เป๊ะกว่า สามารถแก้ตรง lotto=... ได้เลยครับ)
+    url = "https://saihuay.com/historical?lotto=nikkei_afternoon&lang=th"
+    
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8",
-        "Referer": "https://indexes.nikkei.co.jp/en/nkave/",
-        "X-Requested-With": "XMLHttpRequest",
-        "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-        "Sec-Ch-Ua-Mobile": "?0",
-        "Sec-Ch-Ua-Platform": '"Windows"',
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-origin",
-        "Connection": "keep-alive"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
-    session.headers.update(headers)
 
     attempts = 0
+    start_time = datetime.now(tz)  # ⏱️ จดจำเวลาเริ่มต้นสำหรับระบบนินจา
     
     while True:
         attempts += 1
         try:
-            timestamp = int(time.time() * 1000)
-            res = session.get(f"{url}&_={timestamp}", timeout=15)
+            res = requests.get(url, headers=headers, timeout=15)
             
             if res.status_code == 200:
-                try:
-                    data = res.json()
-                except Exception as json_err:
-                    # 🛑 กรณีเว็บตอบกลับเป็น 200 แต่ส่งหน้า HTML ป้องกันบอทมาแทน JSON
-                    if not is_auto and attempts >= 2:
-                        bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: ถูกระบบป้องกันบอทของเว็บ Nikkei บล็อคครับ")
-                        return
-                    time.sleep(10)
-                    continue
-
-                datedtime = data.get("datedtime", "")
+                soup = BeautifulSoup(res.text, "html.parser")
                 
-                # เช็คสถานะตลาดปิด
-                if "(*Close)" in datedtime:
-                    price = data.get("price", "0")
-                    diff = data.get("diff", "0")
-                    
-                    price_val = price.replace(",", "")
-                    diff_val = diff.replace(",", "").replace("+", "").replace("-", "")
-                    
-                    integer_part, decimal_part = f"{float(price_val):.2f}".split('.')
-                    top_3 = integer_part[-1] + decimal_part
-                    bottom_2 = f"{float(diff_val):.2f}".split('.')[1]
-                    
-                    msg = (f"🇯🇵 **ผลหวยหุ้นนิเคอิ (บ่าย)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                    bot.send_message(GROUP_CHAT_ID, msg)
-                    return
-                else:
-                    if not is_auto and attempts >= 2:
-                        bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิ (บ่าย)**: ตลาดยังไม่ปิด (สถานะล่าสุด: {datedtime})")
-                        return
-            else:
-                # 🛑 กรณีเว็บตอบกลับ Error แบบเจาะจง เช่น 403
-                if not is_auto and attempts >= 2:
-                    bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: เว็บปฏิเสธการเชื่อมต่อ (Status Code: {res.status_code})")
-                    return
-                    
+                table = soup.find("table")
+                if table:
+                    tbody = table.find("tbody")
+                    if tbody:
+                        first_row = tbody.find("tr")
+                        if first_row:
+                            cells = first_row.find_all("td")
+                            if len(cells) >= 3:
+                                row_date = cells[0].get_text(strip=True)
+                                
+                                # 🛑 เช็ควันที่
+                                if thai_date_str in row_date:
+                                    top3 = cells[1].get_text(strip=True)
+                                    bot2 = cells[2].get_text(strip=True)
+                                    
+                                    if not (re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2)):
+                                        if not is_auto and attempts >= 2:
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิ (บ่าย)**: ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
+                                            return
+                                    else:
+                                        msg = (f"🇯🇵 **ผลหวยหุ้นนิเคอิ (บ่าย)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                else:
+                                    if not is_auto and attempts >= 2:
+                                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {thai_date_str} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {row_date})")
+                                        return
+                                        
         except Exception as e:
-            # 🛑 กรณี Network หรือ Timeout
-            print(f"[Error] นิเคอิ (บ่าย) Exception: {e}")
-            if not is_auto and attempts >= 2:
-                bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: เซิร์ฟเวอร์เราเชื่อมต่อกับ Nikkei ไม่สำเร็จ ({type(e).__name__})")
-                return
+            print(f"[Error] นิเคอิ (บ่าย) สายหวย Exception: {e}")
             
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 🛑 ระบบตัดจบ (Timeout) นินจาหนีกลับบ้านแบบเงียบๆ
+        if is_auto and (datetime.now(tz) - start_time).total_seconds() > 10800:
+            return  
+            
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
 
 # ==========================================
