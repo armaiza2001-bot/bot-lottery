@@ -926,13 +926,17 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
                     json_data = res.json()
                     
                     if json_data.get("status") == "success":
-                        prices_list = json_data.get("data", {}).get("prices", [])
+                        data = json_data.get("data", {})
+                        api_date = data.get("date", "")
                         
-                        for item in prices_list:
-                            # 🎯 ค้นหาบรรทัดที่ตลาดปิด (Note เป็นคำว่า Close)
-                            if item.get("note") == "Close":
-                                price = item.get("price", 0)
-                                diff = item.get("diff", "0")
+                        # 🛑 เช็คว่าวันที่ตรงกับวันนี้ไหม
+                        if api_date == today_str_api:
+                            prices = data.get("prices", {})
+                            
+                            # 🎯 เจาะเข้า prices ตรงๆ ไม่ต้องวนลูปแล้ว
+                            if prices.get("note") == "Close":
+                                price = prices.get("price", 0)
+                                diff = prices.get("diff", "0")
                                 
                                 price_str = f"{float(price):.2f}"
                                 diff_str = f"{float(diff):.2f}"
@@ -944,6 +948,10 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
                                 msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี VIP** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
                                        f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                                 bot.send_message(GROUP_CHAT_ID, msg)
+                                return
+                        else:
+                            if not is_auto and attempts >= 2:
+                                bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (ข้อมูลเว็บเป็นของงวด {api_date})")
                                 return
 
             # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
@@ -973,7 +981,7 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
-        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่จนกว่าจะเจอคำว่า Close
+        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่
         time.sleep(10)
 
 # ==========================================
