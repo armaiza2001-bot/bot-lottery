@@ -1242,7 +1242,7 @@ def fetch_nikkei_vip_afternoon(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇱🇦 ดึงผล: หวยลาวHD (เวลา 13:45 น.) - ระบบ Hybrid
+# 🇱🇦 ดึงผล: หวยลาวHD (เวลา 13:45 น.) - ระบบ Hybrid (อัปเกรดแก้รอยต่อเวลา)
 # ==========================================
 def fetch_laos_hd(offset_days=0, is_auto=True):
     import requests
@@ -1267,53 +1267,51 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
-            if offset_days == 0:
-                url = f"https://api.laoshd.com/api/result?t={timestamp}"
-                res = requests.get(url, headers=headers, timeout=15)
-                
-                if res.status_code == 200:
-                    json_data = res.json()
+            # 🚀 Step 1: เช็คหน้าหลักก่อนเสมอ (เพราะผลเมื่อวานอาจจะยังคาอยู่หน้าหลัก)
+            url_main = f"https://api.laoshd.com/api/result?t={timestamp}"
+            res_main = requests.get(url_main, headers=headers, timeout=15)
+            
+            main_matched = False
+            
+            if res_main.status_code == 200:
+                json_data = res_main.json()
+                if json_data.get("status") == "success":
+                    data = json_data.get("data", {})
+                    api_date = data.get("lotto_date", "")
                     
-                    if json_data.get("status") == "success":
-                        data = json_data.get("data", {})
-                        api_date = data.get("lotto_date", "")
+                    # 🎯 ถ้าวันที่หน้าหลัก ตรงกับเป้าหมายของเราเป๊ะๆ (ไม่ว่าจะดึงวันนี้หรือย้อนหลัง)
+                    if api_date == today_str_api:
+                        main_matched = True
+                        results = data.get("results", {})
+                        digit5 = str(results.get("digit5", "")).strip()
+                        digit3 = str(results.get("digit3", "")).strip()
+                        digit2_bottom = str(results.get("digit2_bottom", "")).strip()
                         
-                        # 🛑 เช็คว่าวันที่ใน API อัปเดตตรงกับวันที่เราต้องการดึงหรือยัง
-                        if api_date == today_str_api:
-                            results = data.get("results", {})
-                            digit5 = str(results.get("digit5", "")).strip()
-                            digit3 = str(results.get("digit3", "")).strip()
-                            digit2_bottom = str(results.get("digit2_bottom", "")).strip()
-                            
-                            # ตรวจสอบว่าผลออกครบสมบูรณ์
-                            if digit5 and digit3 and digit2_bottom and len(digit5) == 5:
-                                msg = (f"🇱🇦 **ผลหวยลาวHD** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎖️ **เลข 5 ตัว:** {digit5}\n"
-                                       f"🎯 **3 ตัวบน:** {digit3}\n"
-                                       f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return
-                            else:
-                                if not is_auto and attempts >= 2:
-                                    bot.send_message(GROUP_CHAT_ID, f"⏳ **ลาวHD**: กำลังรอผลรางวัลอัปเดตให้ครบถ้วนครับ")
-                                    return
+                        if digit5 and digit3 and digit2_bottom and len(digit5) == 5:
+                            msg = (f"🇱🇦 **ผลหวยลาวHD** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎖️ **เลข 5 ตัว:** {digit5}\n"
+                                   f"🎯 **3 ตัวบน:** {digit3}\n"
+                                   f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return
                         else:
                             if not is_auto and attempts >= 2:
-                                bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ลาวHD**: กำลังรอผลรางวัลอัปเดตให้ครบถ้วนครับ")
                                 return
-                    else:
-                        print("[Error] ลาวHD: สถานะ API ไม่สำเร็จ")
-                else:
-                    print(f"[Error] ลาวHD: ตอบกลับสถานะ {res.status_code}")
-                    
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
-            else:
-                url = f"https://api.laoshd.com/api/history?t={timestamp}"
-                res = requests.get(url, headers=headers, timeout=15)
+                                
+                    # 🛑 ถ้าดึงโหมด "วันนี้" (offset=0) แต่หน้าหลักยังเป็นวันอื่น
+                    elif offset_days == 0:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
+                            return
+
+            # ⏪ Step 2: ถ้าหาจากหน้าหลักไม่เจอ และเรากำลังดึงโหมด "ย้อนหลัง" ค่อยไปงมใน History
+            if offset_days > 0 and not main_matched:
+                url_hist = f"https://api.laoshd.com/api/history?t={timestamp}"
+                res_hist = requests.get(url_hist, headers=headers, timeout=15)
                 
-                if res.status_code == 200:
-                    json_data = res.json()
+                if res_hist.status_code == 200:
+                    json_data = res_hist.json()
                     if json_data.get("status") == "success":
                         found = False
                         for item in json_data.get("data", []):
@@ -1343,7 +1341,6 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวHD**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
         time.sleep(10)
 
 # ==========================================
