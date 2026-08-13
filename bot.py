@@ -892,6 +892,91 @@ def fetch_taiwan_normal(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇰🇷 ดึงผล: หุ้นเกาหลี VIP (เวลา 12:35 น.) - ระบบ Hybrid
+# ==========================================
+def fetch_korea_vip(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี VIP** งวดวันที่ {today_str_display}...")
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json'
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        timestamp = int(datetime.now().timestamp() * 1000)
+        
+        try:
+            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
+            if offset_days == 0:
+                url = f"https://api.ktopvipindex.com/api/kr?t={timestamp}"
+                res = requests.get(url, headers=headers, timeout=15)
+                
+                if res.status_code == 200:
+                    json_data = res.json()
+                    
+                    if json_data.get("status") == "success":
+                        prices_list = json_data.get("data", {}).get("prices", [])
+                        
+                        for item in prices_list:
+                            # 🎯 ค้นหาบรรทัดที่ตลาดปิด (Note เป็นคำว่า Close)
+                            if item.get("note") == "Close":
+                                price = item.get("price", 0)
+                                diff = item.get("diff", "0")
+                                
+                                price_str = f"{float(price):.2f}"
+                                diff_str = f"{float(diff):.2f}"
+                                
+                                integer_part, decimal_part = price_str.split('.')
+                                top_3 = integer_part[-1] + decimal_part
+                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                
+                                msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี VIP** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
+                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                bot.send_message(GROUP_CHAT_ID, msg)
+                                return
+
+            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
+            else:
+                url = f"https://api.ktopvipindex.com/api/history/kr?t={timestamp}"
+                res = requests.get(url, headers=headers, timeout=15)
+                
+                if res.status_code == 200:
+                    json_data = res.json()
+                    if json_data.get("status") == "success":
+                        for item in json_data.get("data", []):
+                            if item.get("date") == today_str_api:
+                                r1_data = item.get("r1", {})
+                                top_3 = str(r1_data.get("prize_1st", "")).strip()
+                                bottom_2 = str(r1_data.get("prize_2nd", "")).strip()
+                                
+                                if len(top_3) == 3 and len(bottom_2) == 2:
+                                    msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี VIP** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                    bot.send_message(GROUP_CHAT_ID, msg)
+                                    return
+                                    
+        except Exception as e:
+            print(f"[Error] เกาหลี VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
+            return
+            
+        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่จนกว่าจะเจอคำว่า Close
+        time.sleep(10)
+
+# ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
@@ -2385,6 +2470,7 @@ def send_welcome(message):
         "- 11:30 น. : ฮานอยHD /test_hanoi_hd\n"
         "- 11:35 น. : ไต้หวัน VIP /test_taiwan_vip\n"
         "- 12:30 น. : ไต้หวัน ปกติ /test_taiwan_normal\n"
+        "- 11:35 น. : เกาหลี VIP /test_korea_vip\n"
         "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
@@ -2743,6 +2829,14 @@ def test_taiwan_normal_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ไต้หวัน (ปกติ)**{txt}...")
     import threading
     threading.Thread(target=fetch_taiwan_normal, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_korea_vip'])
+def test_korea_vip_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **เกาหลี VIP**{txt}...")
+    import threading
+    threading.Thread(target=fetch_korea_vip, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -2786,6 +2880,7 @@ def time_checker():
     has_run_hanoi_hd = False
     has_run_taiwan_vip = False
     has_run_taiwan_normal = False
+    has_run_korea_vip = False
     
     last_check_date = ""
 
@@ -2832,6 +2927,7 @@ def time_checker():
             has_run_hanoi_hd = False
             has_run_taiwan_vip = False
             has_run_taiwan_normal = False
+            has_run_korea_vip = False
 
             last_check_date = current_date
 
@@ -3048,6 +3144,10 @@ def time_checker():
             has_run_taiwan_normal = True
             threading.Thread(target=fetch_taiwan_normal, daemon=True).start()
 
+        # 🕒 รอบ 12:35 น. - เกาหลี VIP
+        if now.hour == 12 and now.minute == 35 and not has_run_korea_vip:
+            has_run_korea_vip = True
+            threading.Thread(target=fetch_korea_vip, daemon=True).start()
 
         time.sleep(30)
 
