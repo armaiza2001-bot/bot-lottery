@@ -1343,6 +1343,106 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇨🇳 ดึงผล: หุ้นจีน (บ่าย) (เวลา 14:00 น.) - Official API (SZSE)
+# ==========================================
+def fetch_china_afternoon(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    import random
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    # 🛑 บล็อคการดึงย้อนหลัง เพราะ API Official แสดงผลแค่วันล่าสุด
+    if offset_days > 0:
+        if not is_auto:
+            bot.send_message(GROUP_CHAT_ID, "⚠️ **จีน (บ่าย)**: API ของเว็บทางการดึงได้เฉพาะผลของวันล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
+        return
+        
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นจีน (บ่าย)** งวดวันที่ {today_str_display}...")
+
+    # 🛡️ สร้าง Session และ Headers ปลอมตัวเป็นเบราว์เซอร์เพื่อกัน Firewall
+    session = requests.Session()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8",
+        "Referer": "https://www.szse.cn/",
+        "X-Request-Type": "ajax",
+        "X-Requested-With": "XMLHttpRequest"
+    }
+    session.headers.update(headers)
+
+    attempts = 0
+    
+    while True:
+        attempts += 1
+        try:
+            # สุ่มเลข Random ต่อท้าย URL เพื่อทะลวง Cache ตามรูปแบบของเว็บจีน
+            rand_val = random.random()
+            url = f"https://www.szse.cn/api/market/ssjjhq/getTimeData?random={rand_val}&marketId=1&code=399001"
+            
+            res = session.get(url, timeout=15)
+            
+            if res.status_code == 200:
+                try:
+                    json_data = res.json()
+                except Exception:
+                    if not is_auto and attempts >= 2:
+                        bot.send_message(GROUP_CHAT_ID, f"❌ **จีน (บ่าย)**: ถูกระบบป้องกันของ SZSE บล็อคครับ")
+                        return
+                    time.sleep(10)
+                    continue
+
+                api_datetime = json_data.get("datetime", "")
+                
+                # 🛑 เช็คว่าวันที่ตรงกับวันนี้ และเวลาเป็น 15:00 (เวลาจีน = 14:00 ไทย)
+                if today_str_api in api_datetime:
+                    # ตัดเอาเฉพาะส่วนเวลามาเช็ค (เช่น "15:00")
+                    api_time = api_datetime.split(" ")[1] if " " in api_datetime else ""
+                    
+                    if api_time >= "15:00":
+                        data = json_data.get("data", {})
+                        now_price = data.get("now", "0")
+                        delta_price = data.get("delta", "0")
+                        
+                        price_val = str(now_price).replace(",", "")
+                        diff_val = str(delta_price).replace(",", "").replace("+", "").replace("-", "")
+                        
+                        integer_part, decimal_part = f"{float(price_val):.2f}".split('.')
+                        top_3 = integer_part[-1] + decimal_part
+                        bottom_2 = f"{float(diff_val):.2f}".split('.')[1]
+                        
+                        msg = (f"🇨🇳 **ผลหวยหุ้นจีน (บ่าย)** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⏳ **จีน (บ่าย)**: ตลาดยังไม่ปิด (สถานะล่าสุด: {api_datetime})")
+                            return
+                else:
+                    if not is_auto and attempts >= 2:
+                        bot.send_message(GROUP_CHAT_ID, f"⚠️ **จีน (บ่าย)**: เว็บไซต์ยังไม่อัปเดตข้อมูลของวันที่ {today_str_display} (ล่าสุด: {api_datetime})")
+                        return
+            else:
+                if not is_auto and attempts >= 2:
+                    bot.send_message(GROUP_CHAT_ID, f"❌ **จีน (บ่าย)**: เว็บปฏิเสธการเชื่อมต่อ (Status Code: {res.status_code})")
+                    return
+                    
+        except Exception as e:
+            print(f"[Error] จีน (บ่าย) Exception: {e}")
+            if not is_auto and attempts >= 2:
+                bot.send_message(GROUP_CHAT_ID, f"❌ **จีน (บ่าย)**: เซิร์ฟเวอร์เชื่อมต่อไม่สำเร็จ")
+                return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
@@ -2841,6 +2941,7 @@ def send_welcome(message):
         "- 13:30 น. : เกาหลี ปกติ /test_korea_normal\n"
         "- 13:30 น. : นิเคอิ บ่าย /test_nikkei_afternoon\n"
         "- 13:45 น. : ลาวHD /test_laos_hd\n"
+        "- 14:00 น. : จีน บ่าย /test_china_afternoon\n"
         "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
@@ -3240,6 +3341,14 @@ def test_laos_hd_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวHD**{txt}...")
     import threading
     threading.Thread(target=fetch_laos_hd, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_china_afternoon'])
+def test_china_afternoon_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **จีน (บ่าย)**{txt}...")
+    import threading
+    threading.Thread(target=fetch_china_afternoon, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -3288,6 +3397,7 @@ def time_checker():
     has_run_nikkei_afternoon = False
     has_run_nikkei_vip_afternoon = False
     has_run_laos_hd = False
+    has_run_china_afternoon = False
     
     last_check_date = ""
 
@@ -3339,6 +3449,7 @@ def time_checker():
             has_run_nikkei_afternoon = False
             has_run_nikkei_vip_afternoon = False
             has_run_laos_hd = False
+            has_run_china_afternoon = False
 
             last_check_date = current_date
 
@@ -3579,6 +3690,11 @@ def time_checker():
         if now.hour == 13 and now.minute == 45 and not has_run_laos_hd:
             has_run_laos_hd = True
             threading.Thread(target=fetch_laos_hd, daemon=True).start()
+
+        # 🕒 รอบ 14:00 น. - จีน (บ่าย)
+        if now.hour == 14 and now.minute == 0 and not has_run_china_afternoon:
+            has_run_china_afternoon = True
+            threading.Thread(target=fetch_china_afternoon, daemon=True).start()
 
         time.sleep(30)
 
