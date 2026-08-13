@@ -1070,6 +1070,81 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇯🇵 ดึงผล: หุ้นนิเคอิ (บ่าย) (เวลา 13:30 น.) - Official API
+# ==========================================
+def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    # 🛑 บล็อคการดึงย้อนหลัง เพราะ API Official ของ Nikkei แสดงผลแค่วันล่าสุด
+    if offset_days > 0:
+        if not is_auto:
+            bot.send_message(GROUP_CHAT_ID, "⚠️ **นิเคอิ (บ่าย)**: API นี้ดึงได้เฉพาะผลของวันล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
+        return
+        
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นนิเคอิ (บ่าย)** งวดวันที่ {today_str_display}...")
+
+    # ใช้ URL ตรงจากเว็บ Official ของ Nikkei
+    url = "https://indexes.nikkei.co.jp/en/nkave/get_real_data?idx=nk225"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    
+    while True:
+        attempts += 1
+        try:
+            # แนบ Timestamp ป้องกัน Cache
+            timestamp = int(time.time() * 1000)
+            res = requests.get(f"{url}&_={timestamp}", headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                data = res.json()
+                datedtime = data.get("datedtime", "")
+                
+                # 🛑 เช็คสถานะตลาดปิดจากคำว่า (*Close) ในวันที่
+                if "(*Close)" in datedtime:
+                    price = data.get("price", "0")
+                    diff = data.get("diff", "0")
+                    
+                    # คลีนตัวเลข (เอาลูกน้ำและเครื่องหมายออก)
+                    price_val = price.replace(",", "")
+                    diff_val = diff.replace(",", "").replace("+", "").replace("-", "")
+                    
+                    # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                    integer_part, decimal_part = f"{float(price_val):.2f}".split('.')
+                    top_3 = integer_part[-1] + decimal_part
+                    bottom_2 = f"{float(diff_val):.2f}".split('.')[1]
+                    
+                    msg = (f"🇯🇵 **ผลหวยหุ้นนิเคอิ (บ่าย)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                    bot.send_message(GROUP_CHAT_ID, msg)
+                    return
+                else:
+                    if not is_auto and attempts >= 2:
+                        bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิ (บ่าย)**: ตลาดยังไม่ปิด (สถานะล่าสุด: {datedtime})")
+                        return
+            else:
+                print(f"[Error] นิเคอิ (บ่าย): ตอบกลับสถานะ {res.status_code}")
+                    
+        except Exception as e:
+            print(f"[Error] นิเคอิ (บ่าย) Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
@@ -2565,6 +2640,7 @@ def send_welcome(message):
         "- 12:30 น. : ไต้หวัน ปกติ /test_taiwan_normal\n"
         "- 11:35 น. : เกาหลี VIP /test_korea_vip\n"
         "- 13:30 น. : เกาหลี ปกติ /test_korea_normal\n"
+        "- 13:30 น. : นิเคอิ บ่าย /test_nikkei_afternoon\n"
         "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
@@ -2939,6 +3015,14 @@ def test_korea_normal_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **เกาหลี (ปกติ)**{txt}...")
     import threading
     threading.Thread(target=fetch_korea_normal, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_nikkei_afternoon'])
+def test_nikkei_afternoon_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **นิเคอิ (บ่าย)**{txt}...")
+    import threading
+    threading.Thread(target=fetch_nikkei_afternoon, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -2984,6 +3068,7 @@ def time_checker():
     has_run_taiwan_normal = False
     has_run_korea_vip = False
     has_run_korea_normal = False
+    has_run_nikkei_afternoon = False
     
     last_check_date = ""
 
@@ -3032,6 +3117,7 @@ def time_checker():
             has_run_taiwan_normal = False
             has_run_korea_vip = False
             has_run_korea_normal = False
+            has_run_nikkei_afternoon = False
 
             last_check_date = current_date
 
@@ -3257,6 +3343,11 @@ def time_checker():
         if now.hour == 13 and now.minute == 32 and not has_run_korea_normal:
             has_run_korea_normal = True
             threading.Thread(target=fetch_korea_normal, daemon=True).start()
+
+        # 🕒 รอบ 13:30 น. - นิเคอิ (บ่าย)
+        if now.hour == 13 and now.minute == 30 and not has_run_nikkei_afternoon:
+            has_run_nikkei_afternoon = True
+            threading.Thread(target=fetch_nikkei_afternoon, daemon=True).start()
 
         time.sleep(30)
 
