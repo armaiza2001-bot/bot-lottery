@@ -1080,7 +1080,6 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # 🛑 บล็อคการดึงย้อนหลัง เพราะ API Official ของ Nikkei แสดงผลแค่วันล่าสุด
     if offset_days > 0:
         if not is_auto:
             bot.send_message(GROUP_CHAT_ID, "⚠️ **นิเคอิ (บ่าย)**: API นี้ดึงได้เฉพาะผลของวันล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
@@ -1089,37 +1088,55 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นนิเคอิ (บ่าย)** งวดวันที่ {today_str_display}...")
 
-    # ใช้ URL ตรงจากเว็บ Official ของ Nikkei
     url = "https://indexes.nikkei.co.jp/en/nkave/get_real_data?idx=nk225"
+    
+    # 🛡️ อัปเกรด Session และ Stealth Headers ให้เนียนเหมือนคนเป๊ะๆ
+    session = requests.Session()
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "application/json"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8",
+        "Referer": "https://indexes.nikkei.co.jp/en/nkave/",
+        "X-Requested-With": "XMLHttpRequest",
+        "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "Connection": "keep-alive"
     }
+    session.headers.update(headers)
 
     attempts = 0
-    start_time = datetime.now(tz)  # ⏱️ จดจำเวลาเริ่มต้นตอนรันออโต้
     
     while True:
         attempts += 1
         try:
-            # แนบ Timestamp ป้องกัน Cache
             timestamp = int(time.time() * 1000)
-            res = requests.get(f"{url}&_={timestamp}", headers=headers, timeout=15)
+            res = session.get(f"{url}&_={timestamp}", timeout=15)
             
             if res.status_code == 200:
-                data = res.json()
+                try:
+                    data = res.json()
+                except Exception as json_err:
+                    # 🛑 กรณีเว็บตอบกลับเป็น 200 แต่ส่งหน้า HTML ป้องกันบอทมาแทน JSON
+                    if not is_auto and attempts >= 2:
+                        bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: ถูกระบบป้องกันบอทของเว็บ Nikkei บล็อคครับ")
+                        return
+                    time.sleep(10)
+                    continue
+
                 datedtime = data.get("datedtime", "")
                 
-                # 🛑 เช็คสถานะตลาดปิดจากคำว่า (*Close) ในวันที่
+                # เช็คสถานะตลาดปิด
                 if "(*Close)" in datedtime:
                     price = data.get("price", "0")
                     diff = data.get("diff", "0")
                     
-                    # คลีนตัวเลข (เอาลูกน้ำและเครื่องหมายออก)
                     price_val = price.replace(",", "")
                     diff_val = diff.replace(",", "").replace("+", "").replace("-", "")
                     
-                    # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
                     integer_part, decimal_part = f"{float(price_val):.2f}".split('.')
                     top_3 = integer_part[-1] + decimal_part
                     bottom_2 = f"{float(diff_val):.2f}".split('.')[1]
@@ -1133,20 +1150,18 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
                         bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิ (บ่าย)**: ตลาดยังไม่ปิด (สถานะล่าสุด: {datedtime})")
                         return
             else:
-                print(f"[Error] นิเคอิ (บ่าย): ตอบกลับสถานะ {res.status_code}")
+                # 🛑 กรณีเว็บตอบกลับ Error แบบเจาะจง เช่น 403
+                if not is_auto and attempts >= 2:
+                    bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: เว็บปฏิเสธการเชื่อมต่อ (Status Code: {res.status_code})")
+                    return
                     
         except Exception as e:
+            # 🛑 กรณี Network หรือ Timeout
             print(f"[Error] นิเคอิ (บ่าย) Exception: {e}")
+            if not is_auto and attempts >= 2:
+                bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: เซิร์ฟเวอร์เราเชื่อมต่อกับ Nikkei ไม่สำเร็จ ({type(e).__name__})")
+                return
             
-        if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
-            return
-            
-        # 🛑 ระบบตัดจบ (Timeout) นินจาหนีกลับบ้านแบบเงียบๆ
-        if is_auto and (datetime.now(tz) - start_time).total_seconds() > 10800:
-            return  
-            
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
         time.sleep(10)
 
 # ==========================================
