@@ -1007,13 +1007,14 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี (ปกติ)** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
 
-    # เปลี่ยน URL มาใช้สายหวยเรียบร้อย
     url = "https://saihuay.com/historical?lotto=korea&lang=th"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
 
     attempts = 0
+    start_time = datetime.now(tz)  # ⏱️ จดจำเวลาเริ่มต้นตอนรันออโต้
+    
     while True:
         attempts += 1
         try:
@@ -1032,7 +1033,7 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
                             if len(cells) >= 3:
                                 row_date = cells[0].get_text(strip=True)
                                 
-                                # 🛑 เช็ควันที่ในตาราง
+                                # 🛑 เช็ควันที่ในตารางว่าตรงกับงวดที่เราต้องการไหม
                                 if thai_date_str in row_date:
                                     top3 = cells[1].get_text(strip=True)
                                     bot2 = cells[2].get_text(strip=True)
@@ -1043,7 +1044,7 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
                                             bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี (ปกติ)**: ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
                                             return
                                         
-                                    # ✅ กรณีออกเป็นตัวเลขล้วน 100% แล้ว
+                                    # ✅ กรณีออกเป็นตัวเลขล้วน 100% แล้ว ส่งผลได้เลย
                                     else:
                                         msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี (ปกติ)** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
                                                f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
@@ -1060,6 +1061,10 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ **เกาหลี (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
+            
+        # 🛑 ระบบตัดจบ (Timeout) แบบนินจา
+        if is_auto and (datetime.now(tz) - start_time).total_seconds() > 10800:
+            return  # ถ้ารอเกิน 3 ชม. (10800 วินาที) ให้จบการทำงานเงียบๆ
             
         # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
         time.sleep(10)
