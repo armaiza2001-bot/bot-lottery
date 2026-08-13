@@ -1267,7 +1267,7 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 Step 1: เช็คหน้าหลักก่อนเสมอ (เพราะผลเมื่อวานอาจจะยังคาอยู่หน้าหลัก)
+            # 🚀 Step 1: เช็คหน้าหลักก่อนเสมอ
             url_main = f"https://api.laoshd.com/api/result?t={timestamp}"
             res_main = requests.get(url_main, headers=headers, timeout=15)
             
@@ -1279,7 +1279,7 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
                     data = json_data.get("data", {})
                     api_date = data.get("lotto_date", "")
                     
-                    # 🎯 ถ้าวันที่หน้าหลัก ตรงกับเป้าหมายของเราเป๊ะๆ (ไม่ว่าจะดึงวันนี้หรือย้อนหลัง)
+                    # 🎯 ถ้าวันที่หน้าหลักตรงกับที่เราต้องการ
                     if api_date == today_str_api:
                         main_matched = True
                         results = data.get("results", {})
@@ -1287,9 +1287,9 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
                         digit3 = str(results.get("digit3", "")).strip()
                         digit2_bottom = str(results.get("digit2_bottom", "")).strip()
                         
+                        # เช็คให้แน่ใจว่าเว็บอัปเดตเลขลงครบแล้ว
                         if digit5 and digit3 and digit2_bottom and len(digit5) == 5:
                             msg = (f"🇱🇦 **ผลหวยลาวHD** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎖️ **เลข 5 ตัว:** {digit5}\n"
                                    f"🎯 **3 ตัวบน:** {digit3}\n"
                                    f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
@@ -1299,13 +1299,13 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
                                 bot.send_message(GROUP_CHAT_ID, f"⏳ **ลาวHD**: กำลังรอผลรางวัลอัปเดตให้ครบถ้วนครับ")
                                 return
                                 
-                    # 🛑 ถ้าดึงโหมด "วันนี้" (offset=0) แต่หน้าหลักยังเป็นวันอื่น
+                    # 🛑 ถ้าเป็นโหมดดึงวันนี้ แต่หน้าเว็บยังเป็นของวันก่อน
                     elif offset_days == 0:
                         if not is_auto and attempts >= 2:
                             bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
                             return
 
-            # ⏪ Step 2: ถ้าหาจากหน้าหลักไม่เจอ และเรากำลังดึงโหมด "ย้อนหลัง" ค่อยไปงมใน History
+            # ⏪ Step 2: หาจากหน้าประวัติย้อนหลัง (ถ้าหน้าหลักไม่ใช่ของวันที่ต้องการ)
             if offset_days > 0 and not main_matched:
                 url_hist = f"https://api.laoshd.com/api/history?t={timestamp}"
                 res_hist = requests.get(url_hist, headers=headers, timeout=15)
@@ -1324,7 +1324,6 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
                                 
                                 if digit5 and digit3 and digit2_bottom:
                                     msg = (f"🇱🇦 **ผลหวยลาวHD** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎖️ **เลข 5 ตัว:** {digit5}\n"
                                            f"🎯 **3 ตัวบน:** {digit3}\n"
                                            f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
