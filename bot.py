@@ -985,6 +985,104 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇰🇷 ดึงผล: หุ้นเกาหลี (ปกติ) (เวลา 13:30 น.) - ระบบ Web Scraping
+# ==========================================
+def fetch_korea_normal(offset_days=0, is_auto=True):
+    import requests
+    from bs4 import BeautifulSoup
+    from datetime import datetime, timedelta
+    import re
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    # 🛑 บล็อคการดึงย้อนหลัง เพราะ TradingView แสดงแค่ข้อมูลวันล่าสุด
+    if offset_days > 0:
+        if not is_auto:
+            bot.send_message(GROUP_CHAT_ID, "⚠️ **หุ้นเกาหลี (ปกติ)**: ลิงก์เป้าหมายแสดงเฉพาะผลล่าสุด ไม่สามารถดึงผลย้อนหลังได้ครับ")
+        return
+        
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี (ปกติ)** งวดวันที่ {today_str_display} จาก TradingView...")
+
+    url = "https://th.tradingview.com/symbols/KRX-KTOP30/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml",
+        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            res = requests.get(f"{url}?_={int(time.time())}", headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                soup = BeautifulSoup(res.text, "html.parser")
+                text = soup.get_text(separator=" ")
+                
+                # 🛑 ไฮไลท์การแก้ปัญหา: เช็คว่าตลาด "ปิด" หรือยัง!
+                # ถ้ายังไม่มีคำว่า "เวลาปิด" หรือ "Closed" ในหน้าเว็บ ถือว่ายังไม่ชัวร์ ให้รอต่อไป
+                if "เวลาปิด" not in text and "Closed" not in text and "ปิดตลาด" not in text:
+                    if not is_auto and attempts >= 2:
+                        bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี (ปกติ)**: ตลาดยังไม่ปิด หรือหน้าเว็บยังไม่อัปเดตสถานะครับ")
+                        return
+                    # ถ้าเป็นออโต้ โค้ดจะทะลุไปที่ time.sleep(10) เพื่อวนลูปรอต่อไป
+                
+                # ✅ ถ้าตลาดปิดแล้ว ค่อยเจาะเอาตัวเลขมา
+                else:
+                    price_str = ""
+                    diff_str = ""
+                    
+                    title_text = soup.title.string if soup.title else ""
+                    match_title = re.search(r'([\d,]+\.\d{2})\s*[▲▼+-]\s*([+-]?[\d,]+\.\d{2})', title_text)
+                    
+                    if match_title:
+                        price_str = match_title.group(1)
+                        diff_str = match_title.group(2)
+                    else:
+                        match_body = re.search(r'(\d{1,3}(?:,\d{3})+\.\d{2})\s*(?:POINT)?\s*([+-]?\d{1,3}(?:,\d{3})*\.\d{2})', text)
+                        if match_body:
+                            price_str = match_body.group(1)
+                            diff_str = match_body.group(2)
+                            
+                    if price_str and diff_str:
+                        price_val = price_str.replace(',', '')
+                        diff_val = diff_str.replace(',', '').replace('+', '')
+                        
+                        integer_part, decimal_part = f"{float(price_val):.2f}".split('.')
+                        top_3 = integer_part[-1] + decimal_part
+                        bottom_2 = f"{float(diff_val):.2f}".replace('-', '').replace('+', '').split('.')[1]
+                        
+                        msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี (ปกติ)** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี (ปกติ)**: ตลาดปิดแล้ว แต่ดึงตัวเลขไม่สำเร็จครับ")
+                            return
+                        
+            elif res.status_code == 403:
+                if not is_auto and attempts >= 2:
+                    bot.send_message(GROUP_CHAT_ID, "❌ **เกาหลี (ปกติ)**: ระบบถูก TradingView ปฏิเสธการเข้าถึง (403 Forbidden)")
+                    return
+            else:
+                print(f"[Error] เกาหลี (ปกติ): ตอบกลับสถานะ {res.status_code}")
+                    
+        except Exception as e:
+            print(f"[Error] เกาหลี (ปกติ) Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **เกาหลี (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนเช็คหน้าเว็บใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
@@ -2479,6 +2577,7 @@ def send_welcome(message):
         "- 11:35 น. : ไต้หวัน VIP /test_taiwan_vip\n"
         "- 12:30 น. : ไต้หวัน ปกติ /test_taiwan_normal\n"
         "- 11:35 น. : เกาหลี VIP /test_korea_vip\n"
+        "- 13:30 น. : เกาหลี ปกติ /test_korea_normal\n"
         "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
@@ -2845,6 +2944,14 @@ def test_korea_vip_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **เกาหลี VIP**{txt}...")
     import threading
     threading.Thread(target=fetch_korea_vip, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_korea_normal'])
+def test_korea_normal_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **เกาหลี (ปกติ)**{txt}...")
+    import threading
+    threading.Thread(target=fetch_korea_normal, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -2889,6 +2996,7 @@ def time_checker():
     has_run_taiwan_vip = False
     has_run_taiwan_normal = False
     has_run_korea_vip = False
+    has_run_korea_normal = False
     
     last_check_date = ""
 
@@ -2936,6 +3044,7 @@ def time_checker():
             has_run_taiwan_vip = False
             has_run_taiwan_normal = False
             has_run_korea_vip = False
+            has_run_korea_normal = False
 
             last_check_date = current_date
 
@@ -3156,6 +3265,11 @@ def time_checker():
         if now.hour == 12 and now.minute == 35 and not has_run_korea_vip:
             has_run_korea_vip = True
             threading.Thread(target=fetch_korea_vip, daemon=True).start()
+
+        # 🕒 รอบ 13:32 น. - เกาหลี (ปกติ) (เผื่อเวลาให้ตลาดปิดสมบูรณ์)
+        if now.hour == 13 and now.minute == 32 and not has_run_korea_normal:
+            has_run_korea_normal = True
+            threading.Thread(target=fetch_korea_normal, daemon=True).start()
 
         time.sleep(30)
 
