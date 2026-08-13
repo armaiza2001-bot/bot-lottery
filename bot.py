@@ -1091,9 +1091,15 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
 
     # ใช้ URL ตรงจากเว็บ Official ของ Nikkei
     url = "https://indexes.nikkei.co.jp/en/nkave/get_real_data?idx=nk225"
+    
+    # 🛡️ ไฮไลท์การแก้ไข: อัปเกรด Headers ปลอมตัวเป็นเบราว์เซอร์คนจริงๆ เพื่อทะลวงบล็อค
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "application/json"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Referer": "https://indexes.nikkei.co.jp/en/nkave/",
+        "X-Requested-With": "XMLHttpRequest",
+        "Connection": "keep-alive"
     }
 
     attempts = 0
