@@ -813,6 +813,85 @@ def fetch_taiwan_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇹🇼 ดึงผล: หุ้นไต้หวัน (ปกติ) (เวลา 12:30 น.)
+# ==========================================
+def fetch_taiwan_normal(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    # ⚠️ ข้อควรระวัง: เว็บไต้หวันใช้วันที่รูปแบบ YYYY/MM/DD (ใช้สแลช)
+    today_str_api = target_date.strftime("%Y/%m/%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นไต้หวัน (ปกติ)** งวดวันที่ {today_str_display}...")
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://www.twse.com.tw/",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        timestamp = int(time.time() * 1000)
+        url = f"https://www.twse.com.tw/res/data/zh/home/marquee.json?_={timestamp}"
+        
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                data = res.json()
+                taiex = data.get("mi", {}).get("taiex", {})
+                dt = taiex.get("datetime", "") # รูปแบบ: "2026/08/13 13:31:00"
+                
+                # 🛑 เช็คว่าวันที่ใน API อัปเดตตรงกับวันที่เราต้องการดึงหรือยัง
+                if dt.startswith(today_str_api):
+                    time_part = dt.split(" ")[1] if " " in dt else ""
+                    
+                    # 🕒 เช็คเวลาไต้หวัน (ต้องเป็น 13:30:00 เป็นต้นไป ถึงจะถือว่าตลาดปิด)
+                    if time_part >= "13:30:00":
+                        price = str(taiex.get("index", ""))
+                        diff = str(taiex.get("diff", ""))
+                        
+                        if price and diff:
+                            price_str = f"{float(price):.2f}"
+                            diff_str = f"{float(diff):.2f}"
+                            
+                            # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                            integer_part, decimal_part = price_str.split('.')
+                            top_3 = integer_part[-1] + decimal_part
+                            bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                            
+                            msg = (f"🇹🇼 **ผลหวยหุ้นไต้หวัน (ปกติ)** 🇹🇼\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ไต้หวัน (ปกติ)**: ตลาดยังไม่ปิด (เวลาเซิร์ฟเวอร์ไต้หวันล่าสุด {time_part})")
+                            return
+                else:
+                    if not is_auto and attempts >= 2:
+                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (ข้อมูลเว็บเป็นของงวด {dt})")
+                        return
+            else:
+                 print(f"[Error] ไต้หวัน (ปกติ): ตอบกลับสถานะ {res.status_code}")
+                    
+        except Exception as e:
+            print(f"[Error] ไต้หวัน (ปกติ) Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ไต้หวัน (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
@@ -2305,6 +2384,7 @@ def send_welcome(message):
         "- 10:35 น. : หุ้นฮั่งเส็งเช้า VIP /test_hangseng_morning_vip\n"
         "- 11:30 น. : ฮานอยHD /test_hanoi_hd\n"
         "- 11:35 น. : ไต้หวัน VIP /test_taiwan_vip\n"
+        "- 12:30 น. : ไต้หวัน ปกติ /test_taiwan_normal\n"
         "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
@@ -2655,6 +2735,14 @@ def test_taiwan_vip_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ไต้หวัน VIP**{txt}...")
     import threading
     threading.Thread(target=fetch_taiwan_vip, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_taiwan_normal'])
+def test_taiwan_normal_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ไต้หวัน (ปกติ)**{txt}...")
+    import threading
+    threading.Thread(target=fetch_taiwan_normal, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -2697,6 +2785,7 @@ def time_checker():
     has_run_hangseng_afternoon_normal = False
     has_run_hanoi_hd = False
     has_run_taiwan_vip = False
+    has_run_taiwan_normal = False
     
     last_check_date = ""
 
@@ -2742,6 +2831,7 @@ def time_checker():
             has_run_hangseng_afternoon_normal = False
             has_run_hanoi_hd = False
             has_run_taiwan_vip = False
+            has_run_taiwan_normal = False
 
             last_check_date = current_date
 
@@ -2952,6 +3042,11 @@ def time_checker():
         if now.hour == 11 and now.minute == 35 and not has_run_taiwan_vip:
             has_run_taiwan_vip = True
             threading.Thread(target=fetch_taiwan_vip, daemon=True).start()
+
+        # 🕒 รอบ 12:32 น. - ไต้หวัน (ปกติ)
+        if now.hour == 12 and now.minute == 32 and not has_run_taiwan_normal:
+            has_run_taiwan_normal = True
+            threading.Thread(target=fetch_taiwan_normal, daemon=True).start()
 
 
         time.sleep(30)
