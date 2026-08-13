@@ -652,6 +652,82 @@ def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇻🇳 ดึงผล: ฮานอยHD (เวลา 11:30 น.)
+# ==========================================
+def fetch_hanoi_hd(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยHD** งวดวันที่ {today_str_display}...")
+
+    # ⚠️ ถ้า URL ไม่ใช่ตัวนี้ สามารถเปลี่ยนได้เลยนะครับ
+    url = "https://gg.hanoihd.com/api/result" 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            # ใส่ Timestamp หลอกแคช
+            timestamp = int(datetime.now().timestamp() * 1000)
+            res = requests.get(f"{url}?_={timestamp}", headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                if json_data.get("status") == "success":
+                    data = json_data.get("data", {})
+                    api_date = data.get("lotto_date", "")
+                    
+                    # 🛑 เช็คว่าวันที่ใน API อัปเดตตรงกับวันที่เราต้องการดึงหรือยัง
+                    if api_date == today_str_api:
+                        results = data.get("results", {})
+                        prize_1st = str(results.get("prize_1st", "")).strip()
+                        prize_2nd = str(results.get("prize_2nd", "")).strip()
+                        
+                        # ตรวจสอบว่าผลออกครบหรือยัง
+                        if len(prize_1st) >= 3 and len(prize_2nd) >= 2:
+                            # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                            top_3 = prize_1st[-3:]
+                            bottom_2 = prize_2nd[-2:]
+                            
+                            msg = (f"🇻🇳 **ผลหวยฮานอยHD** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return
+                        else:
+                            if not is_auto and attempts >= 2:
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮานอยHD**: กำลังรอผลรางวัลอัปเดตครับ")
+                                return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
+                            return
+                else:
+                    print("[Error] ฮานอยHD: สถานะ API ไม่สำเร็จ")
+            else:
+                 print(f"[Error] ฮานอยHD: ตอบกลับสถานะ {res.status_code}")
+                    
+        except Exception as e:
+            print(f"[Error] ฮานอยHD Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยHD**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
@@ -2142,7 +2218,8 @@ def send_welcome(message):
         "- 10:30 น. : จีนเช้า ปกติ /test_china_morning_normal\n"
         "- 10:30 น. : ลาวทีวี /test_lao_tv\n"
         "- 10:35 น. : หุ้นฮั่งเส็งเช้า VIP /test_hangseng_morning_vip\n"
-        "- 10:35 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
+        "- 11:30 น. : ฮานอยHD /test_hanoi_hd\n"
+        "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -2476,6 +2553,14 @@ def test_hangseng_afternoon_normal_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮั่งเส็งบ่าย (ปกติ)**{txt}...")
     import threading
     threading.Thread(target=fetch_hangseng_afternoon_normal, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_hanoi_hd'])
+def test_hanoi_hd_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยHD**{txt}...")
+    import threading
+    threading.Thread(target=fetch_hanoi_hd, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -2516,6 +2601,7 @@ def time_checker():
     has_run_lao_tv = False
     has_run_hangseng_morning_vip = False
     has_run_hangseng_afternoon_normal = False
+    has_run_hanoi_hd = False
     
     last_check_date = ""
 
@@ -2559,6 +2645,7 @@ def time_checker():
             has_run_lao_tv = False
             has_run_hangseng_morning_vip = False
             has_run_hangseng_afternoon_normal = False
+            has_run_hanoi_hd = False
 
             last_check_date = current_date
 
@@ -2759,6 +2846,11 @@ def time_checker():
         if now.hour == 15 and now.minute == 10 and not has_run_hangseng_afternoon_normal:
             has_run_hangseng_afternoon_normal = True
             threading.Thread(target=fetch_hangseng_afternoon_normal, daemon=True).start()
+
+        # 🕒 รอบ 11:30 น. - ฮานอยHD
+        if now.hour == 11 and now.minute == 30 and not has_run_hanoi_hd:
+            has_run_hanoi_hd = True
+            threading.Thread(target=fetch_hanoi_hd, daemon=True).start()
 
 
         time.sleep(30)
