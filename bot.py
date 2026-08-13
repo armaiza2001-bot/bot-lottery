@@ -2890,6 +2890,7 @@ def test_all_yesterday(message):
     threading.Thread(target=fetch_india_stock_fast, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_hangseng_morning_vip, args=(1, False), daemon=True).start()
     threading.Thread(target=fetch_singapore_vip_fast, args=(1, False), daemon=True).start()
+    threading.Thread(target=fetch_laos_hd, args=(1, False), daemon=True).start()
     
     # 🌇 รอบเย็น (ฮานอย + อียิปต์ + มาเลย์)
     threading.Thread(target=fetch_hanoi_special, args=(1, False), daemon=True).start()
