@@ -666,8 +666,8 @@ def fetch_hanoi_hd(offset_days=0, is_auto=True):
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยHD** งวดวันที่ {today_str_display}...")
 
-    # ⚠️ ถ้า URL ไม่ใช่ตัวนี้ สามารถเปลี่ยนได้เลยนะครับ
-    url = "https://gg.hanoihd.com/api/result" 
+    # ✅ อัปเดต URL ให้ตรงกับเว็บ API จริงแล้ว
+    url = "https://api.xosohd.com/result" 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json"
