@@ -1091,18 +1091,13 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
 
     # ใช้ URL ตรงจากเว็บ Official ของ Nikkei
     url = "https://indexes.nikkei.co.jp/en/nkave/get_real_data?idx=nk225"
-    
-    # 🛡️ ไฮไลท์การแก้ไข: อัปเกรด Headers ปลอมตัวเป็นเบราว์เซอร์คนจริงๆ เพื่อทะลวงบล็อค
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Referer": "https://indexes.nikkei.co.jp/en/nkave/",
-        "X-Requested-With": "XMLHttpRequest",
-        "Connection": "keep-alive"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
     }
 
     attempts = 0
+    start_time = datetime.now(tz)  # ⏱️ จดจำเวลาเริ่มต้นตอนรันออโต้
     
     while True:
         attempts += 1
@@ -1146,6 +1141,10 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
+            
+        # 🛑 ระบบตัดจบ (Timeout) นินจาหนีกลับบ้านแบบเงียบๆ
+        if is_auto and (datetime.now(tz) - start_time).total_seconds() > 10800:
+            return  
             
         # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
         time.sleep(10)
