@@ -164,7 +164,7 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) จากเว็บ saihuay.com (แก้บั๊กระบบหยุดรอผลให้สมบูรณ์)
+# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) จากเว็บ saihuay.com (อัปเกรดระบบดักรอผลสุดแกร่ง)
 # ==========================================
 def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
     import requests
@@ -199,7 +199,6 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
             
             if res.status_code == 200:
                 soup = BeautifulSoup(res.text, "html.parser")
-                top3, bot2 = None, None
                 
                 table = soup.find("table")
                 if table:
@@ -216,29 +215,24 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
                                     top3 = cells[1].get_text(strip=True)
                                     bot2 = cells[2].get_text(strip=True)
                                     
-                                    # ⏳ ดักสถานะกำลังโหลดผล (ไอคอนหมุน)
-                                    if top3 == "" or bot2 == "":
+                                    # ⏳ เช็คความบริสุทธิ์ของตัวเลข: ถ้าไม่ใช่ตัวเลขล้วนๆ (เช่น หน้าว่าง, ขีด, Pending) ถือว่ายังไม่ออก
+                                    if not (re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2)):
                                         if not is_auto and attempts >= 2:
-                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิเช้า (ปกติ)**: กำลังรอออกรางวัลครับ (หน้าเว็บกำลังโหลด)")
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิเช้า (ปกติ)**: ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
                                             return
+                                        # ถ้ารันออโต้ โค้ดจะทะลุเงื่อนไขนี้ไปลงที่ time.sleep(10) เพื่อวนลูปต่อไปแบบไม่ตาย
                                         
-                                    # ✅ กรณีตัวเลขออกแล้ว
-                                    elif "pending" not in top3.lower() and "pending" not in bot2.lower():
-                                        if re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2):
-                                            msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า (ปกติ)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                                                   f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
-                                            bot.send_message(GROUP_CHAT_ID, msg)
-                                            return
-                                        else:
-                                            if not is_auto:
-                                                bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลล่าสุดยังไม่ใช่ตัวเลขสมบูรณ์ (บน: {top3}, ล่าง: {bot2})")
-                                            return
+                                    # ✅ กรณีออกเป็นตัวเลข 100% แล้ว
+                                    else:
+                                        msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า (ปกติ)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
                                 else:
-                                    # 🛠️ จุดที่แก้ไข: เอา return ซ่อนไว้ข้างใน if ให้มิดชิด บอทออโต้จะได้ไม่เผลอไปเหยียบ
                                     if not is_auto and attempts >= 2:
                                         bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {thai_date_str} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {row_date})")
                                         return
-                                    
+                                        
         except Exception as e:
             print(f"[Error] นิเคอิเช้า (ปกติ) สายหวย Exception: {e}")
             
