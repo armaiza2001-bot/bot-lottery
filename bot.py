@@ -1528,6 +1528,94 @@ def fetch_hanoi_tv(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇨🇳 ดึงผล: จีนบ่าย VIP (เวลา 14:25 น.) - ระบบ Hybrid
+# ==========================================
+def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d") 
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยจีนบ่าย VIP** งวดวันที่ {today_str_display}...")
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json'
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        timestamp = int(datetime.now().timestamp() * 1000)
+        
+        try:
+            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
+            if offset_days == 0:
+                url = f"https://api.shenzhenindex.com/api/cn?t={timestamp}"
+                res = requests.get(url, headers=headers, timeout=15)
+                
+                if res.status_code == 200:
+                    json_data = res.json()
+                    
+                    if json_data.get("status") == "success":
+                        prices_list = json_data.get("data", {}).get("prices", [])
+                        
+                        for item in prices_list:
+                            # 🎯 ค้นหาบรรทัดที่ตลาดปิด และเวลาต้องเป็นรอบบ่าย (15:xx ตามเวลาจีน)
+                            item_time = item.get("time", "")
+                            if item.get("note") == "Close" and item_time.startswith("15:"):
+                                price = item.get("price", 0)
+                                diff = item.get("diff", "0")
+                                
+                                price_str = f"{float(price):.2f}"
+                                diff_str = f"{float(diff):.2f}"
+                                
+                                integer_part, decimal_part = price_str.split('.')
+                                top_3 = integer_part[-1] + decimal_part
+                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                
+                                msg = (f"🇨🇳 **ผลหวยจีนบ่าย VIP** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                bot.send_message(GROUP_CHAT_ID, msg)
+                                return
+
+            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
+            else:
+                url = f"https://api.shenzhenindex.com/api/history/cn?t={timestamp}"
+                res = requests.get(url, headers=headers, timeout=15)
+                
+                if res.status_code == 200:
+                    json_data = res.json()
+                    if json_data.get("status") == "success":
+                        for item in json_data.get("data", []):
+                            if item.get("date") == today_str_api:
+                                # จีน VIP มี 2 รอบ รอบบ่ายจะอยู่ใน r2
+                                r2_data = item.get("r2", {})
+                                top_3 = str(r2_data.get("prize_1st", "")).strip()
+                                bottom_2 = str(r2_data.get("prize_2nd", "")).strip()
+                                
+                                # 🛡️ ดักจับความถูกต้องของตัวเลข
+                                if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                    msg = (f"🇨🇳 **ผลหวยจีนบ่าย VIP** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                    bot.send_message(GROUP_CHAT_ID, msg)
+                                    return
+                                    
+        except Exception as e:
+            print(f"[Error] จีนบ่าย VIP: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"⏳ **จีนบ่าย VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
+            return
+            
+        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
@@ -3059,6 +3147,7 @@ def send_welcome(message):
         "- 13:30 น. : นิเคอิ บ่าย /test_nikkei_afternoon\n"
         "- 13:45 น. : ลาวHD /test_laos_hd\n"
         "- 14:00 น. : จีน บ่าย /test_china_afternoon\n"
+        "- 14:25 น. : จีนบ่าย VIP /test_china_vip_afternoon\n"
         "- 14:30 น. : ฮานอยทีวี /test_hanoi_tv\n"
         "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
@@ -3473,6 +3562,14 @@ def test_hanoi_tv_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยทีวี**...")
     import threading
     threading.Thread(target=fetch_hanoi_tv, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_china_vip_afternoon'])
+def test_china_vip_afternoon_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **จีนบ่าย VIP**{txt}...")
+    import threading
+    threading.Thread(target=fetch_china_vip_afternoon, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -3523,6 +3620,7 @@ def time_checker():
     has_run_laos_hd = False
     has_run_china_afternoon = False
     has_run_hanoi_tv = False
+    has_run_china_vip_afternoon = False
     
     last_check_date = ""
 
@@ -3576,6 +3674,7 @@ def time_checker():
             has_run_laos_hd = False
             has_run_china_afternoon = False
             has_run_hanoi_tv = False
+            has_run_china_vip_afternoon = False
 
             last_check_date = current_date
 
@@ -3826,6 +3925,11 @@ def time_checker():
         if now.hour == 14 and now.minute == 30 and not has_run_hanoi_tv:
             has_run_hanoi_tv = True
             threading.Thread(target=fetch_hanoi_tv, daemon=True).start()
+
+        # 🕒 รอบ 14:25 น. - จีนบ่าย VIP
+        if now.hour == 14 and now.minute == 25 and not has_run_china_vip_afternoon:
+            has_run_china_vip_afternoon = True
+            threading.Thread(target=fetch_china_vip_afternoon, daemon=True).start()
 
         time.sleep(30)
 
