@@ -3327,65 +3327,72 @@ def send_welcome(message):
     )
     bot.reply_to(message, help_text)
 
-@bot.message_handler(commands=['yesterday'])
-def test_all_yesterday(message):
-    bot.reply_to(message, "🛠️ กำลังดึงผลย้อนหลัง 1 วัน สำหรับทุกหวย...")
-    
-    # 🌅 รอบเช้า - บ่าย
-    threading.Thread(target=fetch_lao_extra, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_nikkei_morning_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_singapore_fast, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_china_morning_normal, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_thai_evening_fast, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_india_stock_fast, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_hangseng_morning_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_singapore_vip_fast, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_laos_hd, args=(1, False), daemon=True).start()
-    
-    # 🌇 รอบเย็น (ฮานอย + อียิปต์ + มาเลย์)
-    threading.Thread(target=fetch_hanoi_special, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_hanoi_samakkhi, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_hanoi_normal, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_malay_magnum, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_hanoi_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_hanoi_develop, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_egypt_stock_fast, args=(1, False), daemon=True).start()
-    
-    # 🌃 รอบค่ำ (ลาว)
-    threading.Thread(target=fetch_lao_samakkhi, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_lao_asean, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_lao_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_lao_samakkhi_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_england_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_lao_star_vip, args=(1, False), daemon=True).start()
-    
-    # 🌌 รอบดึก (หวยหุ้นดึก + หวยลาว/ฮานอยรอบดึก)
-    threading.Thread(target=fetch_hanoi_extra, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_germany_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_england_stock_fast, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_germany_normal, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_russia_normal, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_lao_redcross, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_russia_vip, args=(1, False), daemon=True).start()
-    
-    # 🌙 รอบเช้ามืด (ดาวโจนส์)
-    threading.Thread(target=fetch_dowjones_vip, args=(1, False), daemon=True).start()
-    threading.Thread(target=fetch_dowjones_normal, args=(1, False), daemon=True).start()
+# ==========================================
+# 📚 ลิสต์ฟังก์ชันหวยทั้งหมด (49 รายการ อ้างอิงตามตารางเวลา)
+# ==========================================
+ALL_LOTTERY_FUNCTIONS = [
+    fetch_lao_extra,
+    fetch_nikkei_morning_vip,
+    fetch_nikkei_morning_normal,
+    fetch_hanoi_asean,
+    fetch_china_morning_vip,
+    fetch_china_morning_normal,
+    fetch_lao_tv,
+    fetch_hangseng_morning_vip,
+    fetch_hanoi_hd,
+    fetch_taiwan_vip,
+    fetch_taiwan_normal,
+    fetch_korea_vip,
+    fetch_nikkei_vip_afternoon,
+    fetch_korea_normal,
+    fetch_nikkei_afternoon,
+    fetch_laos_hd,
+    fetch_china_afternoon,
+    fetch_china_vip_afternoon,
+    fetch_hanoi_tv,
+    fetch_hangseng_afternoon_normal,
+    fetch_hangseng_vip_afternoon,
+    fetch_laos_star,
+    fetch_hanoi_redcross,
+    fetch_singapore_fast,
+    fetch_thai_evening_fast,
+    fetch_india_stock_fast,
+    fetch_singapore_vip_fast,
+    fetch_hanoi_special,
+    fetch_hanoi_samakkhi,
+    fetch_hanoi_normal,
+    fetch_malay_magnum,
+    fetch_hanoi_vip,
+    fetch_hanoi_develop,
+    fetch_egypt_stock_fast,
+    fetch_lao_samakkhi,
+    fetch_lao_asean,
+    fetch_lao_vip,
+    fetch_lao_samakkhi_vip,
+    fetch_england_vip,
+    fetch_lao_star_vip,
+    fetch_hanoi_extra,
+    fetch_germany_vip,
+    fetch_england_stock_fast,
+    fetch_germany_normal,
+    fetch_russia_normal,
+    fetch_lao_redcross,
+    fetch_russia_vip,
+    fetch_dowjones_vip,
+    fetch_dowjones_normal
+]
 
 # ==========================================
-# 🧹 คำสั่งสำหรับให้บอทลบข้อความของตัวเอง (ลบแค่ของบอทเท่านั้น)
+# 🛠️ คำสั่ง: ดึงผลย้อนหลัง 1 วัน (สำหรับทุกหวย)
 # ==========================================
-@bot.message_handler(commands=['del', 'delete'])
-def delete_bot_message(message):
-    # เช็คว่ามีการ Reply ข้อความอยู่หรือไม่
-    if message.reply_to_message:
-        # เช็คว่าข้อความที่ถูก Reply เป็นของบอทหรือไม่
-        if message.reply_to_message.from_user.id == bot.get_me().id:
-            try:
-                # ลบเฉพาะข้อความของบอทที่ถูกตอบกลับ
-                bot.delete_message(message.chat.id, message.reply_to_message.message_id)
-            except Exception:
-                pass # ถ้าลบไม่ได้ (เช่น โดนเตะออกจากสิทธิ์แอดมิน) ก็ให้เงียบไว้
+@bot.message_handler(commands=['yesterday'])
+def test_all_yesterday(message):
+    bot.reply_to(message, "🛠 กำลังดึงผลย้อนหลัง 1 วัน สำหรับทุกหวย กรุณารอสักครู่ครับ...\n(หมายเหตุ: หวยบางตัวอาจไม่มีระบบย้อนหลังในหน้า API บอทจะแจ้งเตือนให้ทราบครับ)")
+    
+    import threading
+    for func in ALL_LOTTERY_FUNCTIONS:
+        # ส่งค่า (1, False) หมายถึง: offset_days=1 (เมื่อวาน) และ is_auto=False
+        threading.Thread(target=func, args=(1, False), daemon=True).start()
 
 # ==========================================
 # 🛠️ คำสั่ง: ดึงผลวันนี้ทั้งหมด (เช็คสถานะหวยทั้งหมดของวันนี้)
@@ -3395,37 +3402,8 @@ def fetch_all_today_cmd(message):
     bot.reply_to(message, "🔄 กำลังดึงข้อมูลผลหวยของ วันนี้ ทั้งหมด กรุณารอสักครู่ครับ...\n(ระบบจะส่งผลที่ออกแล้ว และแจ้งสถานะหวยที่กำลังรอผล)")
     
     import threading
-    
-    # ลิสต์ฟังก์ชันหวยทั้งหมด 23 ตัว
-    lottery_functions = [
-        fetch_lao_extra,
-        fetch_nikkei_morning_vip,
-        fetch_nikkei_morning_normal,
-        fetch_hanoi_asean,
-        fetch_china_morning_vip,
-        fetch_china_morning_normal,
-        fetch_lao_tv,
-        fetch_hangseng_morning_vip,
-        fetch_hanoi_hd,
-        fetch_taiwan_vip,
-        fetch_taiwan_normal,
-        fetch_korea_vip,
-        fetch_korea_normal,
-        fetch_nikkei_afternoon,
-        fetch_nikkei_vip_afternoon,
-        fetch_laos_hd,
-        fetch_china_afternoon,
-        fetch_hanoi_tv,
-        fetch_china_vip_afternoon,
-        fetch_hangseng_afternoon_normal,
-        fetch_hangseng_vip_afternoon,
-        fetch_laos_star,
-        fetch_hanoi_redcross
-    ]
-    
-    # สั่งให้บอทแยกย้ายกันไปดึงข้อมูลพร้อมกัน (ลดเวลาการรอ)
-    for func in lottery_functions:
-        # ส่งค่า (0, False) หมายถึง: offset_days=0 (วันนี้) และ is_auto=False (ผู้ใช้กดสั่งเอง)
+    for func in ALL_LOTTERY_FUNCTIONS:
+        # ส่งค่า (0, False) หมายถึง: offset_days=0 (วันนี้) และ is_auto=False
         threading.Thread(target=func, args=(0, False), daemon=True).start()
                 
 @bot.message_handler(commands=['test_lao_extra'])
