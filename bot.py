@@ -1839,7 +1839,6 @@ def fetch_laos_star(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 Step 1: เช็คหน้าหลักก่อนเสมอ
             url_main = f"https://api.laostars.com/result?t={timestamp}"
             res_main = requests.get(url_main, headers=headers, timeout=15)
             
@@ -1861,7 +1860,7 @@ def fetch_laos_star(offset_days=0, is_auto=True):
                         digit3 = str(results.get("digit3") or "").strip()
                         digit2_bottom = str(results.get("digit2_bottom") or "").strip()
                         
-                        # 🛡️ เช็คความยาวให้ครบ และต้องเป็น "ตัวเลขล้วน" เท่านั้น (ป้องกันบั๊ก)
+                        # 🛡️ เช็คความยาวให้ครบ และต้องเป็น "ตัวเลขล้วน" เท่านั้น
                         if len(digit5) == 5 and digit5.isdigit() and digit3.isdigit() and digit2_bottom.isdigit():
                             msg = (f"🇱🇦 **ผลหวยลาวสตาร์** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
                                    f"🎯 **3 ตัวบน:** {digit3}\n"
@@ -1899,7 +1898,6 @@ def fetch_laos_star(offset_days=0, is_auto=True):
                                 
                                 if len(digit5) == 5 and digit5.isdigit() and digit3.isdigit() and digit2_bottom.isdigit():
                                     msg = (f"🇱🇦 **ผลหวยลาวสตาร์** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎖️ **เลข 5 ตัว:** {digit5}\n"
                                            f"🎯 **3 ตัวบน:** {digit3}\n"
                                            f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
