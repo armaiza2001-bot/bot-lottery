@@ -44,7 +44,7 @@ def fetch_lao_extra(offset_days=0, is_auto=True):
     }
 
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาว Extra** งวดวันที่ {today_str_display} ครับ...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยลาว Extra งวดวันที่ {today_str_display} ครับ...")
 
     attempts = 0
     while True:
@@ -54,34 +54,32 @@ def fetch_lao_extra(offset_days=0, is_auto=True):
             if res.status_code == 200:
                 json_data = res.json()
                 
-                # รองรับโครงสร้าง API ทั้งแบบมี "data" ครอบ และแบบส่งข้อมูลมาตรงๆ
                 data_node = json_data.get("data", json_data) if isinstance(json_data, dict) else json_data
-                
                 api_date = str(data_node.get("lotto_date", "")).strip()
                 
                 if api_date == today_str_api:
                     results_node = data_node.get("results", {})
                     digit5 = str(results_node.get("digit5") or "").strip()
                     
-                    # 🎯 ดูผลจาก 5 ตัว: ตัด 2 ตัวหน้า เป็นล่าง / 3 ตัวหลัง เป็นบน
+                    # 🛡️ ดักจับความถูกต้อง: ต้องยาว 5 ตัวและเป็นตัวเลขล้วน
                     if len(digit5) == 5 and digit5.isdigit():
                         top_3 = digit5[-3:]    
                         bottom_2 = digit5[:2]  
                         
-                        msg = (f"🇱🇦 **ผลหวยลาว Extra** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        msg = (f"🇱🇦 ผลหวยลาว Extra 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return 
         except Exception as e:
             print(f"[Error] ลาว Extra: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาว Extra**: ไม่พบข้อมูลวันที่ {today_str_display}")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ลาว Extra: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: นิเคอิเช้า VIP (แก้ไขบั๊ก API โครงสร้างซ้อนกัน)
+# 🇯🇵 ดึงผล: นิเคอิเช้า VIP
 # ==========================================
 def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
     import requests
@@ -95,7 +93,7 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
     timestamp = int(datetime.now().timestamp() * 1000)
 
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิเช้า VIP** งวดวันที่ {today_str_display} ครับ...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยนิเคอิเช้า VIP งวดวันที่ {today_str_display} ครับ...")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -106,7 +104,6 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
     while True:
         attempts += 1
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
             if offset_days == 0:
                 url = f"https://api.nikkeivipstock.com/api/jp?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -115,27 +112,29 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
                     json_data = res.json()
                     
                     if json_data.get("status") == "success":
-                        # 🛑 จุดที่แก้ไข: มุดเข้าไปในกล่อง "data" แล้วดึงลิสต์ "prices" ออกมา
                         prices_list = json_data.get("data", {}).get("prices", [])
                         
                         for item in prices_list:
                             if item.get("note") == "Morning-Close":
-                                price = item.get("price", 0)
-                                diff = item.get("diff", "0")
+                                price = str(item.get("price") or "0")
+                                diff = str(item.get("diff") or "0")
                                 
-                                price_str = f"{float(price):.2f}"
-                                diff_str = f"{float(diff):.2f}"
-                                
-                                integer_part, decimal_part = price_str.split('.')
-                                top_3 = integer_part[-1] + decimal_part
-                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-                                
-                                msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า VIP** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return
+                                try:
+                                    price_str = f"{float(price):.2f}"
+                                    diff_str = f"{float(diff):.2f}"
+                                    
+                                    integer_part, decimal_part = price_str.split('.')
+                                    top_3 = integer_part[-1] + decimal_part
+                                    bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                    
+                                    if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                        msg = (f"🇯🇵 ผลหวยนิเคอิเช้า VIP 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                except ValueError:
+                                    pass
 
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
                 url = f"https://api.nikkeivipstock.com/api/history/jp?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -149,9 +148,9 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
                                 top_3 = str(r1_data.get("prize_1st", "")).strip()
                                 bottom_2 = str(r1_data.get("prize_2nd", "")).strip()
                                 
-                                if len(top_3) == 3 and len(bottom_2) == 2:
-                                    msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า VIP** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                    msg = (f"🇯🇵 ผลหวยนิเคอิเช้า VIP 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                                     
@@ -159,12 +158,12 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
             print(f"[Error] นิเคอิเช้า VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิเช้า VIP**: ไม่พบผลของวันที่ {today_str_display} (API อาจจะยังไม่อัปเดต)")
+            bot.send_message(GROUP_CHAT_ID, f"❌ นิเคอิเช้า VIP: ไม่พบผลของวันที่ {today_str_display} (API อาจจะยังไม่อัปเดต)")
             return
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ) จากเว็บ saihuay.com (อัปเกรดระบบดักรอผลสุดแกร่ง)
+# 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ)
 # ==========================================
 def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
     import requests
@@ -176,7 +175,6 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย
     thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
     thai_day = target_date.day
     thai_month = thai_months[target_date.month]
@@ -184,7 +182,7 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
     thai_date_str = f"{thai_day} {thai_month} {thai_year}"
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิเช้า (ปกติ)** งวดวันที่ {today_str_display} ครับ...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยนิเคอิเช้า (ปกติ) งวดวันที่ {today_str_display} ครับ...")
 
     url = "https://saihuay.com/historical?lotto=nikkei_morning&lang=th"
     headers = {
@@ -199,7 +197,6 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
             
             if res.status_code == 200:
                 soup = BeautifulSoup(res.text, "html.parser")
-                
                 table = soup.find("table")
                 if table:
                     tbody = table.find("tbody")
@@ -210,22 +207,18 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
                             if len(cells) >= 3:
                                 row_date = cells[0].get_text(strip=True)
                                 
-                                # 🛑 เช็ควันที่ในตาราง
                                 if thai_date_str in row_date:
                                     top3 = cells[1].get_text(strip=True)
                                     bot2 = cells[2].get_text(strip=True)
                                     
-                                    # ⏳ เช็คความบริสุทธิ์ของตัวเลข: ถ้าไม่ใช่ตัวเลขล้วนๆ (เช่น หน้าว่าง, ขีด, Pending) ถือว่ายังไม่ออก
+                                    # 🛡️ ดักจับความบริสุทธิ์ของตัวเลขด้วย re.fullmatch
                                     if not (re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2)):
                                         if not is_auto and attempts >= 2:
-                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิเช้า (ปกติ)**: ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ นิเคอิเช้า (ปกติ): ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
                                             return
-                                        # ถ้ารันออโต้ โค้ดจะทะลุเงื่อนไขนี้ไปลงที่ time.sleep(10) เพื่อวนลูปต่อไปแบบไม่ตาย
-                                        
-                                    # ✅ กรณีออกเป็นตัวเลข 100% แล้ว
                                     else:
-                                        msg = (f"🇯🇵 **ผลหวยนิเคอิเช้า (ปกติ)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                                               f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
+                                        msg = (f"🇯🇵 ผลหวยนิเคอิเช้า (ปกติ) 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top3}\n👇 2 ตัวล่าง: {bot2}\n")
                                         bot.send_message(GROUP_CHAT_ID, msg)
                                         return
                                 else:
@@ -237,14 +230,13 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
             print(f"[Error] นิเคอิเช้า (ปกติ) สายหวย Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิเช้า (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ นิเคอิเช้า (ปกติ): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇻🇳 ดึงผล: ฮานอยอาเซียน (เวลา 09:30 น.)
+# 🇻🇳 ดึงผล: ฮานอยอาเซียน
 # ==========================================
 def fetch_hanoi_asean(offset_days=0, is_auto=True):
     import requests
@@ -256,7 +248,7 @@ def fetch_hanoi_asean(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
 
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **ฮานอยอาเซียน** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล ฮานอยอาเซียน งวดวันที่ {today_str_display}...")
 
     url = "https://gg.hanoiasean.com/api/result"
     headers = {
@@ -280,23 +272,22 @@ def fetch_hanoi_asean(offset_days=0, is_auto=True):
                     if api_date == today_str_api:
                         results = data.get("results", {})
                         
-                        # 🐞 แก้บั๊ก "one": ถ้าเป็น null ให้กลายเป็น "" ทันที
                         prize_1st = str(results.get("prize_1st") or "").strip()
                         prize_2nd = str(results.get("prize_2nd") or "").strip()
                         
-                        # 🛡️ เพิ่ม .isdigit() เพื่อเช็คว่าต้องเป็นตัวเลขล้วนเท่านั้น ห้ามมีตัวหนังสือหลุดมา
+                        # 🛡️ ดักบั๊ก "one" และค่าว่างด้วย .isdigit()
                         if len(prize_1st) >= 3 and len(prize_2nd) >= 2 and prize_1st.isdigit() and prize_2nd.isdigit():
                             top_3 = prize_1st[-3:]
                             bottom_2 = prize_2nd[-2:]
                             
-                            msg = (f"🇻🇳 **ผลหวยฮานอยอาเซียน** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n"
-                                   f"👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇻🇳 ผลหวยฮานอยอาเซียน 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n"
+                                   f"👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return
                         else:
                             if not is_auto and attempts >= 2:
-                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮานอยอาเซียน**: กำลังรอผลรางวัลอัปเดตครับ")
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ ฮานอยอาเซียน: กำลังรอผลรางวัลอัปเดตครับ")
                                 return
                     else:
                         if not is_auto and attempts >= 2:
@@ -311,14 +302,13 @@ def fetch_hanoi_asean(offset_days=0, is_auto=True):
             print(f"[Error] ฮานอยอาเซียน Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยอาเซียน**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยอาเซียน: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
 
 # ==========================================
-# 🇨🇳 ดึงผล: จีนเช้า VIP (เวลา 10:05 น.) - ระบบ Hybrid รอผล
+# 🇨🇳 ดึงผล: จีนเช้า VIP
 # ==========================================
 def fetch_china_morning_vip(offset_days=0, is_auto=True):
     import requests
@@ -330,7 +320,7 @@ def fetch_china_morning_vip(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยจีนเช้า VIP** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยจีนเช้า VIP งวดวันที่ {today_str_display}...")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
@@ -343,7 +333,6 @@ def fetch_china_morning_vip(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
             if offset_days == 0:
                 url = f"https://api.shenzhenindex.com/api/cn?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -355,24 +344,26 @@ def fetch_china_morning_vip(offset_days=0, is_auto=True):
                         prices_list = json_data.get("data", {}).get("prices", [])
                         
                         for item in prices_list:
-                            # 🎯 ค้นหาบรรทัดที่ตลาดเช้าปิด
                             if item.get("note") == "Morning-Close":
-                                price = item.get("price", 0)
-                                diff = item.get("diff", "0")
+                                price = str(item.get("price") or "0")
+                                diff = str(item.get("diff") or "0")
                                 
-                                price_str = f"{float(price):.2f}"
-                                diff_str = f"{float(diff):.2f}"
-                                
-                                integer_part, decimal_part = price_str.split('.')
-                                top_3 = integer_part[-1] + decimal_part
-                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-                                
-                                msg = (f"🇨🇳 **ผลหวยจีนเช้า VIP** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return
+                                try:
+                                    price_str = f"{float(price):.2f}"
+                                    diff_str = f"{float(diff):.2f}"
+                                    
+                                    integer_part, decimal_part = price_str.split('.')
+                                    top_3 = integer_part[-1] + decimal_part
+                                    bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                    
+                                    if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                        msg = (f"🇨🇳 ผลหวยจีนเช้า VIP 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                except ValueError:
+                                    pass
 
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
                 url = f"https://api.shenzhenindex.com/api/history/cn?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -386,9 +377,9 @@ def fetch_china_morning_vip(offset_days=0, is_auto=True):
                                 top_3 = str(r1_data.get("prize_1st", "")).strip()
                                 bottom_2 = str(r1_data.get("prize_2nd", "")).strip()
                                 
-                                if len(top_3) == 3 and len(bottom_2) == 2:
-                                    msg = (f"🇨🇳 **ผลหวยจีนเช้า VIP** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                    msg = (f"🇨🇳 ผลหวยจีนเช้า VIP 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                                     
@@ -396,14 +387,13 @@ def fetch_china_morning_vip(offset_days=0, is_auto=True):
             print(f"[Error] จีนเช้า VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **จีนเช้า VIP**: ไม่พบผลของวันที่ {today_str_display} (ตลาดอาจจะยังไม่ปิดรอบเช้า)")
+            bot.send_message(GROUP_CHAT_ID, f"❌ จีนเช้า VIP: ไม่พบผลของวันที่ {today_str_display} (ตลาดอาจจะยังไม่ปิดรอบเช้า)")
             return
             
-        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่จนกว่าจะเจอ Morning-Close
         time.sleep(10)
 
 # ==========================================
-# 🇨🇳 ดึงผล: หุ้นจีนเช้า (ปกติ) (เวลา 10:30 น.)
+# 🇨🇳 ดึงผล: หุ้นจีนเช้า (ปกติ)
 # ==========================================
 def fetch_china_morning_normal(offset_days=0, is_auto=True):
     import requests
@@ -416,9 +406,8 @@ def fetch_china_morning_normal(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นจีนเช้า (ปกติ)** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยหุ้นจีนเช้า (ปกติ) งวดวันที่ {today_str_display}...")
 
-    # ใส่ Headers พรางตัว ป้องกันการโดนเว็บหลักบล็อค
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Referer": "https://www.szse.cn/",
@@ -428,7 +417,6 @@ def fetch_china_morning_normal(offset_days=0, is_auto=True):
     attempts = 0
     while True:
         attempts += 1
-        # สุ่มตัวเลขห้อยท้าย URL (เหมือนพฤติกรรมในเว็บจริง)
         rand_val = random.random()
         url = f"https://www.szse.cn/api/market/ssjjhq/getTimeData?random={rand_val}&marketId=1&code=399001"
         
@@ -438,37 +426,40 @@ def fetch_china_morning_normal(offset_days=0, is_auto=True):
             if res.status_code == 200:
                 json_data = res.json()
                 
-                # ตรวจสอบสถานะความสำเร็จของเว็บเซินเจิ้น (code "0" คือสำเร็จ)
                 if str(json_data.get("code")) == "0":
                     data = json_data.get("data", {})
-                    market_time = data.get("marketTime", "") # ex: "2026-08-12 15:00:00"
+                    market_time = data.get("marketTime", "")
                     
-                    # 🛑 เช็คก่อนว่าข้อมูลใน API ถูกอัปเดตเป็นของวันที่เราต้องการหรือยัง
                     if today_str_api in market_time:
                         picupdata = data.get("picupdata", [])
                         found_result = False
                         
                         for item in picupdata:
-                            # 🕒 เวลา 11:30 ของจีน = 10:30 ของไทย
                             if item[0] == "11:30":
                                 found_result = True
-                                price_str = str(item[1]) # ค่าดัชนี
-                                diff_str = str(item[2])  # ค่าการเปลี่ยนแปลง
+                                price_str = str(item[1]).replace(",", "")
+                                diff_str = str(item[2]).replace(",", "").replace("+", "").replace("-", "")
                                 
-                                # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
-                                integer_part, decimal_part = price_str.split('.')
-                                top_3 = integer_part[-1] + decimal_part
-                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-                                
-                                msg = (f"🇨🇳 **ผลหวยหุ้นจีนเช้า (ปกติ)** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return
+                                try:
+                                    price_val = f"{float(price_str):.2f}"
+                                    diff_val = f"{float(diff_str):.2f}"
+                                    
+                                    integer_part, decimal_part = price_val.split('.')
+                                    top_3 = integer_part[-1] + decimal_part
+                                    bottom_2 = diff_val.split('.')[1]
+                                    
+                                    # 🛡️ ดักจับความถูกต้องของตัวเลข
+                                    if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                        msg = (f"🇨🇳 ผลหวยหุ้นจีนเช้า (ปกติ) 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                except ValueError:
+                                    pass
                         
-                        # ถ้าระบบยังไม่แสดงเวลา 11:30 (ตลาดยังไม่ปิดรอบเช้า)
                         if not found_result:
                             if not is_auto and attempts >= 2:
-                                bot.send_message(GROUP_CHAT_ID, f"⏳ **จีนเช้า (ปกติ)**: ตลาดยังไม่ปิดรอบเช้า (รอระบบอัปเดตตัวเลข 11:30 น.)")
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ จีนเช้า (ปกติ): ตลาดยังไม่ปิดรอบเช้า (รอระบบอัปเดตตัวเลข 11:30 น.)")
                                 return
                     else:
                         if not is_auto and attempts >= 2:
@@ -483,14 +474,13 @@ def fetch_china_morning_normal(offset_days=0, is_auto=True):
             print(f"[Error] จีนเช้า (ปกติ) Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **จีนเช้า (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ จีนเช้า (ปกติ): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇱🇦 ดึงผล: ลาวทีวี (เวลา 10:30 น.)
+# 🇱🇦 ดึงผล: ลาวทีวี
 # ==========================================
 def fetch_lao_tv(offset_days=0, is_auto=True):
     import requests
@@ -502,7 +492,7 @@ def fetch_lao_tv(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **ลาวทีวี** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล ลาวทีวี งวดวันที่ {today_str_display}...")
 
     url = "https://api.lao-tv.com/result"
     headers = {
@@ -514,7 +504,6 @@ def fetch_lao_tv(offset_days=0, is_auto=True):
     while True:
         attempts += 1
         try:
-            # แนบ Timestamp หลอกแคชของเบราว์เซอร์เพื่อให้ได้ผลล่าสุดเสมอ
             timestamp = int(datetime.now().timestamp() * 1000)
             res = requests.get(f"{url}?_={timestamp}", headers=headers, timeout=15)
             
@@ -523,24 +512,22 @@ def fetch_lao_tv(offset_days=0, is_auto=True):
                 data = json_data.get("data", {})
                 api_date = data.get("lotto_date", "")
                 
-                # 🛑 เช็คว่าวันที่ใน API อัปเดตเป็นงวดที่เราต้องการหรือยัง
                 if api_date == today_str_api:
                     results = data.get("results", {})
                     digit5 = str(results.get("digit5", "")).strip()
                     
-                    # ตรวจสอบว่าผลออกครบ 5 ตัวหรือยัง
-                    if len(digit5) == 5:
-                        # 🎯 ตัดเลขจากผล 5 ตัว (หน้า 2 ตัว = ล่าง, หลัง 3 ตัว = บน)
+                    # 🛡️ ดักจับความถูกต้อง: ต้องยาว 5 ตัวและเป็นตัวเลขล้วน
+                    if len(digit5) == 5 and digit5.isdigit():
                         top_3 = digit5[-3:]
                         bottom_2 = digit5[:2]
                         
-                        msg = (f"🇱🇦 **ผลหวยลาวทีวี** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        msg = (f"🇱🇦 ผลหวยลาวทีวี 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                         bot.send_message(GROUP_CHAT_ID, msg)
                         return
                     else:
                         if not is_auto and attempts >= 2:
-                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ลาวทีวี**: ผลรางวัลกำลังออก (รอตัวเลขครบ 5 ตัว)")
+                            bot.send_message(GROUP_CHAT_ID, f"⏳ ลาวทีวี: ผลรางวัลกำลังออก (รอตัวเลขครบ 5 ตัว)")
                             return
                 else:
                     if not is_auto and attempts >= 2:
@@ -553,14 +540,13 @@ def fetch_lao_tv(offset_days=0, is_auto=True):
             print(f"[Error] ลาวทีวี Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวทีวี**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ลาวทีวี: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇭🇰 ดึงผล: ฮั่งเส็งเช้า VIP (เวลา 10:35 น.) - ระบบ Hybrid
+# 🇭🇰 ดึงผล: ฮั่งเส็งเช้า VIP
 # ==========================================
 def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
     import requests
@@ -572,7 +558,7 @@ def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮั่งเส็งเช้า VIP** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยฮั่งเส็งเช้า VIP งวดวันที่ {today_str_display}...")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -585,7 +571,6 @@ def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
             if offset_days == 0:
                 url = f"https://api.stocks-vip.com/api/hk?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -597,32 +582,32 @@ def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
                         data = json_data.get("data", {})
                         api_date = data.get("date", "")
                         
-                        # เช็คว่าระบบขึ้นวันใหม่หรือยัง
                         if api_date == today_str_api:
-                            # 🎯 เจาะเข้าไปเอาข้อมูลรอบเช้า (r1)
                             r1 = data.get("results", {}).get("r1", {})
-                            price = r1.get("price")
-                            diff = r1.get("diff")
+                            price = str(r1.get("price") or "")
+                            diff = str(r1.get("diff") or "")
                             
-                            # ถ้ามีตัวเลขโผล่มาแล้ว แสดงว่าตลาดปิดรอบเช้าแล้ว
                             if price and diff:
-                                price_str = f"{float(price):.2f}"
-                                diff_str = f"{float(diff):.2f}"
-                                
-                                integer_part, decimal_part = price_str.split('.')
-                                top_3 = integer_part[-1] + decimal_part
-                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-                                
-                                msg = (f"🇭🇰 **ผลหวยฮั่งเส็งเช้า VIP** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return
+                                try:
+                                    price_str = f"{float(price):.2f}"
+                                    diff_str = f"{float(diff):.2f}"
+                                    
+                                    integer_part, decimal_part = price_str.split('.')
+                                    top_3 = integer_part[-1] + decimal_part
+                                    bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                    
+                                    if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                        msg = (f"🇭🇰 ผลหวยฮั่งเส็งเช้า VIP 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                except ValueError:
+                                    pass
                         else:
                             if not is_auto and attempts >= 2:
                                 bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
                                 return
 
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
                 url = f"https://api.stocks-vip.com/api/history/hk?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -636,9 +621,9 @@ def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
                                 top_3 = str(r1_data.get("prize_1st", "")).strip()
                                 bottom_2 = str(r1_data.get("prize_2nd", "")).strip()
                                 
-                                if len(top_3) == 3 and len(bottom_2) == 2:
-                                    msg = (f"🇭🇰 **ผลหวยฮั่งเส็งเช้า VIP** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                    msg = (f"🇭🇰 ผลหวยฮั่งเส็งเช้า VIP 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                                     
@@ -646,14 +631,13 @@ def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
             print(f"[Error] ฮั่งเส็งเช้า VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮั่งเส็งเช้า VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ฮั่งเส็งเช้า VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
-        # 💤 ถ้ายังไม่ออก บอทจะหลับ 10 วินาทีแล้ววนเช็คใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇻🇳 ดึงผล: ฮานอยHD (เวลา 11:30 น.)
+# 🇻🇳 ดึงผล: ฮานอยHD
 # ==========================================
 def fetch_hanoi_hd(offset_days=0, is_auto=True):
     import requests
@@ -665,9 +649,8 @@ def fetch_hanoi_hd(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยHD** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยฮานอยHD งวดวันที่ {today_str_display}...")
 
-    # ✅ อัปเดต URL ให้ตรงกับเว็บ API จริงแล้ว
     url = "https://api.xosohd.com/result" 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -678,7 +661,6 @@ def fetch_hanoi_hd(offset_days=0, is_auto=True):
     while True:
         attempts += 1
         try:
-            # ใส่ Timestamp หลอกแคช
             timestamp = int(datetime.now().timestamp() * 1000)
             res = requests.get(f"{url}?_={timestamp}", headers=headers, timeout=15)
             
@@ -689,25 +671,23 @@ def fetch_hanoi_hd(offset_days=0, is_auto=True):
                     data = json_data.get("data", {})
                     api_date = data.get("lotto_date", "")
                     
-                    # 🛑 เช็คว่าวันที่ใน API อัปเดตตรงกับวันที่เราต้องการดึงหรือยัง
                     if api_date == today_str_api:
                         results = data.get("results", {})
                         prize_1st = str(results.get("prize_1st", "")).strip()
                         prize_2nd = str(results.get("prize_2nd", "")).strip()
                         
-                        # ตรวจสอบว่าผลออกครบหรือยัง
-                        if len(prize_1st) >= 3 and len(prize_2nd) >= 2:
-                            # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                        # 🛡️ ดักจับความถูกต้องด้วย .isdigit()
+                        if len(prize_1st) >= 3 and len(prize_2nd) >= 2 and prize_1st.isdigit() and prize_2nd.isdigit():
                             top_3 = prize_1st[-3:]
                             bottom_2 = prize_2nd[-2:]
                             
-                            msg = (f"🇻🇳 **ผลหวยฮานอยHD** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇻🇳 ผลหวยฮานอยHD 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return
                         else:
                             if not is_auto and attempts >= 2:
-                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮานอยHD**: กำลังรอผลรางวัลอัปเดตครับ")
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ ฮานอยHD: กำลังรอผลรางวัลอัปเดตครับ")
                                 return
                     else:
                         if not is_auto and attempts >= 2:
@@ -722,14 +702,13 @@ def fetch_hanoi_hd(offset_days=0, is_auto=True):
             print(f"[Error] ฮานอยHD Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยHD**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยHD: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇹🇼 ดึงผล: หุ้นไต้หวัน VIP (เวลา 11:35 น.) - ระบบ Hybrid
+# 🇹🇼 ดึงผล: หุ้นไต้หวัน VIP
 # ==========================================
 def fetch_taiwan_vip(offset_days=0, is_auto=True):
     import requests
@@ -741,7 +720,7 @@ def fetch_taiwan_vip(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นไต้หวัน VIP** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยหุ้นไต้หวัน VIP งวดวันที่ {today_str_display}...")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -754,7 +733,6 @@ def fetch_taiwan_vip(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
             if offset_days == 0:
                 url = f"https://api.tsecvipindex.com/api/tw?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -766,24 +744,26 @@ def fetch_taiwan_vip(offset_days=0, is_auto=True):
                         prices_list = json_data.get("data", {}).get("prices", [])
                         
                         for item in prices_list:
-                            # 🎯 ค้นหาบรรทัดที่ตลาดปิด (Note เป็นคำว่า Close)
                             if item.get("note") == "Close":
-                                price = item.get("price", 0)
-                                diff = item.get("diff", "0")
+                                price = str(item.get("price") or "0")
+                                diff = str(item.get("diff") or "0")
                                 
-                                price_str = f"{float(price):.2f}"
-                                diff_str = f"{float(diff):.2f}"
-                                
-                                integer_part, decimal_part = price_str.split('.')
-                                top_3 = integer_part[-1] + decimal_part
-                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-                                
-                                msg = (f"🇹🇼 **ผลหวยหุ้นไต้หวัน VIP** 🇹🇼\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return
+                                try:
+                                    price_str = f"{float(price):.2f}"
+                                    diff_str = f"{float(diff):.2f}"
+                                    
+                                    integer_part, decimal_part = price_str.split('.')
+                                    top_3 = integer_part[-1] + decimal_part
+                                    bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                    
+                                    if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                        msg = (f"🇹🇼 ผลหวยหุ้นไต้หวัน VIP 🇹🇼\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                except ValueError:
+                                    pass
 
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
                 url = f"https://api.tsecvipindex.com/api/history/tw?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -797,9 +777,9 @@ def fetch_taiwan_vip(offset_days=0, is_auto=True):
                                 top_3 = str(r1_data.get("prize_1st", "")).strip()
                                 bottom_2 = str(r1_data.get("prize_2nd", "")).strip()
                                 
-                                if len(top_3) == 3 and len(bottom_2) == 2:
-                                    msg = (f"🇹🇼 **ผลหวยหุ้นไต้หวัน VIP** 🇹🇼\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                    msg = (f"🇹🇼 ผลหวยหุ้นไต้หวัน VIP 🇹🇼\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                                     
@@ -807,14 +787,13 @@ def fetch_taiwan_vip(offset_days=0, is_auto=True):
             print(f"[Error] ไต้หวัน VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"⏳ **ไต้หวัน VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
+            bot.send_message(GROUP_CHAT_ID, f"⏳ ไต้หวัน VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
-        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่จนกว่าจะเจอคำว่า Close
         time.sleep(10)
 
 # ==========================================
-# 🇹🇼 ดึงผล: หุ้นไต้หวัน (ปกติ) (เวลาไทย 12:30 น. - รอเว็บสรุปยอด 12:33 น.)
+# 🇹🇼 ดึงผล: หุ้นไต้หวัน (ปกติ)
 # ==========================================
 def fetch_taiwan_normal(offset_days=0, is_auto=True):
     import requests
@@ -822,12 +801,11 @@ def fetch_taiwan_normal(offset_days=0, is_auto=True):
     import time
 
     target_date = datetime.now(tz) - timedelta(days=offset_days)
-    # ข้อควรระวัง: เว็บไต้หวันใช้วันที่รูปแบบ YYYY/MM/DD (ใช้สแลช)
     today_str_api = target_date.strftime("%Y/%m/%d")
     today_str_display = target_date.strftime("%d-%m-%Y")
 
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นไต้หวัน (ปกติ)** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยหุ้นไต้หวัน (ปกติ) งวดวันที่ {today_str_display}...")
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -847,33 +825,35 @@ def fetch_taiwan_normal(offset_days=0, is_auto=True):
             if res.status_code == 200:
                 data = res.json()
                 taiex = data.get("mi", {}).get("taiex", {})
-                dt = taiex.get("datetime", "") # รูปแบบ: "2026/08/14 13:33:00"
+                dt = taiex.get("datetime", "")
 
-                # 🛑 เช็คว่าวันที่ใน API อัปเดตตรงกับวันที่เราต้องการดึงหรือยัง
                 if dt.startswith(today_str_api):
                     time_part = dt.split(" ")[1] if " " in dt else ""
 
-                    # 🕒 จุดที่แก้ไข: เช็คเวลาไต้หวัน ต้องเป็น 13:33:00 เป็นต้นไป ถึงจะถือว่าตลาดปิดสมบูรณ์
                     if time_part >= "13:33:00":
                         price = str(taiex.get("index", ""))
                         diff = str(taiex.get("diff", ""))
 
                         if price and diff:
-                            price_str = f"{float(price):.2f}"
-                            diff_str = f"{float(diff):.2f}"
+                            try:
+                                price_str = f"{float(price):.2f}"
+                                diff_str = f"{float(diff):.2f}"
 
-                            # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
-                            integer_part, decimal_part = price_str.split('.')
-                            top_3 = integer_part[-1] + decimal_part
-                            bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                integer_part, decimal_part = price_str.split('.')
+                                top_3 = integer_part[-1] + decimal_part
+                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
 
-                            msg = (f"🇹🇼 **ผลหวยหุ้นไต้หวัน (ปกติ)** 🇹🇼\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                            bot.send_message(GROUP_CHAT_ID, msg)
-                            return
+                                # 🛡️ ดักจับความถูกต้องด้วย .isdigit()
+                                if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                    msg = (f"🇹🇼 ผลหวยหุ้นไต้หวัน (ปกติ) 🇹🇼\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                    bot.send_message(GROUP_CHAT_ID, msg)
+                                    return
+                            except ValueError:
+                                pass
                     else:
                         if not is_auto and attempts >= 2:
-                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ไต้หวัน (ปกติ)**: ตลาดยังไม่ปิด (เวลาเซิร์ฟเวอร์ไต้หวันล่าสุด {time_part} รอผลสรุปตอน 13:33 น.)")
+                            bot.send_message(GROUP_CHAT_ID, f"⏳ ไต้หวัน (ปกติ): ตลาดยังไม่ปิด (เวลาเซิร์ฟเวอร์ไต้หวันล่าสุด {time_part} รอผลสรุปตอน 13:33 น.)")
                             return
                 else:
                     if not is_auto and attempts >= 2:
@@ -886,14 +866,13 @@ def fetch_taiwan_normal(offset_days=0, is_auto=True):
             print(f"[Error] ไต้หวัน (ปกติ) Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ไต้หวัน (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ไต้หวัน (ปกติ): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
 
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
         time.sleep(10)
         
 # ==========================================
-# 🇰🇷 ดึงผล: หุ้นเกาหลี VIP (เวลา 12:35 น.) - ระบบ Hybrid
+# 🇰🇷 ดึงผล: หุ้นเกาหลี VIP
 # ==========================================
 def fetch_korea_vip(offset_days=0, is_auto=True):
     import requests
@@ -905,7 +884,7 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี VIP** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยหุ้นเกาหลี VIP งวดวันที่ {today_str_display}...")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -918,7 +897,6 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
             if offset_days == 0:
                 url = f"https://api.ktopvipindex.com/api/kr?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -930,32 +908,33 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
                         data = json_data.get("data", {})
                         api_date = data.get("date", "")
                         
-                        # 🛑 เช็คว่าวันที่ตรงกับวันนี้ไหม
                         if api_date == today_str_api:
                             prices = data.get("prices", {})
                             
-                            # 🎯 เจาะเข้า prices ตรงๆ ไม่ต้องวนลูปแล้ว
                             if prices.get("note") == "Close":
-                                price = prices.get("price", 0)
-                                diff = prices.get("diff", "0")
+                                price = str(prices.get("price") or "0")
+                                diff = str(prices.get("diff") or "0")
                                 
-                                price_str = f"{float(price):.2f}"
-                                diff_str = f"{float(diff):.2f}"
-                                
-                                integer_part, decimal_part = price_str.split('.')
-                                top_3 = integer_part[-1] + decimal_part
-                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-                                
-                                msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี VIP** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return
+                                try:
+                                    price_str = f"{float(price):.2f}"
+                                    diff_str = f"{float(diff):.2f}"
+                                    
+                                    integer_part, decimal_part = price_str.split('.')
+                                    top_3 = integer_part[-1] + decimal_part
+                                    bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                    
+                                    if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                        msg = (f"🇰🇷 ผลหวยหุ้นเกาหลี VIP 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                except ValueError:
+                                    pass
                         else:
                             if not is_auto and attempts >= 2:
                                 bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (ข้อมูลเว็บเป็นของงวด {api_date})")
                                 return
 
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
                 url = f"https://api.ktopvipindex.com/api/history/kr?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -969,9 +948,9 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
                                 top_3 = str(r1_data.get("prize_1st", "")).strip()
                                 bottom_2 = str(r1_data.get("prize_2nd", "")).strip()
                                 
-                                if len(top_3) == 3 and len(bottom_2) == 2:
-                                    msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี VIP** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                    msg = (f"🇰🇷 ผลหวยหุ้นเกาหลี VIP 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                                     
@@ -979,14 +958,13 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
             print(f"[Error] เกาหลี VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
+            bot.send_message(GROUP_CHAT_ID, f"⏳ เกาหลี VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
-        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇰🇷 ดึงผล: หุ้นเกาหลี (ปกติ) (เวลา 13:30 น.) จากเว็บ saihuay.com
+# 🇰🇷 ดึงผล: หุ้นเกาหลี (ปกติ)
 # ==========================================
 def fetch_korea_normal(offset_days=0, is_auto=True):
     import requests
@@ -998,7 +976,6 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย (เพราะเว็บสายหวยใช้วันที่ภาษาไทย)
     thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
     thai_day = target_date.day
     thai_month = thai_months[target_date.month]
@@ -1006,7 +983,7 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
     thai_date_str = f"{thai_day} {thai_month} {thai_year}"
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี (ปกติ)** งวดวันที่ {today_str_display} ครับ...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยหุ้นเกาหลี (ปกติ) งวดวันที่ {today_str_display} ครับ...")
 
     url = "https://saihuay.com/historical?lotto=korea&lang=th"
     headers = {
@@ -1014,7 +991,7 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
     }
 
     attempts = 0
-    start_time = datetime.now(tz)  # ⏱️ จดจำเวลาเริ่มต้นตอนรันออโต้
+    start_time = datetime.now(tz)
     
     while True:
         attempts += 1
@@ -1023,7 +1000,6 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
             
             if res.status_code == 200:
                 soup = BeautifulSoup(res.text, "html.parser")
-                
                 table = soup.find("table")
                 if table:
                     tbody = table.find("tbody")
@@ -1034,21 +1010,17 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
                             if len(cells) >= 3:
                                 row_date = cells[0].get_text(strip=True)
                                 
-                                # 🛑 เช็ควันที่ในตารางว่าตรงกับงวดที่เราต้องการไหม
                                 if thai_date_str in row_date:
                                     top3 = cells[1].get_text(strip=True)
                                     bot2 = cells[2].get_text(strip=True)
                                     
-                                    # ⏳ เช็คความบริสุทธิ์ของตัวเลข (ดักจับไอคอนหมุนๆ, ขีด, หรือตัวหนังสือ)
                                     if not (re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2)):
                                         if not is_auto and attempts >= 2:
-                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **เกาหลี (ปกติ)**: ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ เกาหลี (ปกติ): ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
                                             return
-                                        
-                                    # ✅ กรณีออกเป็นตัวเลขล้วน 100% แล้ว ส่งผลได้เลย
                                     else:
-                                        msg = (f"🇰🇷 **ผลหวยหุ้นเกาหลี (ปกติ)** 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
-                                               f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
+                                        msg = (f"🇰🇷 ผลหวยหุ้นเกาหลี (ปกติ) 🇰🇷\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top3}\n👇 2 ตัวล่าง: {bot2}\n")
                                         bot.send_message(GROUP_CHAT_ID, msg)
                                         return
                                 else:
@@ -1060,18 +1032,16 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
             print(f"[Error] เกาหลี (ปกติ) สายหวย Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **เกาหลี (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ เกาหลี (ปกติ): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 🛑 ระบบตัดจบ (Timeout) แบบนินจา
         if is_auto and (datetime.now(tz) - start_time).total_seconds() > 10800:
-            return  # ถ้ารอเกิน 3 ชม. (10800 วินาที) ให้จบการทำงานเงียบๆ
+            return  
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: หุ้นนิเคอิ (บ่าย) (เวลา 13:30 น.) จากเว็บ saihuay.com
+# 🇯🇵 ดึงผล: หุ้นนิเคอิ (บ่าย)
 # ==========================================
 def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
     import requests
@@ -1083,7 +1053,6 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # ⚙️ ระบบแปลงวันที่เป็นภาษาไทย
     thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
     thai_day = target_date.day
     thai_month = thai_months[target_date.month]
@@ -1091,18 +1060,15 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
     thai_date_str = f"{thai_day} {thai_month} {thai_year}"
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นนิเคอิ (บ่าย)** งวดวันที่ {today_str_display} ครับ...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยหุ้นนิเคอิ (บ่าย) งวดวันที่ {today_str_display} ครับ...")
 
-    # ⚠️ ข้อควรระวัง: ลองเช็ค URL ของเว็บสายหวยดูนะครับว่า นิเคอิ (บ่าย) เขาใช้พารามิเตอร์ชื่ออะไร
-    # (ผมเดาว่าเป็น nikkei_afternoon หรือ nikkeib ถ้าคุณรู้ชื่อที่เป๊ะกว่า สามารถแก้ตรง lotto=... ได้เลยครับ)
     url = "https://saihuay.com/historical?lotto=nikkei_afternoon&lang=th"
-    
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
 
     attempts = 0
-    start_time = datetime.now(tz)  # ⏱️ จดจำเวลาเริ่มต้นสำหรับระบบนินจา
+    start_time = datetime.now(tz)
     
     while True:
         attempts += 1
@@ -1111,7 +1077,6 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
             
             if res.status_code == 200:
                 soup = BeautifulSoup(res.text, "html.parser")
-                
                 table = soup.find("table")
                 if table:
                     tbody = table.find("tbody")
@@ -1122,18 +1087,17 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
                             if len(cells) >= 3:
                                 row_date = cells[0].get_text(strip=True)
                                 
-                                # 🛑 เช็ควันที่
                                 if thai_date_str in row_date:
                                     top3 = cells[1].get_text(strip=True)
                                     bot2 = cells[2].get_text(strip=True)
                                     
                                     if not (re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2)):
                                         if not is_auto and attempts >= 2:
-                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิ (บ่าย)**: ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ นิเคอิ (บ่าย): ผลรางวัลกำลังออกครับ (รอเว็บอัปเดตตัวเลข)")
                                             return
                                     else:
-                                        msg = (f"🇯🇵 **ผลหวยหุ้นนิเคอิ (บ่าย)** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                                               f"🎯 **3 ตัวบน:** {top3}\n👇 **2 ตัวล่าง:** {bot2}\n")
+                                        msg = (f"🇯🇵 ผลหวยหุ้นนิเคอิ (บ่าย) 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top3}\n👇 2 ตัวล่าง: {bot2}\n")
                                         bot.send_message(GROUP_CHAT_ID, msg)
                                         return
                                 else:
@@ -1145,18 +1109,16 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
             print(f"[Error] นิเคอิ (บ่าย) สายหวย Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **นิเคอิ (บ่าย)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ นิเคอิ (บ่าย): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 🛑 ระบบตัดจบ (Timeout) นินจาหนีกลับบ้านแบบเงียบๆ
         if is_auto and (datetime.now(tz) - start_time).total_seconds() > 10800:
             return  
             
-        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
 
 # ==========================================
-# 🇯🇵 ดึงผล: นิเคอิบ่าย VIP (เวลา 13:25 น.) - ระบบ Hybrid
+# 🇯🇵 ดึงผล: นิเคอิบ่าย VIP
 # ==========================================
 def fetch_nikkei_vip_afternoon(offset_days=0, is_auto=True):
     import requests
@@ -1168,7 +1130,7 @@ def fetch_nikkei_vip_afternoon(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิบ่าย VIP** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยนิเคอิบ่าย VIP งวดวันที่ {today_str_display}...")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -1181,7 +1143,6 @@ def fetch_nikkei_vip_afternoon(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
             if offset_days == 0:
                 url = f"https://api.nikkeivipstock.com/api/jp?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -1193,25 +1154,27 @@ def fetch_nikkei_vip_afternoon(offset_days=0, is_auto=True):
                         prices_list = json_data.get("data", {}).get("prices", [])
                         
                         for item in prices_list:
-                            # 🎯 ค้นหาบรรทัดที่ตลาดปิด และเวลาต้องเป็นรอบบ่าย (15:xx ตามเวลาญี่ปุ่น)
                             item_time = item.get("time", "")
                             if item.get("note") == "Close" and item_time.startswith("15:"):
-                                price = item.get("price", 0)
-                                diff = item.get("diff", "0")
+                                price = str(item.get("price") or "0")
+                                diff = str(item.get("diff") or "0")
                                 
-                                price_str = f"{float(price):.2f}"
-                                diff_str = f"{float(diff):.2f}"
-                                
-                                integer_part, decimal_part = price_str.split('.')
-                                top_3 = integer_part[-1] + decimal_part
-                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-                                
-                                msg = (f"🇯🇵 **ผลหวยนิเคอิบ่าย VIP** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return
+                                try:
+                                    price_str = f"{float(price):.2f}"
+                                    diff_str = f"{float(diff):.2f}"
+                                    
+                                    integer_part, decimal_part = price_str.split('.')
+                                    top_3 = integer_part[-1] + decimal_part
+                                    bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                    
+                                    if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                        msg = (f"🇯🇵 ผลหวยนิเคอิบ่าย VIP 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                except ValueError:
+                                    pass
 
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
                 url = f"https://api.nikkeivipstock.com/api/history/jp?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -1221,14 +1184,13 @@ def fetch_nikkei_vip_afternoon(offset_days=0, is_auto=True):
                     if json_data.get("status") == "success":
                         for item in json_data.get("data", []):
                             if item.get("date") == today_str_api:
-                                # นิเคอิมี 2 รอบ รอบบ่ายจะอยู่ใน r2
                                 r2_data = item.get("r2", {})
                                 top_3 = str(r2_data.get("prize_1st", "")).strip()
                                 bottom_2 = str(r2_data.get("prize_2nd", "")).strip()
                                 
-                                if len(top_3) == 3 and len(bottom_2) == 2:
-                                    msg = (f"🇯🇵 **ผลหวยนิเคอิบ่าย VIP** 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                    msg = (f"🇯🇵 ผลหวยนิเคอิบ่าย VIP 🇯🇵\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                                     
@@ -1236,14 +1198,13 @@ def fetch_nikkei_vip_afternoon(offset_days=0, is_auto=True):
             print(f"[Error] นิเคอิบ่าย VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"⏳ **นิเคอิบ่าย VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
+            bot.send_message(GROUP_CHAT_ID, f"⏳ นิเคอิบ่าย VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
-        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇱🇦 ดึงผล: หวยลาวHD (เวลา 13:45 น.) - ระบบ Hybrid (อัปเกรดแก้รอยต่อเวลา)
+# 🇱🇦 ดึงผล: หวยลาวHD
 # ==========================================
 def fetch_laos_hd(offset_days=0, is_auto=True):
     import requests
@@ -1255,7 +1216,7 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวHD** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยลาวHD งวดวันที่ {today_str_display}...")
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -1268,7 +1229,6 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 Step 1: เช็คหน้าหลักก่อนเสมอ
             url_main = f"https://api.laoshd.com/api/result?t={timestamp}"
             res_main = requests.get(url_main, headers=headers, timeout=15)
             
@@ -1280,7 +1240,6 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
                     data = json_data.get("data", {})
                     api_date = data.get("lotto_date", "")
                     
-                    # 🎯 ถ้าวันที่หน้าหลักตรงกับที่เราต้องการ
                     if api_date == today_str_api:
                         main_matched = True
                         results = data.get("results", {})
@@ -1288,25 +1247,23 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
                         digit3 = str(results.get("digit3", "")).strip()
                         digit2_bottom = str(results.get("digit2_bottom", "")).strip()
                         
-                        # เช็คให้แน่ใจว่าเว็บอัปเดตเลขลงครบแล้ว
-                        if digit5 and digit3 and digit2_bottom and len(digit5) == 5:
-                            msg = (f"🇱🇦 **ผลหวยลาวHD** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {digit3}\n"
-                                   f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
+                        # 🛡️ เช็คความถูกต้องด้วย .isdigit()
+                        if len(digit5) == 5 and digit5.isdigit() and digit3.isdigit() and digit2_bottom.isdigit():
+                            msg = (f"🇱🇦 ผลหวยลาวHD 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {digit3}\n"
+                                   f"👇 2 ตัวล่าง: {digit2_bottom}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return
                         else:
                             if not is_auto and attempts >= 2:
-                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ลาวHD**: กำลังรอผลรางวัลอัปเดตให้ครบถ้วนครับ")
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ ลาวHD: กำลังรอผลรางวัลอัปเดตให้ครบถ้วนครับ")
                                 return
                                 
-                    # 🛑 ถ้าเป็นโหมดดึงวันนี้ แต่หน้าเว็บยังเป็นของวันก่อน
                     elif offset_days == 0:
                         if not is_auto and attempts >= 2:
                             bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
                             return
 
-            # ⏪ Step 2: หาจากหน้าประวัติย้อนหลัง (ถ้าหน้าหลักไม่ใช่ของวันที่ต้องการ)
             if offset_days > 0 and not main_matched:
                 url_hist = f"https://api.laoshd.com/api/history?t={timestamp}"
                 res_hist = requests.get(url_hist, headers=headers, timeout=15)
@@ -1323,10 +1280,10 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
                                 digit3 = str(results.get("digit3", "")).strip()
                                 digit2_bottom = str(results.get("digit2_bottom", "")).strip()
                                 
-                                if digit5 and digit3 and digit2_bottom:
-                                    msg = (f"🇱🇦 **ผลหวยลาวHD** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {digit3}\n"
-                                           f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
+                                if len(digit5) == 5 and digit5.isdigit() and digit3.isdigit() and digit2_bottom.isdigit():
+                                    msg = (f"🇱🇦 ผลหวยลาวHD 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {digit3}\n"
+                                           f"👇 2 ตัวล่าง: {digit2_bottom}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                         
@@ -1338,13 +1295,13 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
             print(f"[Error] ลาวHD Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวHD**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ลาวHD: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
         time.sleep(10)
 
 # ==========================================
-# 🇨🇳 ดึงผล: หุ้นจีน (บ่าย) (เวลา 14:00 น.) - Official API (SZSE)
+# 🇨🇳 ดึงผล: หุ้นจีน (บ่าย) - Official API (SZSE)
 # ==========================================
 def fetch_china_afternoon(offset_days=0, is_auto=True):
     import requests
@@ -1356,16 +1313,14 @@ def fetch_china_afternoon(offset_days=0, is_auto=True):
     today_str_api = target_date.strftime("%Y-%m-%d")
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    # 🛑 บล็อคการดึงย้อนหลัง เพราะ API Official แสดงผลแค่วันล่าสุด
     if offset_days > 0:
         if not is_auto:
-            bot.send_message(GROUP_CHAT_ID, "⚠️ **จีน (บ่าย)**: API ของเว็บทางการดึงได้เฉพาะผลของวันล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
+            bot.send_message(GROUP_CHAT_ID, "⚠️ จีน (บ่าย): API ของเว็บทางการดึงได้เฉพาะผลของวันล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
         return
         
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นจีน (บ่าย)** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยหุ้นจีน (บ่าย) งวดวันที่ {today_str_display}...")
 
-    # 🛡️ สร้าง Session และ Headers ปลอมตัวเป็นเบราว์เซอร์เพื่อกัน Firewall
     session = requests.Session()
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -1378,11 +1333,9 @@ def fetch_china_afternoon(offset_days=0, is_auto=True):
     session.headers.update(headers)
 
     attempts = 0
-    
     while True:
         attempts += 1
         try:
-            # สุ่มเลข Random ต่อท้าย URL เพื่อทะลวง Cache ตามรูปแบบของเว็บจีน
             rand_val = random.random()
             url = f"https://www.szse.cn/api/market/ssjjhq/getTimeData?random={rand_val}&marketId=1&code=399001"
             
@@ -1393,58 +1346,57 @@ def fetch_china_afternoon(offset_days=0, is_auto=True):
                     json_data = res.json()
                 except Exception:
                     if not is_auto and attempts >= 2:
-                        bot.send_message(GROUP_CHAT_ID, f"❌ **จีน (บ่าย)**: ถูกระบบป้องกันของ SZSE บล็อคครับ")
+                        bot.send_message(GROUP_CHAT_ID, f"❌ จีน (บ่าย): ถูกระบบป้องกันของ SZSE บล็อคครับ")
                         return
                     time.sleep(10)
                     continue
 
                 api_datetime = json_data.get("datetime", "")
                 
-                # 🛑 เช็คว่าวันที่ตรงกับวันนี้ และเวลาเป็น 15:00 (เวลาจีน = 14:00 ไทย)
                 if today_str_api in api_datetime:
-                    # ตัดเอาเฉพาะส่วนเวลามาเช็ค (เช่น "15:00")
                     api_time = api_datetime.split(" ")[1] if " " in api_datetime else ""
                     
                     if api_time >= "15:00":
                         data = json_data.get("data", {})
-                        now_price = data.get("now", "0")
-                        delta_price = data.get("delta", "0")
+                        now_price = str(data.get("now", "0")).replace(",", "")
+                        delta_price = str(data.get("delta", "0")).replace(",", "").replace("+", "").replace("-", "")
                         
-                        price_val = str(now_price).replace(",", "")
-                        diff_val = str(delta_price).replace(",", "").replace("+", "").replace("-", "")
-                        
-                        integer_part, decimal_part = f"{float(price_val):.2f}".split('.')
-                        top_3 = integer_part[-1] + decimal_part
-                        bottom_2 = f"{float(diff_val):.2f}".split('.')[1]
-                        
-                        msg = (f"🇨🇳 **ผลหวยหุ้นจีน (บ่าย)** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
-                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                        bot.send_message(GROUP_CHAT_ID, msg)
-                        return
+                        try:
+                            integer_part, decimal_part = f"{float(now_price):.2f}".split('.')
+                            top_3 = integer_part[-1] + decimal_part
+                            bottom_2 = f"{float(delta_price):.2f}".split('.')[1]
+                            
+                            # 🛡️ ดักจับความถูกต้องด้วย .isdigit()
+                            if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                msg = (f"🇨🇳 ผลหวยหุ้นจีน (บ่าย) 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                                       f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                bot.send_message(GROUP_CHAT_ID, msg)
+                                return
+                        except ValueError:
+                            pass
                     else:
                         if not is_auto and attempts >= 2:
-                            bot.send_message(GROUP_CHAT_ID, f"⏳ **จีน (บ่าย)**: ตลาดยังไม่ปิด (สถานะล่าสุด: {api_datetime})")
+                            bot.send_message(GROUP_CHAT_ID, f"⏳ จีน (บ่าย): ตลาดยังไม่ปิด (สถานะล่าสุด: {api_datetime})")
                             return
                 else:
                     if not is_auto and attempts >= 2:
-                        bot.send_message(GROUP_CHAT_ID, f"⚠️ **จีน (บ่าย)**: เว็บไซต์ยังไม่อัปเดตข้อมูลของวันที่ {today_str_display} (ล่าสุด: {api_datetime})")
+                        bot.send_message(GROUP_CHAT_ID, f"⚠️ จีน (บ่าย): เว็บไซต์ยังไม่อัปเดตข้อมูลของวันที่ {today_str_display} (ล่าสุด: {api_datetime})")
                         return
             else:
                 if not is_auto and attempts >= 2:
-                    bot.send_message(GROUP_CHAT_ID, f"❌ **จีน (บ่าย)**: เว็บปฏิเสธการเชื่อมต่อ (Status Code: {res.status_code})")
+                    bot.send_message(GROUP_CHAT_ID, f"❌ จีน (บ่าย): เว็บปฏิเสธการเชื่อมต่อ (Status Code: {res.status_code})")
                     return
                     
         except Exception as e:
             print(f"[Error] จีน (บ่าย) Exception: {e}")
             if not is_auto and attempts >= 2:
-                bot.send_message(GROUP_CHAT_ID, f"❌ **จีน (บ่าย)**: เซิร์ฟเวอร์เชื่อมต่อไม่สำเร็จ")
+                bot.send_message(GROUP_CHAT_ID, f"❌ จีน (บ่าย): เซิร์ฟเวอร์เชื่อมต่อไม่สำเร็จ")
                 return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนรอบใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇻🇳 ดึงผล: ฮานอยทีวี (เวลา 14:30 น.)
+# 🇻🇳 ดึงผล: ฮานอยทีวี
 # ==========================================
 def fetch_hanoi_tv(offset_days=0, is_auto=True):
     import requests
@@ -1455,14 +1407,13 @@ def fetch_hanoi_tv(offset_days=0, is_auto=True):
     today_str_api = target_date.strftime("%Y-%m-%d")
     today_str_display = target_date.strftime("%d-%m-%Y")
 
-    # 🛑 บล็อคการดึงย้อนหลังไว้ก่อน เพราะใช้ API หน้า Result (ดึงได้แค่วันล่าสุด)
     if offset_days > 0:
         if not is_auto:
-            bot.send_message(GROUP_CHAT_ID, "⚠️ **ฮานอยทีวี**: ระบบนี้ดึงได้เฉพาะผลล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
+            bot.send_message(GROUP_CHAT_ID, "⚠️ ฮานอยทีวี: ระบบนี้ดึงได้เฉพาะผลล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
         return
 
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยทีวี** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยฮานอยทีวี งวดวันที่ {today_str_display}...")
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -1472,7 +1423,6 @@ def fetch_hanoi_tv(offset_days=0, is_auto=True):
     attempts = 0
     while True:
         attempts += 1
-        # แนบ Timestamp เพื่อทะลวง Cache (ป้องกัน Error 304 Not Modified)
         timestamp = int(datetime.now().timestamp() * 1000)
         url = f"https://api.minhngoctv.com/result?t={timestamp}"
         
@@ -1486,27 +1436,23 @@ def fetch_hanoi_tv(offset_days=0, is_auto=True):
                     data = json_data.get("data", {})
                     api_date = data.get("lotto_date", "")
                     
-                    # 🛑 เช็คว่าเว็บอัปเดตเป็นวันที่เราต้องการหรือยัง
                     if api_date == today_str_api:
                         results = data.get("results", {})
                         
-                        # 🐞 ดักแปลง null ให้กลายเป็นข้อความเปล่าๆ
                         prize_1st = str(results.get("prize_1st") or "").strip()
                         prize_2nd = str(results.get("prize_2nd") or "").strip()
                         
-                        # 🛡️ เช็คความยาวให้ครบ และต้องเป็น "ตัวเลขล้วน" เท่านั้น (ป้องกันบั๊ก "one")
                         if len(prize_1st) >= 3 and len(prize_2nd) >= 2 and prize_1st.isdigit() and prize_2nd.isdigit():
                             top_3 = prize_1st[-3:]
                             bottom_2 = prize_2nd[-2:]
                             
-                            msg = (f"🇻🇳 **ผลหวยฮานอยทีวี** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n"
-                                   f"👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇻🇳 ผลหวยฮานอยทีวี 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return
                         else:
                             if not is_auto and attempts >= 2:
-                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮานอยทีวี**: กำลังรอผลรางวัลอัปเดตครับ")
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ ฮานอยทีวี: กำลังรอผลรางวัลอัปเดตครับ")
                                 return
                     else:
                         if not is_auto and attempts >= 2:
@@ -1521,14 +1467,13 @@ def fetch_hanoi_tv(offset_days=0, is_auto=True):
             print(f"[Error] ฮานอยทีวี Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยทีวี**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยทีวี: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนลูปใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇨🇳 ดึงผล: จีนบ่าย VIP (เวลา 14:25 น.) - ระบบ Hybrid
+# 🇨🇳 ดึงผล: จีนบ่าย VIP
 # ==========================================
 def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
     import requests
@@ -1540,7 +1485,7 @@ def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยจีนบ่าย VIP** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยจีนบ่าย VIP งวดวันที่ {today_str_display}...")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -1553,7 +1498,6 @@ def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
             if offset_days == 0:
                 url = f"https://api.shenzhenindex.com/api/cn?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -1565,25 +1509,27 @@ def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
                         prices_list = json_data.get("data", {}).get("prices", [])
                         
                         for item in prices_list:
-                            # 🎯 ค้นหาบรรทัดที่ตลาดปิด และเวลาต้องเป็นรอบบ่าย (15:xx ตามเวลาจีน)
                             item_time = item.get("time", "")
                             if item.get("note") == "Close" and item_time.startswith("15:"):
-                                price = item.get("price", 0)
-                                diff = item.get("diff", "0")
+                                price = str(item.get("price") or "0")
+                                diff = str(item.get("diff") or "0")
                                 
-                                price_str = f"{float(price):.2f}"
-                                diff_str = f"{float(diff):.2f}"
-                                
-                                integer_part, decimal_part = price_str.split('.')
-                                top_3 = integer_part[-1] + decimal_part
-                                bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
-                                
-                                msg = (f"🇨🇳 **ผลหวยจีนบ่าย VIP** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
-                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                bot.send_message(GROUP_CHAT_ID, msg)
-                                return
+                                try:
+                                    price_str = f"{float(price):.2f}"
+                                    diff_str = f"{float(diff):.2f}"
+                                    
+                                    integer_part, decimal_part = price_str.split('.')
+                                    top_3 = integer_part[-1] + decimal_part
+                                    bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
+                                    
+                                    if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                        msg = (f"🇨🇳 ผลหวยจีนบ่าย VIP 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        return
+                                except ValueError:
+                                    pass
 
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
                 url = f"https://api.shenzhenindex.com/api/history/cn?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -1593,15 +1539,13 @@ def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
                     if json_data.get("status") == "success":
                         for item in json_data.get("data", []):
                             if item.get("date") == today_str_api:
-                                # จีน VIP มี 2 รอบ รอบบ่ายจะอยู่ใน r2
                                 r2_data = item.get("r2", {})
                                 top_3 = str(r2_data.get("prize_1st", "")).strip()
                                 bottom_2 = str(r2_data.get("prize_2nd", "")).strip()
                                 
-                                # 🛡️ ดักจับความถูกต้องของตัวเลข
                                 if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
-                                    msg = (f"🇨🇳 **ผลหวยจีนบ่าย VIP** 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                    msg = (f"🇨🇳 ผลหวยจีนบ่าย VIP 🇨🇳\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                                     
@@ -1609,14 +1553,13 @@ def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
             print(f"[Error] จีนบ่าย VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"⏳ **จีนบ่าย VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
+            bot.send_message(GROUP_CHAT_ID, f"⏳ จีนบ่าย VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
-        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลาไทย 15:10 น.)
+# 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
     import requests
@@ -1628,7 +1571,7 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
 
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮั่งเส็งบ่าย (ปกติ)** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยฮั่งเส็งบ่าย (ปกติ) งวดวันที่ {today_str_display}...")
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -1653,14 +1596,11 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
                     if series.get("seriesCode") == "hsi":
                         for idx in series.get("indexList", []):
                             if idx.get("indexName") == "Hang Seng Index":
-                                last_update = str(idx.get("lastUpdate", "")) # ex: "2026-08-14 16:08:56"
+                                last_update = str(idx.get("lastUpdate", ""))
                                 
-                                # 🛑 เช็คว่าข้อมูลเป็นของวันนี้
                                 if last_update.startswith(today_str_api):
                                     time_part = last_update.split(" ")[1] if " " in last_update else ""
                                     
-                                    # 🕒 แก้ไขตรงนี้: ปรับกลับมาเป็น 16:08:00 เพื่อรองรับการสุ่มปิดตลาดของฮั่งเส็ง
-                                    # (ถ้าตลาดปิด 16:08:56 ตัวเลขก็จะผ่านเงื่อนไขนี้ได้ทันที)
                                     if time_part >= "16:08:00":
                                         price_str = str(idx.get("indexValue", "")).replace(",", "")
                                         diff_str = str(idx.get("changeValue", "")).replace(",", "")
@@ -1671,19 +1611,18 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
                                             
                                             integer_part, decimal_part = price_val.split('.')
                                             top_3 = integer_part[-1] + decimal_part
-                                            bottom_2 = diff_val.replace('-', '').replace('+', '').split('.')[1]
+                                            bottom_2 = diff_str.replace('-', '').replace('+', '').split('.')[1]
                                             
-                                            # 🛡️ ดักจับความถูกต้องของตัวเลข
                                             if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
-                                                msg = (f"🇭🇰 **ผลหวยฮั่งเส็งบ่าย (ปกติ)** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
-                                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                                msg = (f"🇭🇰 ผลหวยฮั่งเส็งบ่าย (ปกติ) 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
+                                                       f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                                 bot.send_message(GROUP_CHAT_ID, msg)
                                                 return
                                         except ValueError:
                                             pass
                                     else:
                                         if not is_auto and attempts >= 2:
-                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮั่งเส็งบ่าย (ปกติ)**: ตลาดยังไม่ปิดสนิท (เวลาล่าสุด {time_part})")
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ ฮั่งเส็งบ่าย (ปกติ): ตลาดยังไม่ปิดสนิท (เวลาล่าสุด {time_part})")
                                             return
                                 else:
                                     if not is_auto and attempts >= 2:
@@ -1696,14 +1635,13 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
             print(f"[Error] ฮั่งเส็งบ่าย (ปกติ) Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮั่งเส็งบ่าย (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ฮั่งเส็งบ่าย (ปกติ): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
 
 # ==========================================
-# 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย VIP (เวลา 15:25 น.) - ระบบ Hybrid
+# 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย VIP
 # ==========================================
 def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
     import requests
@@ -1715,7 +1653,7 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮั่งเส็งบ่าย VIP** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยฮั่งเส็งบ่าย VIP งวดวันที่ {today_str_display}...")
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -1728,7 +1666,6 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
         timestamp = int(datetime.now().timestamp() * 1000)
         
         try:
-            # 🚀 กรณีที่ 1: ดึงผล "วันนี้" (จาก Real-time API)
             if offset_days == 0:
                 url = f"https://api.stocks-vip.com/api/hk?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -1737,13 +1674,11 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
                     json_data = res.json()
                     
                     if json_data.get("status") == "success":
-                        # 🐞 แก้ไขจุดนี้: ดึงข้อมูลจากก้อน "prices" ตรงๆ เลย ไม่ต้องมุดเข้า "hk"
                         prices_data = json_data.get("data", {}).get("prices", {})
                         
                         item_time = prices_data.get("time", "")
                         item_note = prices_data.get("note", "")
                         
-                        # 🎯 เช็คว่าตลาดปิด และเวลาต้องเป็นรอบบ่าย (16:xx ตามเวลาฮ่องกง)
                         if item_note == "Close" and item_time >= "16:00":
                             price = str(prices_data.get("price") or "0")
                             diff = str(prices_data.get("diff") or "0")
@@ -1759,16 +1694,14 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
                                 top_3 = integer_part[-1] + decimal_part
                                 bottom_2 = diff_str.split('.')[1]
                                 
-                                # 🛡️ ดักจับความถูกต้องของตัวเลข
                                 if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
-                                    msg = (f"🇭🇰 **ผลหวยฮั่งเส็งบ่าย VIP** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                    msg = (f"🇭🇰 ผลหวยฮั่งเส็งบ่าย VIP 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                             except ValueError:
                                 pass 
 
-            # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
                 url = f"https://api.stocks-vip.com/api/history/hk?t={timestamp}"
                 res = requests.get(url, headers=headers, timeout=15)
@@ -1778,7 +1711,6 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
                     if json_data.get("status") == "success":
                         for item in json_data.get("data", []):
                             if item.get("date") == today_str_api:
-                                # ฮั่งเส็ง VIP รอบบ่ายอยู่ใน r2
                                 r2_data = item.get("results", {}).get("r2", {})
                                 
                                 price = str(r2_data.get("price") or "0")
@@ -1796,8 +1728,8 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
                                     bottom_2 = diff_str.split('.')[1]
                                     
                                     if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
-                                        msg = (f"🇭🇰 **ผลหวยฮั่งเส็งบ่าย VIP** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
-                                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                        msg = (f"🇭🇰 ผลหวยฮั่งเส็งบ่าย VIP 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
+                                               f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                                         bot.send_message(GROUP_CHAT_ID, msg)
                                         return
                                 except ValueError:
@@ -1807,14 +1739,13 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
             print(f"[Error] ฮั่งเส็งบ่าย VIP: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮั่งเส็งบ่าย VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
+            bot.send_message(GROUP_CHAT_ID, f"⏳ ฮั่งเส็งบ่าย VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
 
 # ==========================================
-# 🇱🇦 ดึงผล: หวยลาวสตาร์ (เวลา 15:45 น.) - ระบบ Hybrid
+# 🇱🇦 ดึงผล: หวยลาวสตาร์
 # ==========================================
 def fetch_laos_star(offset_days=0, is_auto=True):
     import requests
@@ -1826,7 +1757,7 @@ def fetch_laos_star(offset_days=0, is_auto=True):
     today_str_display = target_date.strftime("%d-%m-%Y")
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวสตาร์** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยลาวสตาร์ งวดวันที่ {today_str_display}...")
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -1850,35 +1781,30 @@ def fetch_laos_star(offset_days=0, is_auto=True):
                     data = json_data.get("data", {})
                     api_date = data.get("lotto_date", "")
                     
-                    # 🎯 ถ้าวันที่หน้าหลักตรงกับที่เราต้องการ
                     if api_date == today_str_api:
                         main_matched = True
                         results = data.get("results", {})
                         
-                        # 🐞 ดักแปลง null ให้กลายเป็นข้อความเปล่าๆ
                         digit5 = str(results.get("digit5") or "").strip()
                         digit3 = str(results.get("digit3") or "").strip()
                         digit2_bottom = str(results.get("digit2_bottom") or "").strip()
                         
-                        # 🛡️ เช็คความยาวให้ครบ และต้องเป็น "ตัวเลขล้วน" เท่านั้น
                         if len(digit5) == 5 and digit5.isdigit() and digit3.isdigit() and digit2_bottom.isdigit():
-                            msg = (f"🇱🇦 **ผลหวยลาวสตาร์** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {digit3}\n"
-                                   f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
+                            msg = (f"🇱🇦 ผลหวยลาวสตาร์ 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {digit3}\n"
+                                   f"👇 2 ตัวล่าง: {digit2_bottom}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return
                         else:
                             if not is_auto and attempts >= 2:
-                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ลาวสตาร์**: กำลังรอผลรางวัลอัปเดตให้ครบถ้วนครับ")
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ ลาวสตาร์: กำลังรอผลรางวัลอัปเดตให้ครบถ้วนครับ")
                                 return
                                 
-                    # 🛑 ถ้าเป็นโหมดดึงวันนี้ แต่หน้าเว็บยังเป็นของวันก่อน
                     elif offset_days == 0:
                         if not is_auto and attempts >= 2:
                             bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
                             return
 
-            # ⏪ Step 2: หาจากหน้าประวัติย้อนหลัง (ถ้าหน้าหลักไม่ใช่ของวันที่ต้องการ)
             if offset_days > 0 and not main_matched:
                 url_hist = f"https://api.laostars.com/history?t={timestamp}"
                 res_hist = requests.get(url_hist, headers=headers, timeout=15)
@@ -1897,9 +1823,9 @@ def fetch_laos_star(offset_days=0, is_auto=True):
                                 digit2_bottom = str(results.get("digit2_bottom") or "").strip()
                                 
                                 if len(digit5) == 5 and digit5.isdigit() and digit3.isdigit() and digit2_bottom.isdigit():
-                                    msg = (f"🇱🇦 **ผลหวยลาวสตาร์** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                           f"🎯 **3 ตัวบน:** {digit3}\n"
-                                           f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
+                                    msg = (f"🇱🇦 ผลหวยลาวสตาร์ 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎯 3 ตัวบน: {digit3}\n"
+                                           f"👇 2 ตัวล่าง: {digit2_bottom}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                         
@@ -1911,14 +1837,13 @@ def fetch_laos_star(offset_days=0, is_auto=True):
             print(f"[Error] ลาวสตาร์ Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวสตาร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ลาวสตาร์: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนลูปใหม่
         time.sleep(10)
 
 # ==========================================
-# 🇻🇳 ดึงผล: ฮานอยกาชาด (เวลา 16:30 น.)
+# 🇻🇳 ดึงผล: ฮานอยกาชาด
 # ==========================================
 def fetch_hanoi_redcross(offset_days=0, is_auto=True):
     import requests
@@ -1929,14 +1854,13 @@ def fetch_hanoi_redcross(offset_days=0, is_auto=True):
     today_str_api = target_date.strftime("%Y-%m-%d")
     today_str_display = target_date.strftime("%d-%m-%Y")
 
-    # 🛑 บล็อคการดึงย้อนหลังไว้ก่อน เพราะดึงจากหน้า Result ตรงๆ (ดึงได้แค่วันล่าสุด)
     if offset_days > 0:
         if not is_auto:
-            bot.send_message(GROUP_CHAT_ID, "⚠️ **ฮานอยกาชาด**: ระบบนี้ดึงได้เฉพาะผลล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
+            bot.send_message(GROUP_CHAT_ID, "⚠️ ฮานอยกาชาด: ระบบนี้ดึงได้เฉพาะผลล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
         return
 
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยกาชาด** งวดวันที่ {today_str_display}...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยฮานอยกาชาด งวดวันที่ {today_str_display}...")
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -1946,7 +1870,6 @@ def fetch_hanoi_redcross(offset_days=0, is_auto=True):
     attempts = 0
     while True:
         attempts += 1
-        # แนบ Timestamp เพื่อทะลวง Cache ป้องกัน 304 Not Modified
         timestamp = int(datetime.now().timestamp() * 1000)
         url = f"https://api.xosoredcross.com/result?t={timestamp}"
         
@@ -1960,27 +1883,23 @@ def fetch_hanoi_redcross(offset_days=0, is_auto=True):
                     data = json_data.get("data", {})
                     api_date = data.get("lotto_date", "")
                     
-                    # 🛑 เช็คว่าเว็บอัปเดตเป็นวันที่เราต้องการหรือยัง
                     if api_date == today_str_api:
                         results = data.get("results", {})
                         
-                        # 🐞 ดักแปลง null ให้กลายเป็นข้อความเปล่าๆ
                         prize_1st = str(results.get("prize_1st") or "").strip()
                         prize_2nd = str(results.get("prize_2nd") or "").strip()
                         
-                        # 🛡️ เช็คความยาวให้ครบ และต้องเป็น "ตัวเลขล้วน" เท่านั้น (ป้องกันบั๊ก)
                         if len(prize_1st) >= 3 and len(prize_2nd) >= 2 and prize_1st.isdigit() and prize_2nd.isdigit():
                             top_3 = prize_1st[-3:]
                             bottom_2 = prize_2nd[-2:]
                             
-                            msg = (f"🇻🇳 **ผลหวยฮานอยกาชาด** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n"
-                                   f"👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            msg = (f"🇻🇳 ผลหวยฮานอยกาชาด 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return
                         else:
                             if not is_auto and attempts >= 2:
-                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮานอยกาชาด**: กำลังรอผลรางวัลอัปเดตครับ")
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ ฮานอยกาชาด: กำลังรอผลรางวัลอัปเดตครับ")
                                 return
                     else:
                         if not is_auto and attempts >= 2:
@@ -1995,10 +1914,9 @@ def fetch_hanoi_redcross(offset_days=0, is_auto=True):
             print(f"[Error] ฮานอยกาชาด Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยกาชาด**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยกาชาด: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนลูปเช็คใหม่
         time.sleep(10)
 
 # ==========================================
