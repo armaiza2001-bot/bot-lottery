@@ -1733,18 +1733,17 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
                     json_data = res.json()
                     
                     if json_data.get("status") == "success":
-                        # โครงสร้างชุดนี้ prices เป็น dict ต้องเจาะไปที่ "hk"
-                        hk_data = json_data.get("data", {}).get("prices", {}).get("hk", {})
+                        # 🐞 แก้ไขจุดนี้: ดึงข้อมูลจากก้อน "prices" ตรงๆ เลย ไม่ต้องมุดเข้า "hk"
+                        prices_data = json_data.get("data", {}).get("prices", {})
                         
-                        item_time = hk_data.get("time", "")
-                        item_note = hk_data.get("note", "")
+                        item_time = prices_data.get("time", "")
+                        item_note = prices_data.get("note", "")
                         
-                        # 🎯 ค้นหาบรรทัดที่ตลาดปิด และเวลาต้องเป็นรอบบ่าย (16:xx ตามเวลาฮ่องกง)
+                        # 🎯 เช็คว่าตลาดปิด และเวลาต้องเป็นรอบบ่าย (16:xx ตามเวลาฮ่องกง)
                         if item_note == "Close" and item_time >= "16:00":
-                            price = str(hk_data.get("price") or "0")
-                            diff = str(hk_data.get("diff") or "0")
+                            price = str(prices_data.get("price") or "0")
+                            diff = str(prices_data.get("diff") or "0")
                             
-                            # ลบลูกน้ำและเครื่องหมายออกก่อนแปลงเป็น float
                             price_val = price.replace(",", "")
                             diff_val = diff.replace(",", "").replace("+", "").replace("-", "")
                             
@@ -1756,14 +1755,14 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
                                 top_3 = integer_part[-1] + decimal_part
                                 bottom_2 = diff_str.split('.')[1]
                                 
-                                # 🛡️ ดักจับความถูกต้องของตัวเลข (กันบั๊ก "one" และค่าว่าง)
+                                # 🛡️ ดักจับความถูกต้องของตัวเลข
                                 if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
                                     msg = (f"🇭🇰 **ผลหวยฮั่งเส็งบ่าย VIP** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
                                            f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
                                     bot.send_message(GROUP_CHAT_ID, msg)
                                     return
                             except ValueError:
-                                pass # ถ้าแปลงเป็น float ไม่ได้ (เว็บส่งค่าแปลกๆ มา) ให้ปล่อยผ่านไปวนลูปรอใหม่
+                                pass 
 
             # ⏪ กรณีที่ 2: ดึงผล "ย้อนหลัง" (จาก History API)
             else:
@@ -1775,7 +1774,7 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
                     if json_data.get("status") == "success":
                         for item in json_data.get("data", []):
                             if item.get("date") == today_str_api:
-                                # ฮั่งเส็ง VIP มี 2 รอบ รอบบ่ายจะอยู่ใน results -> r2
+                                # ฮั่งเส็ง VIP รอบบ่ายอยู่ใน r2
                                 r2_data = item.get("results", {}).get("r2", {})
                                 
                                 price = str(r2_data.get("price") or "0")
@@ -1792,7 +1791,6 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
                                     top_3 = integer_part[-1] + decimal_part
                                     bottom_2 = diff_str.split('.')[1]
                                     
-                                    # 🛡️ ดักจับความถูกต้องของตัวเลข
                                     if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
                                         msg = (f"🇭🇰 **ผลหวยฮั่งเส็งบ่าย VIP** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
                                                f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
@@ -1808,7 +1806,7 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮั่งเส็งบ่าย VIP**: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
-        # 💤 ถ้าเป็น Auto โค้ดจะหลับ 10 วินาทีแล้ววนลูปเช็คใหม่
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
 
 # ==========================================
