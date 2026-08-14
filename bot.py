@@ -1616,21 +1616,20 @@ def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
+# 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลาไทย 15:10 น. - รอเว็บสรุปยอด 16:10 เวลาฮ่องกง)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
     import requests
     from datetime import datetime, timedelta
     import time
-    
+
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_api = target_date.strftime("%Y-%m-%d")
     today_str_display = target_date.strftime("%d-%m-%Y")
-    
+
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮั่งเส็งบ่าย (ปกติ)** งวดวันที่ {today_str_display}...")
 
-    # ใส่ Headers พรางตัว ป้องกันการโดนบล็อค
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Referer": "https://www.hsi.com.hk/",
@@ -1640,51 +1639,56 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
     attempts = 0
     while True:
         attempts += 1
-        # แนบ Timestamp ป้องกันแคชเบราว์เซอร์
         timestamp = int(time.time() * 1000)
         url = f"https://www.hsi.com.hk/data/eng/rt/index-series/hsi/performance.do?_={timestamp}"
-        
+
         try:
             res = requests.get(url, headers=headers, timeout=15)
-            
+
             if res.status_code == 200:
                 data = res.json()
-                found_result = False
-                
-                # 🚨 จุดที่แก้ไข: เจาะเข้าโฟลเดอร์ indexSeriesList ก่อน ตามรูป Preview ที่คุณส่งมา
                 index_series_list = data.get("indexSeriesList", [])
                 
                 for series in index_series_list:
                     if series.get("seriesCode") == "hsi":
                         for idx in series.get("indexList", []):
                             if idx.get("indexName") == "Hang Seng Index":
-                                last_update = str(idx.get("lastUpdate", "")) # ex: "2026-08-13 16:08:34"
+                                last_update = str(idx.get("lastUpdate", "")) # ex: "2026-08-14 16:08:56"
                                 
-                                # 🛑 เช็คว่าข้อมูลอัปเดตเป็นของวันที่ต้องการหรือยัง
+                                # 🛑 เช็คว่าข้อมูลเป็นของวันนี้
                                 if last_update.startswith(today_str_api):
-                                    
-                                    # 🕒 เช็คเวลาฮ่องกง (ต้องเลย 16:08 น. ไปแล้ว ถึงจะถือว่าตลาดปิดรอบบ่าย)
                                     time_part = last_update.split(" ")[1] if " " in last_update else ""
-                                    if time_part >= "16:08:00":
-                                        found_result = True
+                                    
+                                    # 🕒 แก้ไขตรงนี้: รอจนถึง 16:10:00 ขึ้นไป เพื่อข้ามช่วงสุ่มปิดตลาด (CAS)
+                                    if time_part >= "16:10:00":
                                         price_str = str(idx.get("indexValue", "")).replace(",", "")
                                         diff_str = str(idx.get("changeValue", "")).replace(",", "")
                                         
-                                        # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
-                                        integer_part, decimal_part = f"{float(price_str):.2f}".split('.')
-                                        top_3 = integer_part[-1] + decimal_part
-                                        bottom_2 = f"{float(diff_str):.2f}".replace('-', '').replace('+', '').split('.')[1]
-                                        
-                                        msg = (f"🇭🇰 **ผลหวยฮั่งเส็งบ่าย (ปกติ)** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
-                                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
-                                        bot.send_message(GROUP_CHAT_ID, msg)
+                                        try:
+                                            # จัดการจุดทศนิยม
+                                            price_val = f"{float(price_str):.2f}"
+                                            diff_val = f"{float(diff_str):.2f}"
+                                            
+                                            integer_part, decimal_part = price_val.split('.')
+                                            top_3 = integer_part[-1] + decimal_part
+                                            bottom_2 = diff_val.replace('-', '').replace('+', '').split('.')[1]
+                                            
+                                            # 🛡️ ดักจับความถูกต้องของตัวเลข ป้องกันบั๊กค่าว่าง
+                                            if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
+                                                msg = (f"🇭🇰 **ผลหวยฮั่งเส็งบ่าย (ปกติ)** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
+                                                       f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                                bot.send_message(GROUP_CHAT_ID, msg)
+                                                return
+                                        except ValueError:
+                                            pass
+                                    else:
+                                        if not is_auto and attempts >= 2:
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮั่งเส็งบ่าย (ปกติ)**: ตลาดยังไม่ปิดสนิท (เวลาล่าสุด {time_part} รอผลสรุปตอน 16:10 น.)")
+                                            return
+                                else:
+                                    if not is_auto and attempts >= 2:
+                                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (ข้อมูลเว็บเป็นของงวด {last_update})")
                                         return
-                
-                # ถ้าระบบยังไม่แสดงเวลาหลัง 16:08 (ตลาดยังไม่ปิดรอบบ่าย)
-                if not found_result:
-                    if not is_auto and attempts >= 2:
-                        bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮั่งเส็งบ่าย (ปกติ)**: ตลาดยังไม่ปิดรอบบ่าย (รอระบบฮ่องกงอัปเดต)")
-                        return
             else:
                 print(f"[Error] ฮั่งเส็งบ่าย (ปกติ): ตอบกลับสถานะ {res.status_code}")
                 
@@ -1695,7 +1699,7 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ **ฮั่งเส็งบ่าย (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
+        # 💤 บอทพักหายใจ 10 วินาที รอจนกว่าจะถึง 16:10 น.
         time.sleep(10)
 
 # ==========================================
