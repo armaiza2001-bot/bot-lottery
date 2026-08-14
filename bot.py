@@ -250,11 +250,11 @@ def fetch_hanoi_asean(offset_days=0, is_auto=True):
     import requests
     from datetime import datetime, timedelta
     import time
-    
+
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_api = target_date.strftime("%Y-%m-%d")
     today_str_display = target_date.strftime("%d-%m-%Y")
-    
+
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **ฮานอยอาเซียน** งวดวันที่ {today_str_display}...")
 
@@ -277,20 +277,21 @@ def fetch_hanoi_asean(offset_days=0, is_auto=True):
                     data = json_data.get("data", {})
                     api_date = data.get("lotto_date", "")
                     
-                    # 🛑 เช็คว่าวันที่ใน API อัปเดตตรงกับวันที่เราต้องการดึงหรือยัง
                     if api_date == today_str_api:
                         results = data.get("results", {})
-                        prize_1st = str(results.get("prize_1st", "")).strip()
-                        prize_2nd = str(results.get("prize_2nd", "")).strip()
                         
-                        # ตรวจสอบว่าผลออกครบหรือยัง (กันกรณีตัวเลขยังแหว่ง)
-                        if len(prize_1st) >= 3 and len(prize_2nd) >= 2:
-                            # 🎯 ตัดเลข 3 ตัวบน และ 2 ตัวล่าง
+                        # 🐞 แก้บั๊ก "one": ถ้าเป็น null ให้กลายเป็น "" ทันที
+                        prize_1st = str(results.get("prize_1st") or "").strip()
+                        prize_2nd = str(results.get("prize_2nd") or "").strip()
+                        
+                        # 🛡️ เพิ่ม .isdigit() เพื่อเช็คว่าต้องเป็นตัวเลขล้วนเท่านั้น ห้ามมีตัวหนังสือหลุดมา
+                        if len(prize_1st) >= 3 and len(prize_2nd) >= 2 and prize_1st.isdigit() and prize_2nd.isdigit():
                             top_3 = prize_1st[-3:]
                             bottom_2 = prize_2nd[-2:]
                             
                             msg = (f"🇻🇳 **ผลหวยฮานอยอาเซียน** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                                   f"🎯 **3 ตัวบน:** {top_3}\n"
+                                   f"👇 **2 ตัวล่าง:** {bottom_2}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
                             return
                         else:
@@ -302,10 +303,10 @@ def fetch_hanoi_asean(offset_days=0, is_auto=True):
                             bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
                             return
                 else:
-                    print("[Error] ฮานอยอาเซียน: สถานะ API ไม่สำเร็จ")
+                    print(f"[Error] ฮานอยอาเซียน: สถานะ API ไม่สำเร็จ")
             else:
-                 print(f"[Error] ฮานอยอาเซียน: ตอบกลับสถานะ {res.status_code}")
-                    
+                print(f"[Error] ฮานอยอาเซียน: ตอบกลับสถานะ {res.status_code}")
+                
         except Exception as e:
             print(f"[Error] ฮานอยอาเซียน Exception: {e}")
             
@@ -313,7 +314,7 @@ def fetch_hanoi_asean(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยอาเซียน**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที ก่อนรีเฟรชหน้าเว็บใหม่
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
 
 # ==========================================
