@@ -1814,6 +1814,113 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇱🇦 ดึงผล: หวยลาวสตาร์ (เวลา 15:45 น.) - ระบบ Hybrid
+# ==========================================
+def fetch_laos_star(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+    
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+    
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยลาวสตาร์** งวดวันที่ {today_str_display}...")
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        timestamp = int(datetime.now().timestamp() * 1000)
+        
+        try:
+            # 🚀 Step 1: เช็คหน้าหลักก่อนเสมอ
+            url_main = f"https://api.laostars.com/result?t={timestamp}"
+            res_main = requests.get(url_main, headers=headers, timeout=15)
+            
+            main_matched = False
+            
+            if res_main.status_code == 200:
+                json_data = res_main.json()
+                if json_data.get("status") == "success":
+                    data = json_data.get("data", {})
+                    api_date = data.get("lotto_date", "")
+                    
+                    # 🎯 ถ้าวันที่หน้าหลักตรงกับที่เราต้องการ
+                    if api_date == today_str_api:
+                        main_matched = True
+                        results = data.get("results", {})
+                        
+                        # 🐞 ดักแปลง null ให้กลายเป็นข้อความเปล่าๆ
+                        digit5 = str(results.get("digit5") or "").strip()
+                        digit3 = str(results.get("digit3") or "").strip()
+                        digit2_bottom = str(results.get("digit2_bottom") or "").strip()
+                        
+                        # 🛡️ เช็คความยาวให้ครบ และต้องเป็น "ตัวเลขล้วน" เท่านั้น (ป้องกันบั๊ก)
+                        if len(digit5) == 5 and digit5.isdigit() and digit3.isdigit() and digit2_bottom.isdigit():
+                            msg = (f"🇱🇦 **ผลหวยลาวสตาร์** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎖️ **เลข 5 ตัว:** {digit5}\n"
+                                   f"🎯 **3 ตัวบน:** {digit3}\n"
+                                   f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return
+                        else:
+                            if not is_auto and attempts >= 2:
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ลาวสตาร์**: กำลังรอผลรางวัลอัปเดตให้ครบถ้วนครับ")
+                                return
+                                
+                    # 🛑 ถ้าเป็นโหมดดึงวันนี้ แต่หน้าเว็บยังเป็นของวันก่อน
+                    elif offset_days == 0:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
+                            return
+
+            # ⏪ Step 2: หาจากหน้าประวัติย้อนหลัง (ถ้าหน้าหลักไม่ใช่ของวันที่ต้องการ)
+            if offset_days > 0 and not main_matched:
+                url_hist = f"https://api.laostars.com/history?t={timestamp}"
+                res_hist = requests.get(url_hist, headers=headers, timeout=15)
+                
+                if res_hist.status_code == 200:
+                    json_data = res_hist.json()
+                    if json_data.get("status") == "success":
+                        found = False
+                        for item in json_data.get("data", []):
+                            if item.get("lotto_date") == today_str_api:
+                                found = True
+                                results = item.get("results", {})
+                                
+                                digit5 = str(results.get("digit5") or "").strip()
+                                digit3 = str(results.get("digit3") or "").strip()
+                                digit2_bottom = str(results.get("digit2_bottom") or "").strip()
+                                
+                                if len(digit5) == 5 and digit5.isdigit() and digit3.isdigit() and digit2_bottom.isdigit():
+                                    msg = (f"🇱🇦 **ผลหวยลาวสตาร์** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
+                                           f"🎖️ **เลข 5 ตัว:** {digit5}\n"
+                                           f"🎯 **3 ตัวบน:** {digit3}\n"
+                                           f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
+                                    bot.send_message(GROUP_CHAT_ID, msg)
+                                    return
+                        
+                        if not found and not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⚠️ ไม่พบประวัติผลหวยลาวสตาร์ ของวันที่ {today_str_display} ในระบบครับ")
+                            return
+                                
+        except Exception as e:
+            print(f"[Error] ลาวสตาร์ Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ลาวสตาร์**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนลูปใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -3266,6 +3373,7 @@ def send_welcome(message):
         "- 14:30 น. : ฮานอยทีวี /test_hanoi_tv\n"
         "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 15:25 น. : หุ้นฮั่งเส็งบ่าย VIP /test_hangseng_vip_afternoon\n"
+        "- 15:45 น. : ลาวสตาร์ /test_laos_star\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -3694,6 +3802,14 @@ def test_hangseng_vip_afternoon_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮั่งเส็งบ่าย VIP**{txt}...")
     import threading
     threading.Thread(target=fetch_hangseng_vip_afternoon, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_laos_star'])
+def test_laos_star_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวสตาร์**{txt}...")
+    import threading
+    threading.Thread(target=fetch_laos_star, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -3746,6 +3862,7 @@ def time_checker():
     has_run_hanoi_tv = False
     has_run_china_vip_afternoon = False
     has_run_hangseng_vip_afternoon = False
+    has_run_laos_star = False
     
     last_check_date = ""
 
@@ -3801,6 +3918,7 @@ def time_checker():
             has_run_hanoi_tv = False
             has_run_china_vip_afternoon = False
             has_run_hangseng_vip_afternoon = False
+            has_run_laos_star = False
 
             last_check_date = current_date
 
@@ -4061,6 +4179,11 @@ def time_checker():
         if now.hour == 15 and now.minute == 25 and not has_run_hangseng_vip_afternoon:
             has_run_hangseng_vip_afternoon = True
             threading.Thread(target=fetch_hangseng_vip_afternoon, daemon=True).start()
+
+        # 🕒 รอบ 15:45 น. - ลาวสตาร์
+        if now.hour == 15 and now.minute == 45 and not has_run_laos_star:
+            has_run_laos_star = True
+            threading.Thread(target=fetch_laos_star, daemon=True).start()
 
         time.sleep(30)
 
