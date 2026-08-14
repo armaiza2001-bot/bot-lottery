@@ -1616,7 +1616,7 @@ def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
-# 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลาไทย 15:10 น. - รอเว็บสรุปยอด 16:10 เวลาฮ่องกง)
+# 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลาไทย 15:10 น.)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
     import requests
@@ -1659,13 +1659,13 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
                                 if last_update.startswith(today_str_api):
                                     time_part = last_update.split(" ")[1] if " " in last_update else ""
                                     
-                                    # 🕒 แก้ไขตรงนี้: รอจนถึง 16:10:00 ขึ้นไป เพื่อข้ามช่วงสุ่มปิดตลาด (CAS)
-                                    if time_part >= "16:10:00":
+                                    # 🕒 แก้ไขตรงนี้: ปรับกลับมาเป็น 16:08:00 เพื่อรองรับการสุ่มปิดตลาดของฮั่งเส็ง
+                                    # (ถ้าตลาดปิด 16:08:56 ตัวเลขก็จะผ่านเงื่อนไขนี้ได้ทันที)
+                                    if time_part >= "16:08:00":
                                         price_str = str(idx.get("indexValue", "")).replace(",", "")
                                         diff_str = str(idx.get("changeValue", "")).replace(",", "")
                                         
                                         try:
-                                            # จัดการจุดทศนิยม
                                             price_val = f"{float(price_str):.2f}"
                                             diff_val = f"{float(diff_str):.2f}"
                                             
@@ -1673,7 +1673,7 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
                                             top_3 = integer_part[-1] + decimal_part
                                             bottom_2 = diff_val.replace('-', '').replace('+', '').split('.')[1]
                                             
-                                            # 🛡️ ดักจับความถูกต้องของตัวเลข ป้องกันบั๊กค่าว่าง
+                                            # 🛡️ ดักจับความถูกต้องของตัวเลข
                                             if len(top_3) == 3 and len(bottom_2) == 2 and top_3.isdigit() and bottom_2.isdigit():
                                                 msg = (f"🇭🇰 **ผลหวยฮั่งเส็งบ่าย (ปกติ)** 🇭🇰\n📅 วันที่: {today_str_display}\n\n"
                                                        f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
@@ -1683,7 +1683,7 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
                                             pass
                                     else:
                                         if not is_auto and attempts >= 2:
-                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮั่งเส็งบ่าย (ปกติ)**: ตลาดยังไม่ปิดสนิท (เวลาล่าสุด {time_part} รอผลสรุปตอน 16:10 น.)")
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮั่งเส็งบ่าย (ปกติ)**: ตลาดยังไม่ปิดสนิท (เวลาล่าสุด {time_part})")
                                             return
                                 else:
                                     if not is_auto and attempts >= 2:
@@ -1699,7 +1699,7 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ **ฮั่งเส็งบ่าย (ปกติ)**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        # 💤 บอทพักหายใจ 10 วินาที รอจนกว่าจะถึง 16:10 น.
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
 
 # ==========================================
