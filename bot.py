@@ -1918,6 +1918,90 @@ def fetch_laos_star(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇻🇳 ดึงผล: ฮานอยกาชาด (เวลา 16:30 น.)
+# ==========================================
+def fetch_hanoi_redcross(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+
+    # 🛑 บล็อคการดึงย้อนหลังไว้ก่อน เพราะดึงจากหน้า Result ตรงๆ (ดึงได้แค่วันล่าสุด)
+    if offset_days > 0:
+        if not is_auto:
+            bot.send_message(GROUP_CHAT_ID, "⚠️ **ฮานอยกาชาด**: ระบบนี้ดึงได้เฉพาะผลล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
+        return
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยกาชาด** งวดวันที่ {today_str_display}...")
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        # แนบ Timestamp เพื่อทะลวง Cache ป้องกัน 304 Not Modified
+        timestamp = int(datetime.now().timestamp() * 1000)
+        url = f"https://api.xosoredcross.com/result?t={timestamp}"
+        
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                if json_data.get("status") == "success":
+                    data = json_data.get("data", {})
+                    api_date = data.get("lotto_date", "")
+                    
+                    # 🛑 เช็คว่าเว็บอัปเดตเป็นวันที่เราต้องการหรือยัง
+                    if api_date == today_str_api:
+                        results = data.get("results", {})
+                        
+                        # 🐞 ดักแปลง null ให้กลายเป็นข้อความเปล่าๆ
+                        prize_1st = str(results.get("prize_1st") or "").strip()
+                        prize_2nd = str(results.get("prize_2nd") or "").strip()
+                        
+                        # 🛡️ เช็คความยาวให้ครบ และต้องเป็น "ตัวเลขล้วน" เท่านั้น (ป้องกันบั๊ก)
+                        if len(prize_1st) >= 3 and len(prize_2nd) >= 2 and prize_1st.isdigit() and prize_2nd.isdigit():
+                            top_3 = prize_1st[-3:]
+                            bottom_2 = prize_2nd[-2:]
+                            
+                            msg = (f"🇻🇳 **ผลหวยฮานอยกาชาด** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n"
+                                   f"👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return
+                        else:
+                            if not is_auto and attempts >= 2:
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮานอยกาชาด**: กำลังรอผลรางวัลอัปเดตครับ")
+                                return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
+                            return
+                else:
+                    print(f"[Error] ฮานอยกาชาด: สถานะ API ไม่สำเร็จ")
+            else:
+                print(f"[Error] ฮานอยกาชาด: ตอบกลับสถานะ {res.status_code}")
+                
+        except Exception as e:
+            print(f"[Error] ฮานอยกาชาด Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยกาชาด**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนลูปเช็คใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
 # ==========================================
 def fetch_hanoi_special(offset_days=0, is_auto=True):
@@ -3371,6 +3455,7 @@ def send_welcome(message):
         "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 15:25 น. : หุ้นฮั่งเส็งบ่าย VIP /test_hangseng_vip_afternoon\n"
         "- 15:45 น. : ลาวสตาร์ /test_laos_star\n"
+        "- 16:30 น. : ฮานอยกาชาด /test_hanoi_redcross\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
         "- 17:11 น. : อินเดีย /test_india\n"
@@ -3807,6 +3892,12 @@ def test_laos_star_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ลาวสตาร์**{txt}...")
     import threading
     threading.Thread(target=fetch_laos_star, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_hanoi_redcross'])
+def test_hanoi_redcross_cmd(message):
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยกาชาด**...")
+    import threading
+    threading.Thread(target=fetch_hanoi_redcross, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -3860,6 +3951,7 @@ def time_checker():
     has_run_china_vip_afternoon = False
     has_run_hangseng_vip_afternoon = False
     has_run_laos_star = False
+    has_run_hanoi_redcross = False
     
     last_check_date = ""
 
@@ -3916,6 +4008,7 @@ def time_checker():
             has_run_china_vip_afternoon = False
             has_run_hangseng_vip_afternoon = False
             has_run_laos_star = False
+            has_run_hanoi_redcross = False
 
             last_check_date = current_date
 
@@ -4181,6 +4274,11 @@ def time_checker():
         if now.hour == 15 and now.minute == 45 and not has_run_laos_star:
             has_run_laos_star = True
             threading.Thread(target=fetch_laos_star, daemon=True).start()
+
+        # 🕒 รอบ 16:30 น. - ฮานอยกาชาด
+        if now.hour == 16 and now.minute == 30 and not has_run_hanoi_redcross:
+            has_run_hanoi_redcross = True
+            threading.Thread(target=fetch_hanoi_redcross, daemon=True).start()
 
         time.sleep(30)
 
