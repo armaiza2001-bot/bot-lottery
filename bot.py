@@ -1444,6 +1444,90 @@ def fetch_china_afternoon(offset_days=0, is_auto=True):
         time.sleep(10)
 
 # ==========================================
+# 🇻🇳 ดึงผล: ฮานอยทีวี (เวลา 14:30 น.)
+# ==========================================
+def fetch_hanoi_tv(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+
+    # 🛑 บล็อคการดึงย้อนหลังไว้ก่อน เพราะใช้ API หน้า Result (ดึงได้แค่วันล่าสุด)
+    if offset_days > 0:
+        if not is_auto:
+            bot.send_message(GROUP_CHAT_ID, "⚠️ **ฮานอยทีวี**: ระบบนี้ดึงได้เฉพาะผลล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
+        return
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยฮานอยทีวี** งวดวันที่ {today_str_display}...")
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        # แนบ Timestamp เพื่อทะลวง Cache (ป้องกัน Error 304 Not Modified)
+        timestamp = int(datetime.now().timestamp() * 1000)
+        url = f"https://api.minhngoctv.com/result?t={timestamp}"
+        
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            
+            if res.status_code == 200:
+                json_data = res.json()
+                
+                if json_data.get("status") == "success":
+                    data = json_data.get("data", {})
+                    api_date = data.get("lotto_date", "")
+                    
+                    # 🛑 เช็คว่าเว็บอัปเดตเป็นวันที่เราต้องการหรือยัง
+                    if api_date == today_str_api:
+                        results = data.get("results", {})
+                        
+                        # 🐞 ดักแปลง null ให้กลายเป็นข้อความเปล่าๆ
+                        prize_1st = str(results.get("prize_1st") or "").strip()
+                        prize_2nd = str(results.get("prize_2nd") or "").strip()
+                        
+                        # 🛡️ เช็คความยาวให้ครบ และต้องเป็น "ตัวเลขล้วน" เท่านั้น (ป้องกันบั๊ก "one")
+                        if len(prize_1st) >= 3 and len(prize_2nd) >= 2 and prize_1st.isdigit() and prize_2nd.isdigit():
+                            top_3 = prize_1st[-3:]
+                            bottom_2 = prize_2nd[-2:]
+                            
+                            msg = (f"🇻🇳 **ผลหวยฮานอยทีวี** 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 **3 ตัวบน:** {top_3}\n"
+                                   f"👇 **2 ตัวล่าง:** {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return
+                        else:
+                            if not is_auto and attempts >= 2:
+                                bot.send_message(GROUP_CHAT_ID, f"⏳ **ฮานอยทีวี**: กำลังรอผลรางวัลอัปเดตครับ")
+                                return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {today_str_display} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {api_date})")
+                            return
+                else:
+                    print(f"[Error] ฮานอยทีวี: สถานะ API ไม่สำเร็จ")
+            else:
+                print(f"[Error] ฮานอยทีวี: ตอบกลับสถานะ {res.status_code}")
+                
+        except Exception as e:
+            print(f"[Error] ฮานอยทีวี Exception: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ **ฮานอยทีวี**: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            return
+            
+        # 💤 บอทพักหายใจ 10 วินาที ก่อนวนลูปใหม่
+        time.sleep(10)
+
+# ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ) (เวลา 15:10 น.)
 # ==========================================
 def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
@@ -2975,6 +3059,7 @@ def send_welcome(message):
         "- 13:30 น. : นิเคอิ บ่าย /test_nikkei_afternoon\n"
         "- 13:45 น. : ลาวHD /test_laos_hd\n"
         "- 14:00 น. : จีน บ่าย /test_china_afternoon\n"
+        "- 14:30 น. : ฮานอยทีวี /test_hanoi_tv\n"
         "- 15:09 น. : หุ้นฮั่งเส็งบ่าย ปกติ /test_hangseng_afternoon_normal\n"
         "- 16:30 น. : สิงคโปร์ /test_singapore\n"
         "- 16:45 น. : ไทยเย็น /test_thai_evening\n"
@@ -3382,6 +3467,12 @@ def test_china_afternoon_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **จีน (บ่าย)**{txt}...")
     import threading
     threading.Thread(target=fetch_china_afternoon, args=(offset, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_hanoi_tv'])
+def test_hanoi_tv_cmd(message):
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยทีวี**...")
+    import threading
+    threading.Thread(target=fetch_hanoi_tv, args=(0, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -3431,6 +3522,7 @@ def time_checker():
     has_run_nikkei_vip_afternoon = False
     has_run_laos_hd = False
     has_run_china_afternoon = False
+    has_run_hanoi_tv = False
     
     last_check_date = ""
 
@@ -3483,6 +3575,7 @@ def time_checker():
             has_run_nikkei_vip_afternoon = False
             has_run_laos_hd = False
             has_run_china_afternoon = False
+            has_run_hanoi_tv = False
 
             last_check_date = current_date
 
@@ -3728,6 +3821,11 @@ def time_checker():
         if now.hour == 14 and now.minute == 0 and not has_run_china_afternoon:
             has_run_china_afternoon = True
             threading.Thread(target=fetch_china_afternoon, daemon=True).start()
+
+        # 🕒 รอบ 14:30 น. - ฮานอยทีวี
+        if now.hour == 14 and now.minute == 30 and not has_run_hanoi_tv:
+            has_run_hanoi_tv = True
+            threading.Thread(target=fetch_hanoi_tv, daemon=True).start()
 
         time.sleep(30)
 
