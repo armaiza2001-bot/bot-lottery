@@ -3464,6 +3464,47 @@ def delete_bot_message(message):
                 bot.delete_message(message.chat.id, message.reply_to_message.message_id)
             except Exception:
                 pass # ถ้าลบไม่ได้ (เช่น โดนเตะออกจากสิทธิ์แอดมิน) ก็ให้เงียบไว้
+
+# ==========================================
+# 🛠️ คำสั่ง: ดึงผลวันนี้ทั้งหมด (เช็คสถานะหวยทั้งหมดของวันนี้)
+# ==========================================
+@bot.message_handler(commands=['today', 'all'])
+def fetch_all_today_cmd(message):
+    bot.reply_to(message, "🔄 กำลังดึงข้อมูลผลหวยของ วันนี้ ทั้งหมด กรุณารอสักครู่ครับ...\n(ระบบจะส่งผลที่ออกแล้ว และแจ้งสถานะหวยที่กำลังรอผล)")
+    
+    import threading
+    
+    # ลิสต์ฟังก์ชันหวยทั้งหมด 23 ตัว
+    lottery_functions = [
+        fetch_lao_extra,
+        fetch_nikkei_morning_vip,
+        fetch_nikkei_morning_normal,
+        fetch_hanoi_asean,
+        fetch_china_morning_vip,
+        fetch_china_morning_normal,
+        fetch_lao_tv,
+        fetch_hangseng_morning_vip,
+        fetch_hanoi_hd,
+        fetch_taiwan_vip,
+        fetch_taiwan_normal,
+        fetch_korea_vip,
+        fetch_korea_normal,
+        fetch_nikkei_afternoon,
+        fetch_nikkei_vip_afternoon,
+        fetch_laos_hd,
+        fetch_china_afternoon,
+        fetch_hanoi_tv,
+        fetch_china_vip_afternoon,
+        fetch_hangseng_afternoon_normal,
+        fetch_hangseng_vip_afternoon,
+        fetch_laos_star,
+        fetch_hanoi_redcross
+    ]
+    
+    # สั่งให้บอทแยกย้ายกันไปดึงข้อมูลพร้อมกัน (ลดเวลาการรอ)
+    for func in lottery_functions:
+        # ส่งค่า (0, False) หมายถึง: offset_days=0 (วันนี้) และ is_auto=False (ผู้ใช้กดสั่งเอง)
+        threading.Thread(target=func, args=(0, False), daemon=True).start()
                 
 @bot.message_handler(commands=['test_lao_extra'])
 def test_lao_extra_cmd(message):
