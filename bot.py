@@ -184,7 +184,7 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
     thai_date_str = f"{thai_day} {thai_month} {thai_year}"
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิเช้า (ปกติ)** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยนิเคอิเช้า (ปกติ)** งวดวันที่ {today_str_display} ครับ...")
 
     url = "https://saihuay.com/historical?lotto=nikkei_morning&lang=th"
     headers = {
@@ -1006,7 +1006,7 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
     thai_date_str = f"{thai_day} {thai_month} {thai_year}"
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี (ปกติ)** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นเกาหลี (ปกติ)** งวดวันที่ {today_str_display} ครับ...")
 
     url = "https://saihuay.com/historical?lotto=korea&lang=th"
     headers = {
@@ -1091,7 +1091,7 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
     thai_date_str = f"{thai_day} {thai_month} {thai_year}"
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นนิเคอิ (บ่าย)** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นนิเคอิ (บ่าย)** งวดวันที่ {today_str_display} ครับ...")
 
     # ⚠️ ข้อควรระวัง: ลองเช็ค URL ของเว็บสายหวยดูนะครับว่า นิเคอิ (บ่าย) เขาใช้พารามิเตอร์ชื่ออะไร
     # (ผมเดาว่าเป็น nikkei_afternoon หรือ nikkeib ถ้าคุณรู้ชื่อที่เป๊ะกว่า สามารถแก้ตรง lotto=... ได้เลยครับ)
@@ -1649,7 +1649,7 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     thai_date_str = f"{thai_day} {thai_month} {thai_year}"
     
     if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นอียิปต์** งวดวันที่ {today_str_display} จากเว็บสายหวย...")
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หวยหุ้นอียิปต์** งวดวันที่ {today_str_display} ครับ...")
 
     url = "https://saihuay.com/historical?lotto=egypt&lang=th"
     headers = {
