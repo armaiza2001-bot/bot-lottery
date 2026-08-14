@@ -1864,7 +1864,6 @@ def fetch_laos_star(offset_days=0, is_auto=True):
                         # 🛡️ เช็คความยาวให้ครบ และต้องเป็น "ตัวเลขล้วน" เท่านั้น (ป้องกันบั๊ก)
                         if len(digit5) == 5 and digit5.isdigit() and digit3.isdigit() and digit2_bottom.isdigit():
                             msg = (f"🇱🇦 **ผลหวยลาวสตาร์** 🇱🇦\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎖️ **เลข 5 ตัว:** {digit5}\n"
                                    f"🎯 **3 ตัวบน:** {digit3}\n"
                                    f"👇 **2 ตัวล่าง:** {digit2_bottom}\n")
                             bot.send_message(GROUP_CHAT_ID, msg)
