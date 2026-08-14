@@ -2566,74 +2566,106 @@ import requests
 from datetime import datetime, timedelta
 
 # ==========================================
-# 🇹🇭 ดึงผลหวยหุ้นไทยเย็น (ใช้ Yahoo Finance API)
+# 🇹🇭 ดึงผล: หุ้นไทยเย็น - Yahoo Finance API (อัปเกรดระบบรอเว็บอัปเดตจบ)
 # ==========================================
 def fetch_thai_evening_fast(offset_days=0, is_auto=True):
-    target_date = datetime.now() - timedelta(days=offset_days)
+    import requests
+    from datetime import datetime, timedelta
+    import time
+
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
     
-    if is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มดึงผล **หวยหุ้นไทยเย็น** งวดวันที่ {today_str_display} ครับ...")
+    # 🛑 บล็อคดึงย้อนหลัง (Yahoo Finance API ตัวนี้ดึงได้แค่วันล่าสุด)
+    if offset_days > 0:
+        if not is_auto:
+            bot.send_message(GROUP_CHAT_ID, "⚠️ **หุ้นไทยเย็น**: ระบบนี้ดึงได้เฉพาะผลล่าสุด ไม่สามารถดึงย้อนหลังได้ครับ")
+        return
 
-    # ใช้ query1 ของ Yahoo ซึ่งเป็นตัวที่เสถียรและไม่ค่อยติดบล็อก
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล **หุ้นไทยเย็น** งวดวันที่ {today_str_display}...")
+
     url_set = "https://query1.finance.yahoo.com/v8/finance/chart/^SET.BK?interval=1d&range=1d"
     url_set50 = "https://query1.finance.yahoo.com/v8/finance/chart/^SET50.BK?interval=1d&range=1d"
-    
+
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json"
     }
 
-    try:
-        res_set = requests.get(url_set, headers=headers, timeout=15)
-        res_set50 = requests.get(url_set50, headers=headers, timeout=15)
-        
-        if res_set.status_code == 200 and res_set50.status_code == 200:
-            data_set = res_set.json()
-            data_set50 = res_set50.json()
-            
-            # ดึงข้อมูล meta ซึ่งเป็นข้อมูลสรุปตัวเลขใหญ่ๆ ที่โชว์หน้าเว็บ
-            meta_set = data_set.get("chart", {}).get("result", [])[0].get("meta", {})
-            meta_set50 = data_set50.get("chart", {}).get("result", [])[0].get("meta", {})
-            
-            if meta_set and meta_set50:
-                # ดึงราคาปิด SET และคำนวณค่า Change (+/-)
-                set_last = meta_set.get("regularMarketPrice", 0)
-                set_prev = meta_set.get("chartPreviousClose", 0)
-                set_change = set_last - set_prev
-                
-                # ดึงราคาปิด SET50
-                set50_last = meta_set50.get("regularMarketPrice", 0)
-                
-                # จัดรูปแบบทศนิยม 2 ตำแหน่ง
-                set_last_str = f"{set_last:.2f}"
-                set_change_str = f"{set_change:.2f}"
-                set50_last_str = f"{set50_last:.2f}"
-                
-                # 🎯 ตัดเลข 3 ตัวบน (หลักหน่วย SET50 + ทศนิยม 2 ตัว SET)
-                set50_last_digit = set50_last_str[-1]
-                set_decimals = set_last_str.split('.')[1]
-                top_3 = set50_last_digit + set_decimals
-                
-                # 👇 ตัดเลข 2 ตัวล่าง (ทศนิยมค่า Change ของ SET)
-                bottom_2 = set_change_str.replace('-', '').split('.')[1]
-                
-                msg = (f"🇹🇭 ผลหวยหุ้นไทยเย็น 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
-                       f"📊 SET: {set_last_str} ({set_change:+.2f})\n"
-                       f"📊 SET50: {set50_last_str}\n\n"
-                       f"🎯 **3 ตัวบน:** {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
-                bot.send_message(GROUP_CHAT_ID, msg)
-                return
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            # แนบ Timestamp หลอกแคช
+            timestamp = int(time.time() * 1000)
+            res_set = requests.get(f"{url_set}&_={timestamp}", headers=headers, timeout=15)
+            res_set50 = requests.get(f"{url_set50}&_={timestamp}", headers=headers, timeout=15)
+
+            if res_set.status_code == 200 and res_set50.status_code == 200:
+                data_set = res_set.json()
+                data_set50 = res_set50.json()
+
+                meta_set = data_set.get("chart", {}).get("result", [{}])[0].get("meta", {})
+                meta_set50 = data_set50.get("chart", {}).get("result", [{}])[0].get("meta", {})
+
+                if meta_set and meta_set50:
+                    reg_time_set = meta_set.get("regularMarketTime", 0)
+                    reg_time_set50 = meta_set50.get("regularMarketTime", 0)
+
+                    # แปลง Timestamp ใน API ให้เป็นเวลาไทย
+                    dt_set = datetime.fromtimestamp(reg_time_set, tz)
+                    dt_set50 = datetime.fromtimestamp(reg_time_set50, tz)
+
+                    # 🛑 หัวใจสำคัญ: ตลาดไทยปิดแบบสุ่มช่วง 16:35 - 16:40
+                    # เราจะสั่งให้บอท "ห้ามส่งผล" จนกว่า Timestamp ของข้อมูลจะเลย 16:35 น. ของวันนี้ไปแล้ว
+                    is_today = (dt_set.date() == target_date.date())
+                    is_closed = (dt_set.hour == 16 and dt_set.minute >= 35) or (dt_set.hour >= 17)
+
+                    if is_today and is_closed:
+                        # 🎯 ข้อมูลอัปเดตจบแล้ว! ดึงตัวเลขมาคำนวณได้เลย
+                        set_last = meta_set.get("regularMarketPrice", 0)
+                        set_prev = meta_set.get("chartPreviousClose", 0)
+                        set_change = set_last - set_prev
+
+                        set50_last = meta_set50.get("regularMarketPrice", 0)
+
+                        set_last_str = f"{set_last:.2f}"
+                        set_change_str = f"{set_change:.2f}"
+                        set50_last_str = f"{set50_last:.2f}"
+
+                        # ตัดเลขตามสูตรของคุณ
+                        set50_last_digit = set50_last_str[-1]
+                        set_decimals = set_last_str.split('.')[1]
+                        top_3 = set50_last_digit + set_decimals
+
+                        bottom_2 = set_change_str.replace('-', '').replace('+', '').split('.')[1]
+
+                        msg = (f"🇹🇭 **ผลหวยหุ้นไทยเย็น** 🇹🇭\n📅 วันที่: {today_str_display}\n\n"
+                               f"📊 SET: {set_last_str} ({set_change_str})\n"
+                               f"📊 SET50: {set50_last_str}\n\n"
+                               f"🎯 **3 ตัวบน:** {top_3}\n👇 **2 ตัวล่าง:** {bottom_2}\n")
+                        bot.send_message(GROUP_CHAT_ID, msg)
+                        return
+                    else:
+                        if not is_auto and attempts >= 2:
+                            bot.send_message(GROUP_CHAT_ID, f"⏳ **ไทยเย็น**: เว็บยังไม่อัปเดตผลปิดตลาดครับ (ข้อมูลล่าสุดในเว็บคือเวลา {dt_set.strftime('%H:%M:%S')})")
+                            return
+                else:
+                    print("[Error] Yahoo Finance: ดึงโครงสร้าง Meta ไม่สำเร็จ")
             else:
-                print("[Error] Yahoo Finance: ดึงโครงสร้าง Meta ไม่สำเร็จ")
-        else:
-            print(f"[Error] Yahoo Finance: SET={res_set.status_code}, SET50={res_set50.status_code}")
-            
-    except Exception as e:
-        print(f"[Error] Yahoo Finance Exception: {e}")
-        
-    if not is_auto:
-        bot.send_message(GROUP_CHAT_ID, f"❌ **หวยหุ้นไทยเย็น**: ไม่สามารถดึงข้อมูลจาก Yahoo Finance ได้ในขณะนี้")
+                if not is_auto and attempts >= 2:
+                    bot.send_message(GROUP_CHAT_ID, f"❌ **ไทยเย็น**: เชื่อมต่อ Yahoo Finance ไม่สำเร็จ (Status: {res_set.status_code})")
+                    return
+
+        except Exception as e:
+            print(f"[Error] Yahoo Finance Exception: {e}")
+            if not is_auto and attempts >= 2:
+                bot.send_message(GROUP_CHAT_ID, f"❌ **ไทยเย็น**: เกิดข้อผิดพลาดในการดึงข้อมูล")
+                return
+
+        # 💤 บอทรอ 10 วินาที เพื่อเช็คอัปเดตใหม่ (วนไปเรื่อยๆ จนกว่าจะทะลุ 16:35)
+        time.sleep(10)
 
 # ==========================================
 # 🇲🇾 ดึงผลหวยมาเลย์ (Magnum 4D) + ระบบถอดรหัส Key อัตโนมัติ
