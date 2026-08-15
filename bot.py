@@ -76,7 +76,14 @@ def fetch_lao_extra(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาว Extra: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇯🇵 ดึงผล: นิเคอิเช้า VIP
@@ -160,7 +167,14 @@ def fetch_nikkei_morning_vip(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ นิเคอิเช้า VIP: ไม่พบผลของวันที่ {today_str_display} (API อาจจะยังไม่อัปเดต)")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇯🇵 ดึงผล: นิเคอิเช้า (ปกติ)
@@ -233,7 +247,14 @@ def fetch_nikkei_morning_normal(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ นิเคอิเช้า (ปกติ): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇻🇳 ดึงผล: ฮานอยอาเซียน
@@ -305,7 +326,14 @@ def fetch_hanoi_asean(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยอาเซียน: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇨🇳 ดึงผล: จีนเช้า VIP
@@ -390,7 +418,14 @@ def fetch_china_morning_vip(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ จีนเช้า VIP: ไม่พบผลของวันที่ {today_str_display} (ตลาดอาจจะยังไม่ปิดรอบเช้า)")
             return
             
+       # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇨🇳 ดึงผล: หุ้นจีนเช้า (ปกติ)
@@ -477,7 +512,14 @@ def fetch_china_morning_normal(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ จีนเช้า (ปกติ): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇱🇦 ดึงผล: ลาวทีวี
@@ -543,7 +585,14 @@ def fetch_lao_tv(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาวทีวี: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งเช้า VIP
@@ -634,7 +683,14 @@ def fetch_hangseng_morning_vip(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮั่งเส็งเช้า VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇻🇳 ดึงผล: ฮานอยHD
@@ -705,7 +761,14 @@ def fetch_hanoi_hd(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยHD: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇹🇼 ดึงผล: หุ้นไต้หวัน VIP
@@ -790,7 +853,14 @@ def fetch_taiwan_vip(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"⏳ ไต้หวัน VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇹🇼 ดึงผล: หุ้นไต้หวัน (ปกติ)
@@ -869,7 +939,14 @@ def fetch_taiwan_normal(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ไต้หวัน (ปกติ): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
 
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
         
 # ==========================================
 # 🇰🇷 ดึงผล: หุ้นเกาหลี VIP
@@ -961,7 +1038,14 @@ def fetch_korea_vip(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"⏳ เกาหลี VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇰🇷 ดึงผล: หุ้นเกาหลี (ปกติ)
@@ -1038,7 +1122,14 @@ def fetch_korea_normal(offset_days=0, is_auto=True):
         if is_auto and (datetime.now(tz) - start_time).total_seconds() > 10800:
             return  
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇯🇵 ดึงผล: หุ้นนิเคอิ (บ่าย)
@@ -1115,7 +1206,14 @@ def fetch_nikkei_afternoon(offset_days=0, is_auto=True):
         if is_auto and (datetime.now(tz) - start_time).total_seconds() > 10800:
             return  
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇯🇵 ดึงผล: นิเคอิบ่าย VIP
@@ -1201,8 +1299,15 @@ def fetch_nikkei_vip_afternoon(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"⏳ นิเคอิบ่าย VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
-
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
+            
 # ==========================================
 # 🇱🇦 ดึงผล: หวยลาวHD
 # ==========================================
@@ -1298,7 +1403,14 @@ def fetch_laos_hd(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาวHD: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇨🇳 ดึงผล: หุ้นจีน (บ่าย) - Official API (SZSE)
@@ -1393,7 +1505,14 @@ def fetch_china_afternoon(offset_days=0, is_auto=True):
                 bot.send_message(GROUP_CHAT_ID, f"❌ จีน (บ่าย): เซิร์ฟเวอร์เชื่อมต่อไม่สำเร็จ")
                 return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇻🇳 ดึงผล: ฮานอยทีวี
@@ -1470,7 +1589,14 @@ def fetch_hanoi_tv(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยทีวี: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇨🇳 ดึงผล: จีนบ่าย VIP
@@ -1556,7 +1682,14 @@ def fetch_china_vip_afternoon(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"⏳ จีนบ่าย VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย (ปกติ)
@@ -1638,7 +1771,14 @@ def fetch_hangseng_afternoon_normal(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮั่งเส็งบ่าย (ปกติ): ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇭🇰 ดึงผล: ฮั่งเส็งบ่าย VIP
@@ -1742,7 +1882,14 @@ def fetch_hangseng_vip_afternoon(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"⏳ ฮั่งเส็งบ่าย VIP: กำลังรอผลรางวัลอัปเดตเข้าระบบครับ")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇱🇦 ดึงผล: หวยลาวสตาร์
@@ -1840,7 +1987,14 @@ def fetch_laos_star(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาวสตาร์: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇻🇳 ดึงผล: ฮานอยกาชาด
@@ -1917,7 +2071,14 @@ def fetch_hanoi_redcross(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยกาชาด: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.1 ดึงผล: ฮานอยพิเศษ (17:30)
@@ -1962,7 +2123,14 @@ def fetch_hanoi_special(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยพิเศษ: ไม่พบข้อมูลวันที่ {today_str}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇸🇬 ดึงผลหวยหุ้นสิงคโปร์ VIP
@@ -2093,7 +2261,14 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
             bot.send_message(GROUP_CHAT_ID, f"❌ หวยหุ้นอียิปต์: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇮🇳 IN ดึงผลหวยหุ้นอินเดีย
@@ -2190,7 +2365,14 @@ def fetch_hanoi_samakkhi(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยสามัคคี: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇻🇳 ดึงผล: ฮานอยปกติ (18:30)
@@ -2304,7 +2486,14 @@ def fetch_hanoi_vip(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอย VIP: ไม่พบข้อมูลวันที่ {today_str}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.5 ดึงผล: ฮานอยพัฒนา (19:30)
@@ -2349,7 +2538,14 @@ def fetch_hanoi_develop(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยพัฒนา: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.6 ดึงผล: ลาวสามัคคี (20:30)
@@ -2393,7 +2589,14 @@ def fetch_lao_samakkhi(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาวสามัคคี: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.7 ดึงผล: ลาวอาเซียน (21:00)
@@ -2436,7 +2639,14 @@ def fetch_lao_asean(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาวอาเซียน: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.8 ดึงผล: ลาว VIP (21:30)
@@ -2486,7 +2696,14 @@ def fetch_lao_vip(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาว VIP: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.9 ดึงผล: ลาวสามัคคี VIP (21:30)
@@ -2535,7 +2752,14 @@ def fetch_lao_samakkhi_vip(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาวสามัคคี VIP: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.10 ดึงผล: ลาวสตาร์ VIP (22:00)
@@ -2584,7 +2808,14 @@ def fetch_lao_star_vip(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาวสตาร์ VIP: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.11 ดึงผล: อังกฤษ VIP (21:50)
@@ -2630,7 +2861,14 @@ def fetch_england_vip(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ อังกฤษ VIP: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.12 ดึงผล: เยอรมัน VIP (22:50)
@@ -2676,7 +2914,14 @@ def fetch_germany_vip(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ เยอรมัน VIP: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.13 ดึงผล: รัสเซีย VIP (23:50)
@@ -2722,7 +2967,14 @@ def fetch_russia_vip(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ รัสเซีย VIP: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+       # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.14 ดึงผล: ฮานอย EXTRA (22:30)
@@ -2771,7 +3023,14 @@ def fetch_hanoi_extra(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอย EXTRA: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.15 ดึงผล: ลาวกาชาด (23:30)
@@ -2819,7 +3078,14 @@ def fetch_lao_redcross(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ลาวกาชาด: ไม่พบข้อมูลวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🎰 2.16 ดึงผล: ดาวโจนส์ VIP (00:30)
@@ -2871,7 +3137,14 @@ def fetch_dowjones_vip(offset_days=0, is_auto=True):
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ ดาวโจนส์ VIP: ไม่พบข้อมูลงวดวันที่ {today_str_display}")
             return
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇸🇬 ดึงผลหวยหุ้นสิงคโปร์ (ปกติ)
@@ -3010,7 +3283,14 @@ def fetch_thai_evening_fast(offset_days=0, is_auto=True):
                 bot.send_message(GROUP_CHAT_ID, f"❌ ไทยเย็น: เกิดข้อผิดพลาดในการดึงข้อมูล")
                 return
 
+        # 💤 บอทพักหายใจ 10 วินาที
         time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง) ให้ยกเลิกการรอ
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการ หรือเป็นวันหยุดครับ)")
+            return
 
 # ==========================================
 # 🇲🇾 ดึงผลหวยมาเลย์ (Magnum 4D)
