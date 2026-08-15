@@ -4151,178 +4151,25 @@ def time_checker():
 
             last_check_date = current_date
 
-        # 🕒 รอบ 17:30 น.
-        if now.hour == 17 and now.minute == 30:
-            if not has_run_special:
-                has_run_special = True
-                threading.Thread(target=fetch_hanoi_special, daemon=True).start()
-                time.sleep(2)
-                
-            if not has_run_samakkhi:
-                has_run_samakkhi = True
-                threading.Thread(target=fetch_hanoi_samakkhi, daemon=True).start()
-
-        # 🕒 รอบ 18:30 น.
-        if now.hour == 18 and now.minute == 30 and not has_run_normal:
-            has_run_normal = True
-            threading.Thread(target=fetch_hanoi_normal, daemon=True).start()
-
-        # 🕒 รอบ 19:30 น.
-        if now.hour == 19 and now.minute == 30:
-            if not has_run_vip:
-                has_run_vip = True
-                threading.Thread(target=fetch_hanoi_vip, daemon=True).start()
-                time.sleep(2) # 📌 หน่วงเวลาคั่น
-                
-            if not has_run_develop:
-                has_run_develop = True
-                threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
-
-        # 🕒 รอบ 20:30 น.
-        if now.hour == 20 and now.minute == 30 and not has_run_lao_samakkhi:
-            has_run_lao_samakkhi = True
-            threading.Thread(target=fetch_lao_samakkhi, daemon=True).start()
-
-        # 🕒 รอบ 21:00 น.
-        if now.hour == 21 and now.minute == 00 and not has_run_lao_asean:
-            has_run_lao_asean = True
-            threading.Thread(target=fetch_lao_asean, daemon=True).start()
-
-        # 🕒 รอบ 21:30 น.
-        if now.hour == 21 and now.minute == 30:
-            if not has_run_lao_vip:
-                has_run_lao_vip = True
-                threading.Thread(target=fetch_lao_vip, daemon=True).start()
-                time.sleep(2) # 📌 หน่วงเวลาคั่น
-                
-            if not has_run_lao_samakkhi_vip:
-                has_run_lao_samakkhi_vip = True
-                threading.Thread(target=fetch_lao_samakkhi_vip, daemon=True).start()
-
-        # 🕒 รอบ 21:50 น.
-        if now.hour == 21 and now.minute == 50 and not has_run_england_vip:
-            has_run_england_vip = True
-            threading.Thread(target=fetch_england_vip, daemon=True).start()
-
-        # 🕒 รอบ 22:00 น.
-        if now.hour == 22 and now.minute == 00 and not has_run_lao_star_vip:
-            has_run_lao_star_vip = True
-            threading.Thread(target=fetch_lao_star_vip, daemon=True).start()
-
-        # 🕒 รอบ 22:30 น.
-        if now.hour == 22 and now.minute == 30 and not has_run_hanoi_extra:
-            has_run_hanoi_extra = True
-            threading.Thread(target=fetch_hanoi_extra, daemon=True).start()
-
-        # 🕒 รอบ 22:50 น.
-        if now.hour == 22 and now.minute == 50 and not has_run_germany_vip:
-            has_run_germany_vip = True
-            threading.Thread(target=fetch_germany_vip, daemon=True).start()
-
-        # 🕒 รอบ 23:00 น. (หวยหุ้นอังกฤษ)
-        if now.hour == 23 and now.minute == 0 and now.weekday() < 5:
-            if not has_run_england_normal:
-                has_run_england_normal = True
-                threading.Thread(target=fetch_england_stock_fast, daemon=True).start()
-                time.sleep(2)
-                
-        # 🕒 รอบ 23:30 น.
-        if now.hour == 23 and now.minute == 30 and not has_run_lao_redcross:
-            has_run_lao_redcross = True
-            threading.Thread(target=fetch_lao_redcross, daemon=True).start()
-
-        # 🕒 รอบ 23:50 น.
-        if now.hour == 23 and now.minute == 50 and not has_run_russia_vip:
-            has_run_russia_vip = True
-            threading.Thread(target=fetch_russia_vip, daemon=True).start()
-
-        # 🕒 รอบ 00:30 น.
-        if now.hour == 0 and now.minute == 30 and not has_run_dowjones_vip:
-            has_run_dowjones_vip = True
-            threading.Thread(target=fetch_dowjones_vip, daemon=True).start()
-
-        # 🕒 รอบ 16:45 น. (หวยหุ้นไทยรอบเย็น)
-        if now.hour == 16 and now.minute == 50 and now.weekday() < 5:
-            if not has_run_thai_evening:
-                has_run_thai_evening = True
-                threading.Thread(target=fetch_thai_evening_fast, daemon=True).start()
-                time.sleep(2)
-
-        # 🕒 รอบ 16:30 น. (หวยหุ้นสิงคโปร์)
-        if now.hour == 16 and now.minute == 30 and now.weekday() < 5:
-            if not has_run_singapore:
-                has_run_singapore = True
-                threading.Thread(target=fetch_singapore_fast, daemon=True).start()
-                time.sleep(2)
-
-        # 🕒 รอบ 18:40 น. (หวยมาเลย์ - อังคาร(พิเศษ), พุธ, เสาร์, อาทิตย์)
-        if now.hour == 18 and now.minute == 45 and now.weekday() in [1, 2, 5, 6]:
-            if not has_run_malay:
-                has_run_malay = True
-                threading.Thread(target=fetch_malay_magnum, daemon=True).start()
-                time.sleep(2)
-
-                # 🕒 รอบ 17:11 น. (หวยหุ้นสิงคโปร์ VIP) 
-        if now.hour == 17 and now.minute == 12:
-            if not has_run_singapore_vip:
-                has_run_singapore_vip = True
-                threading.Thread(target=fetch_singapore_vip_fast, daemon=True).start()
-                time.sleep(2)
-
-        # 🕒 รอบ 17:30 น. (หวยหุ้นอินเดีย) 
-        if now.hour == 17 and now.minute == 14 and now.weekday() < 5: # จันทร์-ศุกร์
-            if not has_run_india:
-                has_run_india = True
-                threading.Thread(target=fetch_india_stock_fast, daemon=True).start()
-                time.sleep(2)
-
-        # 🕒 รอบ 23:00 น. (หวยหุ้นเยอรมัน - ช่วงฤดูร้อน) 
-        if now.hour == 23 and now.minute == 0 and now.weekday() < 5:
-            if not has_run_germany_normal:
-                has_run_germany_normal = True
-                threading.Thread(target=fetch_germany_normal, daemon=True).start()
-                time.sleep(2)
-
-        # 🕒 รอบ 23:05 น. (หวยหุ้นรัสเซีย) 
-        if now.hour == 23 and now.minute == 5 and now.weekday() < 5:
-            if not has_run_russia_normal:
-                has_run_russia_normal = True
-                threading.Thread(target=fetch_russia_normal, daemon=True).start()
-                time.sleep(2)
-
-        # 🕒 รอบ 04:10 น. (หวยหุ้นดาวโจนส์ ปกติ) 
-        if now.hour == 4 and now.minute == 10 and now.weekday() < 5: # จันทร์-ศุกร์ (เช้ามืด อังคาร-เสาร์)
-            if not has_run_dowjones_normal:
-                has_run_dowjones_normal = True
-                threading.Thread(target=fetch_dowjones_normal, daemon=True).start()
-                time.sleep(2)
-
-        # 🕒 รอบ 19:50 น. (หวยหุ้นอียิปต์) - ทำงานทุกวัน ยกเว้นวันเสาร์
-        if now.hour == 19 and now.minute == 50 and now.weekday() != 5:
-            if not has_run_egypt:
-                has_run_egypt = True
-                threading.Thread(target=fetch_egypt_stock_fast, daemon=True).start()
-                time.sleep(2)
-
-        # 🕒 รอบ 08:30 น. หวยลาว Extra
+        # 🕒 รอบ 08:30 น. - หวยลาว Extra
         if now.hour == 8 and now.minute == 30 and not has_run_lao_extra:
             has_run_lao_extra = True
             threading.Thread(target=fetch_lao_extra, daemon=True).start()
 
-        # 🕒 รอบนิเคอิเช้า VIP (เช่น 09:30 น.)
+        # 🕒 รอบ 09:06 น. - นิเคอิเช้า VIP
         if now.hour == 9 and now.minute == 6 and not has_run_nikkei_morning_vip:
             has_run_nikkei_morning_vip = True
             threading.Thread(target=fetch_nikkei_morning_vip, daemon=True).start()
-
-        # 🕒 รอบ 09:32 น. - นิเคอิเช้า (ปกติ) [รอให้ตลาดปิดสนิทและตัวเลขนิ่ง 100%]
-        if now.hour == 9 and now.minute == 32 and not has_run_nikkei_morning_normal:
-            has_run_nikkei_morning_normal = True
-            threading.Thread(target=fetch_nikkei_morning_normal, daemon=True).start()
 
         # 🕒 รอบ 09:30 น. - ฮานอยอาเซียน
         if now.hour == 9 and now.minute == 30 and not has_run_hanoi_asean:
             has_run_hanoi_asean = True
             threading.Thread(target=fetch_hanoi_asean, daemon=True).start()
+
+        # 🕒 รอบ 09:32 น. - นิเคอิเช้า (ปกติ) [รอให้ตลาดปิดสนิทและตัวเลขนิ่ง 100%]
+        if now.hour == 9 and now.minute == 32 and not has_run_nikkei_morning_normal:
+            has_run_nikkei_morning_normal = True
+            threading.Thread(target=fetch_nikkei_morning_normal, daemon=True).start()
 
         # 🕒 รอบ 10:05 น. - จีนเช้า VIP
         if now.hour == 10 and now.minute == 5 and not has_run_china_morning_vip:
@@ -4344,11 +4191,6 @@ def time_checker():
             has_run_hangseng_morning_vip = True
             threading.Thread(target=fetch_hangseng_morning_vip, daemon=True).start()
 
-        # 🕒 รอบ 15:10 น. - ฮั่งเส็งบ่าย (ปกติ)
-        if now.hour == 15 and now.minute == 10 and not has_run_hangseng_afternoon_normal:
-            has_run_hangseng_afternoon_normal = True
-            threading.Thread(target=fetch_hangseng_afternoon_normal, daemon=True).start()
-
         # 🕒 รอบ 11:30 น. - ฮานอยHD
         if now.hour == 11 and now.minute == 30 and not has_run_hanoi_hd:
             has_run_hanoi_hd = True
@@ -4369,20 +4211,20 @@ def time_checker():
             has_run_korea_vip = True
             threading.Thread(target=fetch_korea_vip, daemon=True).start()
 
-        # 🕒 รอบ 13:32 น. - เกาหลี (ปกติ) (เผื่อเวลาให้ตลาดปิดสมบูรณ์)
-        if now.hour == 13 and now.minute == 32 and not has_run_korea_normal:
-            has_run_korea_normal = True
-            threading.Thread(target=fetch_korea_normal, daemon=True).start()
+        # 🕒 รอบ 13:25 น. - นิเคอิบ่าย VIP
+        if now.hour == 13 and now.minute == 25 and not has_run_nikkei_vip_afternoon:
+            has_run_nikkei_vip_afternoon = True
+            threading.Thread(target=fetch_nikkei_vip_afternoon, daemon=True).start()
 
         # 🕒 รอบ 13:30 น. - นิเคอิ (บ่าย)
         if now.hour == 13 and now.minute == 30 and not has_run_nikkei_afternoon:
             has_run_nikkei_afternoon = True
             threading.Thread(target=fetch_nikkei_afternoon, daemon=True).start()
 
-        # 🕒 รอบ 13:25 น. - นิเคอิบ่าย VIP
-        if now.hour == 13 and now.minute == 25 and not has_run_nikkei_vip_afternoon:
-            has_run_nikkei_vip_afternoon = True
-            threading.Thread(target=fetch_nikkei_vip_afternoon, daemon=True).start()
+        # 🕒 รอบ 13:32 น. - เกาหลี (ปกติ) (เผื่อเวลาให้ตลาดปิดสมบูรณ์)
+        if now.hour == 13 and now.minute == 32 and not has_run_korea_normal:
+            has_run_korea_normal = True
+            threading.Thread(target=fetch_korea_normal, daemon=True).start()
 
         # 🕒 รอบ 13:45 น. - ลาวHD
         if now.hour == 13 and now.minute == 45 and not has_run_laos_hd:
@@ -4394,15 +4236,20 @@ def time_checker():
             has_run_china_afternoon = True
             threading.Thread(target=fetch_china_afternoon, daemon=True).start()
 
+        # 🕒 รอบ 14:25 น. - จีนบ่าย VIP
+        if now.hour == 14 and now.minute == 25 and not has_run_china_vip_afternoon:
+            has_run_china_vip_afternoon = True
+            threading.Thread(target=fetch_china_vip_afternoon, daemon=True).start()
+
         # 🕒 รอบ 14:30 น. - ฮานอยทีวี
         if now.hour == 14 and now.minute == 30 and not has_run_hanoi_tv:
             has_run_hanoi_tv = True
             threading.Thread(target=fetch_hanoi_tv, daemon=True).start()
 
-        # 🕒 รอบ 14:25 น. - จีนบ่าย VIP
-        if now.hour == 14 and now.minute == 25 and not has_run_china_vip_afternoon:
-            has_run_china_vip_afternoon = True
-            threading.Thread(target=fetch_china_vip_afternoon, daemon=True).start()
+        # 🕒 รอบ 15:10 น. - ฮั่งเส็งบ่าย (ปกติ)
+        if now.hour == 15 and now.minute == 10 and not has_run_hangseng_afternoon_normal:
+            has_run_hangseng_afternoon_normal = True
+            threading.Thread(target=fetch_hangseng_afternoon_normal, daemon=True).start()
 
         # 🕒 รอบ 15:25 น. - ฮั่งเส็งบ่าย VIP
         if now.hour == 15 and now.minute == 25 and not has_run_hangseng_vip_afternoon:
@@ -4414,10 +4261,163 @@ def time_checker():
             has_run_laos_star = True
             threading.Thread(target=fetch_laos_star, daemon=True).start()
 
+        # 🕒 รอบ 16:30 น. - หวยหุ้นสิงคโปร์
+        if now.hour == 16 and now.minute == 30 and now.weekday() < 5:
+            if not has_run_singapore:
+                has_run_singapore = True
+                threading.Thread(target=fetch_singapore_fast, daemon=True).start()
+                time.sleep(2)
+
         # 🕒 รอบ 16:30 น. - ฮานอยกาชาด
         if now.hour == 16 and now.minute == 30 and not has_run_hanoi_redcross:
             has_run_hanoi_redcross = True
             threading.Thread(target=fetch_hanoi_redcross, daemon=True).start()
+
+        # 🕒 รอบ 16:50 น. - หวยหุ้นไทยรอบเย็น
+        if now.hour == 16 and now.minute == 50 and now.weekday() < 5:
+            if not has_run_thai_evening:
+                has_run_thai_evening = True
+                threading.Thread(target=fetch_thai_evening_fast, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 17:12 น. - หวยหุ้นสิงคโปร์ VIP
+        if now.hour == 17 and now.minute == 12:
+            if not has_run_singapore_vip:
+                has_run_singapore_vip = True
+                threading.Thread(target=fetch_singapore_vip_fast, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 17:14 น. - หวยหุ้นอินเดีย
+        if now.hour == 17 and now.minute == 14 and now.weekday() < 5: # จันทร์-ศุกร์
+            if not has_run_india:
+                has_run_india = True
+                threading.Thread(target=fetch_india_stock_fast, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 17:30 น. - ฮานอยพิเศษ และ ฮานอยสามัคคี
+        if now.hour == 17 and now.minute == 30:
+            if not has_run_special:
+                has_run_special = True
+                threading.Thread(target=fetch_hanoi_special, daemon=True).start()
+                time.sleep(2)
+                
+            if not has_run_samakkhi:
+                has_run_samakkhi = True
+                threading.Thread(target=fetch_hanoi_samakkhi, daemon=True).start()
+
+        # 🕒 รอบ 18:30 น. - ฮานอยปกติ
+        if now.hour == 18 and now.minute == 30 and not has_run_normal:
+            has_run_normal = True
+            threading.Thread(target=fetch_hanoi_normal, daemon=True).start()
+
+        # 🕒 รอบ 18:45 น. - หวยมาเลย์ (อังคาร(พิเศษ), พุธ, เสาร์, อาทิตย์)
+        if now.hour == 18 and now.minute == 45 and now.weekday() in [1, 2, 5, 6]:
+            if not has_run_malay:
+                has_run_malay = True
+                threading.Thread(target=fetch_malay_magnum, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 19:30 น. - ฮานอย VIP และ ฮานอยพัฒนา
+        if now.hour == 19 and now.minute == 30:
+            if not has_run_vip:
+                has_run_vip = True
+                threading.Thread(target=fetch_hanoi_vip, daemon=True).start()
+                time.sleep(2) # 📌 หน่วงเวลาคั่น
+                
+            if not has_run_develop:
+                has_run_develop = True
+                threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
+
+        # 🕒 รอบ 19:50 น. - หวยหุ้นอียิปต์ (ทำงานทุกวัน ยกเว้นวันเสาร์)
+        if now.hour == 19 and now.minute == 50 and now.weekday() != 5:
+            if not has_run_egypt:
+                has_run_egypt = True
+                threading.Thread(target=fetch_egypt_stock_fast, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 20:30 น. - ลาวสามัคคี
+        if now.hour == 20 and now.minute == 30 and not has_run_lao_samakkhi:
+            has_run_lao_samakkhi = True
+            threading.Thread(target=fetch_lao_samakkhi, daemon=True).start()
+
+        # 🕒 รอบ 21:00 น. - ลาวอาเซียน
+        if now.hour == 21 and now.minute == 00 and not has_run_lao_asean:
+            has_run_lao_asean = True
+            threading.Thread(target=fetch_lao_asean, daemon=True).start()
+
+        # 🕒 รอบ 21:30 น. - ลาว VIP และ ลาวสามัคคี VIP
+        if now.hour == 21 and now.minute == 30:
+            if not has_run_lao_vip:
+                has_run_lao_vip = True
+                threading.Thread(target=fetch_lao_vip, daemon=True).start()
+                time.sleep(2) # 📌 หน่วงเวลาคั่น
+                
+            if not has_run_lao_samakkhi_vip:
+                has_run_lao_samakkhi_vip = True
+                threading.Thread(target=fetch_lao_samakkhi_vip, daemon=True).start()
+
+        # 🕒 รอบ 21:50 น. - อังกฤษ VIP
+        if now.hour == 21 and now.minute == 50 and not has_run_england_vip:
+            has_run_england_vip = True
+            threading.Thread(target=fetch_england_vip, daemon=True).start()
+
+        # 🕒 รอบ 22:00 น. - ลาวสตาร์ VIP
+        if now.hour == 22 and now.minute == 00 and not has_run_lao_star_vip:
+            has_run_lao_star_vip = True
+            threading.Thread(target=fetch_lao_star_vip, daemon=True).start()
+
+        # 🕒 รอบ 22:30 น. - ฮานอย EXTRA
+        if now.hour == 22 and now.minute == 30 and not has_run_hanoi_extra:
+            has_run_hanoi_extra = True
+            threading.Thread(target=fetch_hanoi_extra, daemon=True).start()
+
+        # 🕒 รอบ 22:50 น. - เยอรมัน VIP
+        if now.hour == 22 and now.minute == 50 and not has_run_germany_vip:
+            has_run_germany_vip = True
+            threading.Thread(target=fetch_germany_vip, daemon=True).start()
+
+        # 🕒 รอบ 23:00 น. - หวยหุ้นอังกฤษ
+        if now.hour == 23 and now.minute == 0 and now.weekday() < 5:
+            if not has_run_england_normal:
+                has_run_england_normal = True
+                threading.Thread(target=fetch_england_stock_fast, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 23:00 น. - หวยหุ้นเยอรมัน (ช่วงฤดูร้อน) 
+        if now.hour == 23 and now.minute == 0 and now.weekday() < 5:
+            if not has_run_germany_normal:
+                has_run_germany_normal = True
+                threading.Thread(target=fetch_germany_normal, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 23:05 น. - หวยหุ้นรัสเซีย
+        if now.hour == 23 and now.minute == 5 and now.weekday() < 5:
+            if not has_run_russia_normal:
+                has_run_russia_normal = True
+                threading.Thread(target=fetch_russia_normal, daemon=True).start()
+                time.sleep(2)
+
+        # 🕒 รอบ 23:30 น. - ลาวกาชาด
+        if now.hour == 23 and now.minute == 30 and not has_run_lao_redcross:
+            has_run_lao_redcross = True
+            threading.Thread(target=fetch_lao_redcross, daemon=True).start()
+
+        # 🕒 รอบ 23:50 น. - รัสเซีย VIP
+        if now.hour == 23 and now.minute == 50 and not has_run_russia_vip:
+            has_run_russia_vip = True
+            threading.Thread(target=fetch_russia_vip, daemon=True).start()
+
+        # 🕒 รอบ 00:30 น. - ดาวโจนส์ VIP
+        if now.hour == 0 and now.minute == 30 and not has_run_dowjones_vip:
+            has_run_dowjones_vip = True
+            threading.Thread(target=fetch_dowjones_vip, daemon=True).start()
+
+        # 🕒 รอบ 04:10 น. - หวยหุ้นดาวโจนส์ ปกติ
+        if now.hour == 4 and now.minute == 10 and now.weekday() < 5: # จันทร์-ศุกร์ (เช้ามืด อังคาร-เสาร์)
+            if not has_run_dowjones_normal:
+                has_run_dowjones_normal = True
+                threading.Thread(target=fetch_dowjones_normal, daemon=True).start()
+                time.sleep(2)
 
         time.sleep(30)
 
