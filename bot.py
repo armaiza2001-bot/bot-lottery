@@ -3693,7 +3693,7 @@ ALL_LOTTERY_FUNCTIONS = [
     fetch_taiwan_normal,
     fetch_korea_vip,
     fetch_nikkei_vip_afternoon,
-    fetch_hanoi_star
+    fetch_hanoi_star,
     fetch_korea_normal,
     fetch_nikkei_afternoon,
     fetch_laos_hd,
@@ -3729,7 +3729,7 @@ ALL_LOTTERY_FUNCTIONS = [
     fetch_lao_redcross,
     fetch_russia_vip,
     fetch_dowjones_vip,
-    fetch_dowjones_normal
+    fetch_dowjones_normal,
 ]
 
 # ==========================================
@@ -4246,7 +4246,7 @@ def time_checker():
             threading.Thread(target=fetch_hanoi_asean, daemon=True).start()
 
         # 🕒 รอบ 09:32 น. - นิเคอิเช้า (ปกติ) [รอให้ตลาดปิดสนิทและตัวเลขนิ่ง 100%]
-        if now.hour == 9 and now.minute == 32 and not has_run_nikkei_morning_normal:
+        if now.hour == 9 and now.minute == 32 and now.weekday() < 5 and not has_run_nikkei_morning_normal:
             has_run_nikkei_morning_normal = True
             threading.Thread(target=fetch_nikkei_morning_normal, daemon=True).start()
 
@@ -4256,7 +4256,7 @@ def time_checker():
             threading.Thread(target=fetch_china_morning_vip, daemon=True).start()
 
         # 🕒 รอบ 10:30 น. - จีนเช้า (ปกติ)
-        if now.hour == 10 and now.minute == 30 and not has_run_china_morning_normal:
+        if now.hour == 10 and now.minute == 30 and now.weekday() < 5 and not has_run_china_morning_normal:
             has_run_china_morning_normal = True
             threading.Thread(target=fetch_china_morning_normal, daemon=True).start()
 
@@ -4266,7 +4266,7 @@ def time_checker():
             threading.Thread(target=fetch_lao_tv, daemon=True).start()
 
         # 🕒 รอบ 10:35 น. - ฮั่งเส็งเช้า VIP
-        if now.hour == 10 and now.minute == 35 and not has_run_hangseng_morning_vip:
+        if now.hour == 10 and now.minute == 35 and now.weekday() < 5 and not has_run_hangseng_morning_vip:
             has_run_hangseng_morning_vip = True
             threading.Thread(target=fetch_hangseng_morning_vip, daemon=True).start()
 
@@ -4281,7 +4281,7 @@ def time_checker():
             threading.Thread(target=fetch_taiwan_vip, daemon=True).start()
 
         # 🕒 รอบ 12:32 น. - ไต้หวัน (ปกติ)
-        if now.hour == 12 and now.minute == 32 and not has_run_taiwan_normal:
+        if now.hour == 12 and now.minute == 32 and now.weekday() < 5 and not has_run_taiwan_normal:
             has_run_taiwan_normal = True
             threading.Thread(target=fetch_taiwan_normal, daemon=True).start()
 
@@ -4296,12 +4296,12 @@ def time_checker():
             threading.Thread(target=fetch_nikkei_vip_afternoon, daemon=True).start()
 
         # 🕒 รอบ 13:30 น. - นิเคอิ (บ่าย)
-        if now.hour == 13 and now.minute == 30 and not has_run_nikkei_afternoon:
+        if now.hour == 13 and now.minute == 30 and now.weekday() < 5 and not has_run_nikkei_afternoon:
             has_run_nikkei_afternoon = True
             threading.Thread(target=fetch_nikkei_afternoon, daemon=True).start()
 
         # 🕒 รอบ 13:32 น. - เกาหลี (ปกติ) (เผื่อเวลาให้ตลาดปิดสมบูรณ์)
-        if now.hour == 13 and now.minute == 32 and not has_run_korea_normal:
+        if now.hour == 13 and now.minute == 32 and now.weekday() < 5 and not has_run_korea_normal:
             has_run_korea_normal = True
             threading.Thread(target=fetch_korea_normal, daemon=True).start()
 
@@ -4311,7 +4311,7 @@ def time_checker():
             threading.Thread(target=fetch_laos_hd, daemon=True).start()
 
         # 🕒 รอบ 14:00 น. - จีน (บ่าย)
-        if now.hour == 14 and now.minute == 0 and not has_run_china_afternoon:
+        if now.hour == 14 and now.minute == 0 and now.weekday() < 5 and not has_run_china_afternoon:
             has_run_china_afternoon = True
             threading.Thread(target=fetch_china_afternoon, daemon=True).start()
 
@@ -4326,7 +4326,7 @@ def time_checker():
             threading.Thread(target=fetch_hanoi_tv, daemon=True).start()
 
         # 🕒 รอบ 15:10 น. - ฮั่งเส็งบ่าย (ปกติ)
-        if now.hour == 15 and now.minute == 10 and not has_run_hangseng_afternoon_normal:
+        if now.hour == 15 and now.minute == 10 and now.weekday() < 5 and not has_run_hangseng_afternoon_normal:
             has_run_hangseng_afternoon_normal = True
             threading.Thread(target=fetch_hangseng_afternoon_normal, daemon=True).start()
 
