@@ -863,6 +863,74 @@ def fetch_taiwan_vip(offset_days=0, is_auto=True):
             return
 
 # ==========================================
+# 🇻🇳 ดึงผล: ฮานอยสตาร์ (12:30)
+# ==========================================
+def fetch_hanoi_star(offset_days=0, is_auto=True):
+    import requests
+    from datetime import datetime, timedelta
+    import time
+
+    target_date = datetime.now(tz) - timedelta(days=offset_days)
+    today_str_api = target_date.strftime("%Y-%m-%d")
+    today_str_display = target_date.strftime("%d-%m-%Y")
+
+    if is_auto:
+        bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยฮานอยสตาร์ งวดวันที่ {today_str_display} ครับ...")
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Accept': 'application/json'
+    }
+
+    attempts = 0
+    while True:
+        attempts += 1
+        # แนบเวลาไปใน URL เพื่อป้องกันเว็บแคชข้อมูลเก่า (แก้ปัญหา Status 304)
+        timestamp = int(time.time() * 1000)
+        url = f"https://api.minhngocstar.com/result?t={timestamp}" 
+
+        try:
+            res = requests.get(url, headers=headers, timeout=15)
+            if res.status_code in [200, 304]: 
+                json_data = res.json()
+                
+                if json_data.get("status") == "success":
+                    data_node = json_data.get("data", {})
+                    api_date = str(data_node.get("lotto_date", "")).strip()
+                    
+                    if api_date == today_str_api:
+                        results = data_node.get("results", {})
+                        
+                        prize_1st = str(results.get("prize_1st") or "").strip()
+                        prize_2nd = str(results.get("prize_2nd") or "").strip()
+                        
+                        if len(prize_1st) >= 3 and len(prize_2nd) >= 2 and prize_1st.isdigit() and prize_2nd.isdigit():
+                            top_3 = prize_1st[-3:]
+                            bottom_2 = prize_2nd[-2:]
+                            
+                            msg = (f"🇻🇳 ผลหวยฮานอยสตาร์ 🇻🇳\n📅 วันที่: {today_str_display}\n\n"
+                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
+                            bot.send_message(GROUP_CHAT_ID, msg)
+                            return 
+                    elif not is_auto and attempts == 1 and api_date != "":
+                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ฮานอยสตาร์: ข้อมูลใน API ตอนนี้เป็นของวันที่ {api_date}")
+                        return
+        except Exception as e:
+            print(f"[Error] ฮานอยสตาร์: {e}")
+            
+        if not is_auto and attempts >= 2:
+            bot.send_message(GROUP_CHAT_ID, f"❌ ฮานอยสตาร์: ไม่พบข้อมูลวันที่ {today_str_display}")
+            return
+            
+        time.sleep(10)
+        
+        # 🛑 ระบบตัดจบ (Timeout): ถ้ารอเกิน 1,080 รอบ (ประมาณ 3 ชั่วโมง)
+        if attempts > 1080:
+            if not is_auto:
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการครับ)")
+            return
+
+# ==========================================
 # 🇹🇼 ดึงผล: หุ้นไต้หวัน (ปกติ)
 # ==========================================
 def fetch_taiwan_normal(offset_days=0, is_auto=True):
@@ -3563,6 +3631,7 @@ def send_welcome(message):
         "- 10:35 น. : หุ้นฮั่งเส็งเช้า VIP /test_hangseng_morning_vip\n"
         "- 11:30 น. : ฮานอยHD /test_hanoi_hd\n"
         "- 11:35 น. : ไต้หวัน VIP /test_taiwan_vip\n"
+        "- 12:30 น. : ฮานอยสตาร์ /test_hanoi_star\n"
         "- 12:30 น. : ไต้หวัน ปกติ /test_taiwan_normal\n"
         "- 11:35 น. : เกาหลี VIP /test_korea_vip\n"
         "- 13:25 น. : นิเคอิบ่าย VIP /test_nikkei_vip_afternoon\n"
@@ -3624,6 +3693,7 @@ ALL_LOTTERY_FUNCTIONS = [
     fetch_taiwan_normal,
     fetch_korea_vip,
     fetch_nikkei_vip_afternoon,
+    fetch_hanoi_star
     fetch_korea_normal,
     fetch_nikkei_afternoon,
     fetch_laos_hd,
@@ -4037,6 +4107,13 @@ def test_hanoi_redcross_cmd(message):
     bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล **ฮานอยกาชาด**...")
     import threading
     threading.Thread(target=fetch_hanoi_redcross, args=(0, False), daemon=True).start()
+
+@bot.message_handler(commands=['test_hanoi_star'])
+def test_hanoi_star_cmd(message):
+    offset = get_offset(message)
+    txt = f" (ย้อนหลัง {offset} วัน)" if offset > 0 else ""
+    bot.reply_to(message, f"🛠️ สั่งทดสอบดึงผล ฮานอยสตาร์{txt}...")
+    threading.Thread(target=fetch_hanoi_star, args=(offset, False), daemon=True).start()
     
 # ==========================================
 # ⏰ 4. ระบบเช็คเวลา 
@@ -4091,6 +4168,7 @@ def time_checker():
     has_run_hangseng_vip_afternoon = False
     has_run_laos_star = False
     has_run_hanoi_redcross = False
+    has_run_hanoi_star = False
     
     last_check_date = ""
 
@@ -4148,6 +4226,7 @@ def time_checker():
             has_run_hangseng_vip_afternoon = False
             has_run_laos_star = False
             has_run_hanoi_redcross = False
+            has_run_hanoi_star = False
 
             last_check_date = current_date
 
