@@ -4266,7 +4266,7 @@ def time_checker():
             threading.Thread(target=fetch_lao_tv, daemon=True).start()
 
         # 🕒 รอบ 10:35 น. - ฮั่งเส็งเช้า VIP
-        if now.hour == 10 and now.minute == 35 and now.weekday() < 5 and not has_run_hangseng_morning_vip:
+        if now.hour == 10 and now.minute == 35 and not has_run_hangseng_morning_vip:
             has_run_hangseng_morning_vip = True
             threading.Thread(target=fetch_hangseng_morning_vip, daemon=True).start()
 
