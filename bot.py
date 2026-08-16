@@ -2252,74 +2252,92 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ หวยหุ้นสิงคโปร์ VIP: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (EGX 30)
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (จาก Sihuay - แก้ปัญหาเว็บจำค่าเก่า)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     import requests
+    from bs4 import BeautifulSoup
     from datetime import datetime, timedelta
+    import re
     import time
 
     target_date = datetime.now(tz) - timedelta(days=offset_days)
     today_str_display = target_date.strftime("%d-%m-%Y")
 
+    thai_months = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+    thai_day = target_date.day
+    thai_month = thai_months[target_date.month]
+    thai_year = target_date.year + 543
+    thai_date_str = f"{thai_day} {thai_month} {thai_year}"
+
     if is_auto:
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยหุ้นอียิปต์ งวดวันที่ {today_str_display} ครับ...")
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Cache-Control": "no-cache" # สั่งไม่ให้โหลดข้อมูลเก่า
     }
 
     attempts = 0
     while True:
         attempts += 1
         
-        # 🚀 ใช้ API ดึงดัชนี EGX30 (^CASE30) โดยตรง พร้อมแนบเวลา _t=... ป้องกันเว็บจำค่าเก่า
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/^CASE30?_t={int(time.time())}"
+        # 🚀 จุดสำคัญ: ใส่ _t=เวลาปัจจุบัน ไว้ในลูป เพื่อให้เว็บคิดว่าเป็นคำขอใหม่ทุกครั้ง!
+        url = f"https://sihuay.com/historical?lotto=egypt&lang=th&_t={int(time.time())}"
         
         try:
             res = requests.get(url, headers=headers, timeout=15)
+            
             if res.status_code == 200:
-                data = res.json()
-                result = data.get("chart", {}).get("result", [])
+                soup = BeautifulSoup(res.text, "html.parser")
+                top3, bot2 = None, None
                 
-                if result:
-                    meta = result[0].get("meta", {})
-                    current_price = meta.get("regularMarketPrice")
-                    prev_close = meta.get("previousClose")
-                    
-                    if current_price and prev_close:
-                        change = current_price - prev_close
-                        
-                        # ป้องกันจังหวะที่ตลาดยังไม่เปิดแล้วค่าเป็น 0
-                        if current_price > 0:
-                            # แปลงเป็น string บังคับทศนิยม 2 ตำแหน่ง
-                            price_str = f"{current_price:.2f}"
-                            change_str = f"{abs(change):.2f}"
-                            
-                            # 🎯 คำนวณ 3 ตัวบน (ดึงตัวเลขหน้าจุด 1 ตัว และหลังจุด 2 ตัว)
-                            integer_part, decimal_part = price_str.split('.')
-                            top_3 = integer_part[-1] + decimal_part
-                            
-                            # 👇 คำนวณ 2 ตัวล่าง (ดึงเฉพาะทศนิยม 2 ตำแหน่ง)
-                            bottom_2 = change_str.split('.')[1]
-                            
-                            msg = (f"🇪🇬 ผลหวยหุ้นอียิปต์ 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
-                                   f"🎯 3 ตัวบน: {top_3}\n👇 2 ตัวล่าง: {bottom_2}\n")
-                            bot.send_message(GROUP_CHAT_ID, msg)
-                            return
+                table = soup.find("table")
+                if table:
+                    tbody = table.find("tbody")
+                    if tbody:
+                        first_row = tbody.find("tr")
+                        if first_row:
+                            cells = first_row.find_all("td")
+                            if len(cells) >= 3:
+                                row_date = cells[0].get_text(strip=True)
+                                
+                                if thai_date_str in row_date:
+                                    top3 = cells[1].get_text(strip=True)
+                                    bot2 = cells[2].get_text(strip=True)
+                                    
+                                    if top3 == "" or bot2 == "":
+                                        if not is_auto and attempts >= 2:
+                                            bot.send_message(GROUP_CHAT_ID, f"⏳ หวยหุ้นอียิปต์: งวดวันที่ {thai_date_str} กำลังรอออกรางวัลครับ (หน้าเว็บกำลังโหลด)")
+                                            return
+                                            
+                                    elif "pending" not in top3.lower() and "pending" not in bot2.lower():
+                                        if re.fullmatch(r"\d+", top3) and re.fullmatch(r"\d+", bot2):
+                                            msg = (f"🇪🇬 ผลหวยหุ้นอียิปต์ 🇪🇬\n📅 วันที่: {today_str_display}\n\n"
+                                                   f"🎯 3 ตัวบน: {top3}\n👇 2 ตัวล่าง: {bot2}\n")
+                                            bot.send_message(GROUP_CHAT_ID, msg)
+                                            return
+                                        else:
+                                            if not is_auto:
+                                                bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลล่าสุดที่พบยังไม่ใช่ตัวเลขที่สมบูรณ์ (บน: {top3}, ล่าง: {bot2})")
+                                                return
+                                else:
+                                    if not is_auto and attempts >= 2:
+                                        bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {thai_date_str} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {row_date})")
+                                        return
         except Exception as e:
-            print(f"[Error] หุ้นอียิปต์ API: {e}")
+            print(f"[Error] Sihuay (Egypt) Exception: {e}")
             
         if not is_auto and attempts >= 2:
-            bot.send_message(GROUP_CHAT_ID, f"❌ หวยหุ้นอียิปต์: ยังไม่สามารถดึงข้อมูลได้ในขณะนี้")
+            bot.send_message(GROUP_CHAT_ID, f"❌ หวยหุ้นอียิปต์: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        time.sleep(30) # ⏳ หน่วงเวลา 30 วินาที ลดภาระเซิร์ฟเวอร์
+        time.sleep(30) # ปรับหน่วงเวลาเป็น 30 วิ เพื่อลดความเสี่ยงโดนบล็อค
         
-        # 🛑 ตัดจบถ้ารอเกิน 3 ชั่วโมง (360 รอบ * 30 วินาที)
+        # ตัดจบถ้ารอเกิน 3 ชั่วโมง (360 รอบ * 30 วินาที)
         if attempts > 360:
             if not is_auto:
-                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล หวยหุ้นอียิปต์ งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการครับ)")
+                bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการครับ)")
             return
 
 # ==========================================
@@ -4392,7 +4410,7 @@ def time_checker():
                 threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
 
         # 🕒 รอบ 19:50 น. - หวยหุ้นอียิปต์ (ทำงานทุกวัน ยกเว้นวันเสาร์)
-        if now.hour == 19 and now.minute == 50 and now.weekday() != 5:
+        if now.hour == 20 and now.minute == 00 and now.weekday() != 5:
             if not has_run_egypt:
                 has_run_egypt = True
                 threading.Thread(target=fetch_egypt_stock_fast, daemon=True).start()
