@@ -2252,7 +2252,7 @@ def fetch_singapore_vip_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"❌ หวยหุ้นสิงคโปร์ VIP: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
 
 # ==========================================
-# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (จาก Sihuay - แก้ปัญหาเว็บจำค่าเก่า)
+# 🇪🇬 ดึงผลหวยหุ้นอียิปต์ (จาก saihuay - แก้ชื่อเว็บถูกต้องแล้ว)
 # ==========================================
 def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
     import requests
@@ -2274,16 +2274,15 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
         bot.send_message(GROUP_CHAT_ID, f"⏳ เริ่มรอผล หวยหุ้นอียิปต์ งวดวันที่ {today_str_display} ครับ...")
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Cache-Control": "no-cache" # สั่งไม่ให้โหลดข้อมูลเก่า
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
 
     attempts = 0
     while True:
         attempts += 1
         
-        # 🚀 จุดสำคัญ: ใส่ _t=เวลาปัจจุบัน ไว้ในลูป เพื่อให้เว็บคิดว่าเป็นคำขอใหม่ทุกครั้ง!
-        url = f"https://sihuay.com/historical?lotto=egypt&lang=th&_t={int(time.time())}"
+        # 🚀 แก้ชื่อเว็บให้ถูกต้อง saihuay.com (มีตัว a) + ระบบทะลุแคช
+        url = f"https://saihuay.com/historical?lotto=egypt&lang=th&_t={int(time.time())}"
         
         try:
             res = requests.get(url, headers=headers, timeout=15)
@@ -2326,15 +2325,14 @@ def fetch_egypt_stock_fast(offset_days=0, is_auto=True):
                                         bot.send_message(GROUP_CHAT_ID, f"⚠️ ผลของวันที่ {thai_date_str} ยังไม่ออกครับ (หน้าเว็บยังเป็นงวด {row_date})")
                                         return
         except Exception as e:
-            print(f"[Error] Sihuay (Egypt) Exception: {e}")
+            print(f"[Error] Saihuay (Egypt) Exception: {e}")
             
         if not is_auto and attempts >= 2:
             bot.send_message(GROUP_CHAT_ID, f"❌ หวยหุ้นอียิปต์: ไม่สามารถดึงข้อมูลได้ในขณะนี้")
             return
             
-        time.sleep(30) # ปรับหน่วงเวลาเป็น 30 วิ เพื่อลดความเสี่ยงโดนบล็อค
+        time.sleep(30)
         
-        # ตัดจบถ้ารอเกิน 3 ชั่วโมง (360 รอบ * 30 วินาที)
         if attempts > 360:
             if not is_auto:
                 bot.send_message(GROUP_CHAT_ID, f"⚠️ ยกเลิกการรอผล งวดวันที่ {today_str_display} (ตลาดอาจจะปิดทำการครับ)")
