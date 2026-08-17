@@ -4407,8 +4407,8 @@ def time_checker():
                 has_run_develop = True
                 threading.Thread(target=fetch_hanoi_develop, daemon=True).start()
 
-        # 🕒 รอบ 19:50 น. - หวยหุ้นอียิปต์ (ทำงานทุกวัน ยกเว้นวันเสาร์)
-        if now.hour == 20 and now.minute == 00 and now.weekday() != 5:
+        # 🕒 รอบ 20:00 น. - หวยหุ้นอียิปต์ (ทำงานทุกวัน ยกเว้นวันศุกร์และเสาร์)
+        if now.hour == 20 and now.minute == 00 and now.weekday() not in [4, 5]:
             if not has_run_egypt:
                 has_run_egypt = True
                 threading.Thread(target=fetch_egypt_stock_fast, daemon=True).start()
